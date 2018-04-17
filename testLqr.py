@@ -3,7 +3,7 @@ import pydart2 as pydart
 import control as ctrl
 import math
 from scipy.optimize import minimize
-
+from scipy import interpolate
 
 class Cart:
     def __init__(self, x, mass):
@@ -43,7 +43,7 @@ def find_lqr_control_input(cart, pendulum, g):
 
     # The Q and R matrices are emperically tuned. It is described further in the report
     Q = np.matrix([
-        [100, 0, 0, 0],
+        [1000, 0, 0, 0],
         [0, 0.01, 0, 0],
         [0, 0, 0.0000001, 0],
         [0, 0, 0, 100]
@@ -63,8 +63,8 @@ def find_lqr_control_input(cart, pendulum, g):
     ])
 
     desired = np.matrix([
-        [1.],
-        [0.1],
+        [2.],
+        [0.05],
         [0.],
         [0]
     ])
@@ -93,18 +93,51 @@ class MyWorld(pydart.World):
 
         self.force = None
         self.duration = 0
-        # self.skeletons[0].body('ground').set_friction_coeff(0.02)
+        self.skeletons[0].body('ground').set_friction_coeff(0.02)
         self.state = [0., 0., 0., 0.]
         self.cart = Cart(0., 5.)
         self.pendulum = Pendulum(1., 0., 1.)
 
+        # self.out_spline = self.generate_spline_trajectory()
+        plist = [(0, 0), (0.2, 0), (0.5, -0.3), (1.0, -0.5), (1.5, -0.3), (1.8, 0), (2.0, 0.0)]
+        self.left_foot_traj = self.generate_spline_trajectory(plist)
+        plist = [(0, 0), (0.2, 0), (0.5, 0.3), (1.0, 0.5), (1.5, 0.3), (1.8, 0), (2.0, 0.0)]
+        self.right_foot_traj = self.generate_spline_trajectory(plist)
+
+        # print("out_spline", type(self.out_spline), type(self.out_spline[0]))
+
+        self.gtime = 0
         self.update_target()
         self.solve()
 
+    def generate_spline_trajectory(self, plist):
+        ctr = np.array(plist)
+
+        x = ctr[:, 0]
+        y = ctr[:, 1]
+
+        l = len(x)
+        t = np.linspace(0, 1, l - 2, endpoint=True)
+        t = np.append([0, 0, 0], t)
+        t = np.append(t, [1, 1, 1])
+        tck = [t, [x, y], 3]
+        u3 = np.linspace(0, 1, (200), endpoint=True)
+
+        # tck, u = interpolate.splprep([x, y], k=3, s=0)
+        # u = np.linspace(0, 1, num=50, endpoint=True)
+        out = interpolate.splev(u3, tck)
+
+        # print("x", out[0])
+        # print("y", out[1])
+
+        return out
+
     def update_target(self, ):
         skel1 = self.skeletons[1]
-
-        self.target_foot = np.array([skel1.q["j_cart_x"], -1.03, skel1.q["j_cart_z"]])
+        print("self.gtime:", self.gtime)
+        # self.target_foot = np.array([skel1.q["j_cart_x"], -0.92, skel1.q["j_cart_z"]])
+        self.target_left_foot = np.array([skel1.q["j_cart_x"], -0.92, self.left_foot_traj[1][self.gtime]-0.05])
+        self.target_right_foot = np.array([skel1.q["j_cart_x"], -0.92, self.right_foot_traj[1][self.gtime]+0.05])
         l = self.skeletons[1].body('h_pole').local_com()[1]
         self.target_pelvis = np.array([skel1.q["j_cart_x"] - l*math.sin(self.pendulum.theta)/2, l*math.cos(self.pendulum.theta)/2, 0])
         # print("target", self.target_pelvis)
@@ -142,27 +175,34 @@ class MyWorld(pydart.World):
 
         self.set_params(x)
         pelvis_state = self.skeletons[2].body("h_pelvis").to_world([0.0, 0.0, 0.0])
-        foot_state = self.skeletons[2].body("h_heel_left").to_world([0.0, 0.0, 0.0])
-        foot_ori = self.skeletons[2].body("h_heel_left").world_transform()
+        left_foot_state = self.skeletons[2].body("h_heel_left").to_world([0.0, 0.0, 0.0])
+        left_foot_ori = self.skeletons[2].body("h_heel_left").world_transform()
+        right_foot_state = self.skeletons[2].body("h_heel_right").to_world([0.0, 0.0, 0.0])
+        right_foot_ori = self.skeletons[2].body("h_heel_right").world_transform()
 
         # print("foot_ori: ", foot_ori[:3, :3])
-        axis_angle =rotationMatrixToEulerAngles(foot_ori[:3, :3])
+        left_axis_angle =rotationMatrixToEulerAngles(left_foot_ori[:3, :3])
+        right_axis_angle = rotationMatrixToEulerAngles(right_foot_ori[:3, :3])
         # print("axis_angle", axis_angle)
 
-        # return 0.5 *  np.linalg.norm(foot_state - self.target_foot) ** 2
-        return 0.5 * (np.linalg.norm(pelvis_state - self.target_pelvis) ** 2 + np.linalg.norm(foot_state - self.target_foot) ** 2 + np.linalg.norm(axis_angle - np.array([0., 0., 0.])) ** 2)
+        # return 0.5 *  np.linalg.norm(left_foot_state - self.target_foot) ** 2
+        return 0.5 * (np.linalg.norm(pelvis_state - self.target_pelvis) ** 2 + np.linalg.norm(left_foot_state - self.target_left_foot) ** 2 + np.linalg.norm(right_foot_state - self.target_right_foot) ** 2 + np.linalg.norm(left_axis_angle - np.array([0., 0., 0.])) ** 2 + np.linalg.norm(right_axis_angle - np.array([0., 0., 0.])) ** 2)
 
     def g(self, x):
         self.set_params(x)
 
         pelvis_state = self.skeletons[2].body("h_pelvis").to_world([0.0, 0.0, 0.0])
-        foot_state = self.skeletons[2].body("h_heel_left").to_world([0.0, 0.0, 0.0])
+        left_foot_state = self.skeletons[2].body("h_heel_left").to_world([0.0, 0.0, 0.0])
+        right_foot_state = self.skeletons[2].body("h_heel_right").to_world([0.0, 0.0, 0.0])
 
         J_pelvis = self.skeletons[2].body("h_pelvis").linear_jacobian()
-        J_foot = self.skeletons[2].body("h_heel_left").linear_jacobian()
+        J_left_foot = self.skeletons[2].body("h_heel_left").linear_jacobian()
+        J_right_foot = self.skeletons[2].body("h_heel_right").linear_jacobian()
 
-        J = np.vstack((J_pelvis, J_foot))
-        AA = np.append(pelvis_state - self.target_pelvis, foot_state - self.target_foot)
+        J_temp = np.vstack((J_pelvis, J_left_foot))
+        J = np.vstack((J_temp, J_right_foot))
+        AA = np.append(pelvis_state - self.target_pelvis, left_foot_state - self.target_left_foot)
+        AAA = np.append(AA, right_foot_state - self.target_right_foot)
 
         # print("pelvis", pelvis_state - self.target_pelvis)
         # print("J", J_pelvis)
@@ -170,7 +210,8 @@ class MyWorld(pydart.World):
         # print("AA", AA)
         # print("J", J)
 
-        g = AA.dot(J)
+        # g = AA.dot(J)
+        g = AAA.dot(J)
         # g = AA.dot(J)[6:]
 
         return g
@@ -201,6 +242,11 @@ class MyWorld(pydart.World):
         #solve ik
         super(MyWorld, self).step()
 
+        if (len(self.left_foot_traj[0]) -1) > self.gtime:
+            self.gtime = self.gtime + 1
+        else:
+            self.gtime = self.gtime
+
         skel.set_positions(q)
         self.update_target()
         self.solve()
@@ -229,7 +275,21 @@ class MyWorld(pydart.World):
         # for ii in range(len(self.desiredTraj1)):
         #     ri.render_sphere([self.desiredTraj1[ii, 0], 0.2, 0], 0.01)
         # ri.render_sphere([self.desiredTraj1[2000, 0], 0.2, 0], 0.02)
-        # ri.render_sphere([0.5, 0.2, 0], 0.02)
+        ri.render_sphere([2.0, -0.90, 0], 0.05)
+        ri.render_sphere([0.0, -0.90, 0], 0.05)
+
+
+
+        for ctr_n in range(0, len(self.left_foot_traj[0])-1, 10):
+            ri.set_color(0., 1., 0.)
+            ri.render_sphere(np.array([self.left_foot_traj[0][ctr_n], -0.9, self.left_foot_traj[1][ctr_n]]), 0.01)
+            ri.set_color(0., 0., 1.)
+            ri.render_sphere(np.array([self.right_foot_traj[0][ctr_n], -0.9, self.right_foot_traj[1][ctr_n]]), 0.01)
+        # ri.render_sphere(np.array([self.out_spline[0][10], -0.9, self.out_spline[1][10]]), 0.03)
+        # ri.render_sphere(np.array([self.out_spline[0][20], -0.9, self.out_spline[1][20]]), 0.03)
+        # ri.render_sphere(np.array([self.out_spline[0][30], -0.9, self.out_spline[1][30]]), 0.03)
+        # ri.render_sphere(np.array([self.out_spline[0][40], -0.9, self.out_spline[1][40]]), 0.03)
+
         # render axes
         ri.render_axes(np.array([0, 0, 0]), 0.5)
         # ri.set_color(0., 0., 0.)
@@ -239,7 +299,8 @@ class MyWorld(pydart.World):
         # ri.set_color(0.0, 1., 0.)
         # ri.render_line(np.array([0, 0, 0]), np.array([0.0, 0.3, 0]))
         # ri.set_color(0.0, 0., 1.)
-        # ri.render_line(np.array([0, 0, 0]), np.array([0.0, 0, 0.3]))
+        # ri.render_line(np.array([0, 0, 0]), np.array([0.0, 0, 0.3])
+
 
 class Controller(object):
     def __init__(self, skel, h):
@@ -327,6 +388,10 @@ if __name__ == '__main__':
     q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.15, -0.4, 0.25
     q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.15, -0.4, 0.25
     q["j_abdomen_2"] = 0.0
+    # both arm T-pose
+    q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
+    q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
+
 
     skel.set_positions(q)
     print('skeleton position OK')
