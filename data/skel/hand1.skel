@@ -1,0 +1,645 @@
+<?xml version="1.0" ?>
+<skel version="1.0">
+    <world name="world 1">
+        <physics>
+            <time_step>0.001</time_step>
+            <gravity>0 -9.81 0</gravity>
+            <collision_detector>fcl_mesh</collision_detector>
+        </physics>
+        
+<!--         <skeleton name="ground skeleton">
+            <mobile>false</mobile>
+            <body name="ground">
+                <transformation>0 -0.92 0 0 0 0</transformation>
+                <visualization_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>5.0 0.05 5.0</size>
+                        </box>
+                    </geometry>
+                    <color>0.5 0.5 0.5 1.0 </color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>10.0 0.05 10.0</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+            <joint type="free" name="joint 1">
+                <parent>world</parent>
+                <child>ground</child>
+            </joint>
+        </skeleton>	 -->
+
+
+<!--         <skeleton name="wall skeleton">
+            <mobile>false</mobile>
+            <body name="wall">
+                <transformation>0.2 0 0 0 0 1.57</transformation>
+                <visualization_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>3.0 0.01 3.0</size>
+                        </box>
+                    </geometry>
+                    <color>0.5 0.5 0.5 1.0 </color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>5.0 0.01 5.0</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+            <joint type="free" name="joint 1">
+                <parent>world</parent>
+                <child>wall</child>
+            </joint>
+        </skeleton>  -->
+
+
+        <skeleton name="hold1">
+            <body name="box">
+                <gravity>1</gravity>
+                <transformation>0.17 -0.1505 -0.1509 0 0 0</transformation>
+                <inertia>
+                    <mass>1</mass>
+                    <offset>0 0 0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.1 0.1</size>
+                        </box>
+                    </geometry>
+                    <color>0.8 0.3 0.3</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.1 0.1</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+            
+            <joint type="weld" name="joint 1">
+                <parent>world</parent>
+                <child>box</child>
+            </joint>
+        </skeleton> 
+
+        <skeleton name="hand1">
+            <transformation>0 0 0 0 0 0</transformation>
+            
+            <body name="h_hand_left">
+                <transformation>0.0 -0.066854 -0.169809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.1440</mass>
+                    <offset>0.0 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>0.2500*0.1319 1.0000*0.1319 0.2500*0.1319</size-->
+                            <size>0.1 0.02 0.1</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>0.2500*0.1319 1.0000*0.1319 0.2500*0.1319</size-->
+                            <size>0.1 0.02 0.1</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+ 
+            <body name="h_thumb_metacarpal_left">
+                <transformation>0.0 -0.066854 -0.089809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.015</mass>
+                    <offset>0.05 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box> 
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_thumb_distal_left">
+                <transformation>0.05 -0.066854 -0.089809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.015</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body> 
+
+
+            <body name="h_index_finger_metacarpal_left">
+                <transformation>0.08 -0.066854 -0.130809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.05 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box> 
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_index_finger_middle_left">
+                <transformation>0.13 -0.066854 -0.130809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_index_finger_distal_left">
+                <transformation>0.17 -0.066854 -0.130809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_middle_finger_metacarpal_left">
+                <transformation>0.08 -0.066854 -0.160809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.05 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box> 
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_middle_finger_middle_left">
+                <transformation>0.13 -0.066854 -0.160809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.04 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.04 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_middle_finger_distal_left">
+                <transformation>0.18 -0.066854 -0.160809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_ring_finger_metacarpal_left">
+                <transformation>0.08 -0.066854 -0.190809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.05 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box> 
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.05 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_ring_finger_middle_left">
+                <transformation>0.13 -0.066854 -0.190809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.03 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_ring_finger_distal_left">
+                <transformation>0.17 -0.066854 -0.190809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+
+            <body name="h_little_finger_metacarpal_left">
+                <transformation>0.08 -0.066854 -0.220809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.04 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box> 
+                            <size>0.04 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.04 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_little_finger_middle_left">
+                <transformation>0.12 -0.066854 -0.220809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_little_finger_distal_left">
+                <transformation>0.15 -0.066854 -0.220809 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>0.01</mass>
+                    <offset>0.03 -0.06595 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.5 0.0</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.00 -0.06595 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.02 0.02 0.02</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+
+<!--             <joint type="free" name="j_hand_left">
+                <parent>world</parent>
+                <child>h_hand_left</child>
+                <init_pos>0 0 0 0 0 0</init_pos>
+                <init_vel>0 0 0 0 0 0</init_vel>
+            </joint> -->
+
+
+            <joint type="free" name="j_hand_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>world</parent>
+                <child>h_hand_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+             <joint type="ball" name="j_thumb_mcp_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_hand_left</parent>
+                <child>h_thumb_metacarpal_left</child>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_thumb_pip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_thumb_metacarpal_left</parent>
+                <child>h_thumb_distal_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint> 
+
+            <joint type="ball" name="j_index_finger_mcp_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_hand_left</parent>
+                <child>h_index_finger_metacarpal_left</child>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_index_finger_pip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_index_finger_metacarpal_left</parent>
+                <child>h_index_finger_middle_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint> 
+
+            <joint type="revolute" name="j_index_finger_dip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_index_finger_middle_left</parent>
+                <child>h_index_finger_distal_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="ball" name="j_middle_finger_mcp_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_hand_left</parent>
+                <child>h_middle_finger_metacarpal_left</child>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_middle_finger_pip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_middle_finger_metacarpal_left</parent>
+                <child>h_middle_finger_middle_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint> 
+
+            <joint type="revolute" name="j_middle_finger_dip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_middle_finger_middle_left</parent>
+                <child>h_middle_finger_distal_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="ball" name="j_ring_finger_mcp_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_hand_left</parent>
+                <child>h_ring_finger_metacarpal_left</child>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_ring_finger_pip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_ring_finger_metacarpal_left</parent>
+                <child>h_ring_finger_middle_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint> 
+
+            <joint type="revolute" name="j_ring_finger_dip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_ring_finger_middle_left</parent>
+                <child>h_ring_finger_distal_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="ball" name="j_little_finger_mcp_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_hand_left</parent>
+                <child>h_little_finger_metacarpal_left</child>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_little_finger_pip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_little_finger_metacarpal_left</parent>
+                <child>h_little_finger_middle_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint> 
+
+            <joint type="revolute" name="j_little_finger_dip_left">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_little_finger_middle_left</parent>
+                <child>h_little_finger_distal_left</child>
+                <axis>
+                    <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0</init_pos>
+                <init_vel>0</init_vel>
+            </joint>
+
+        </skeleton>	
+    </world>
+</skel>
+
