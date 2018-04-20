@@ -67,15 +67,15 @@
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <inertia>
                     <mass>59.999663</mass>
-                    <offset>0.0 0.447889 0.0</offset>
-                    <!-- <offset>0.0 0.947889 0.0</offset> -->
+                    <!-- <offset>0.0 0.447889 0.0</offset> -->
+                    <offset>0.0 0.947889 0.0</offset>
                 </inertia>
                 <visualization_shape>
                     <transformation>0 0.8 0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
-                            <size>0.04 1.0 0.04</size>
-                            <!-- <size>0.04 1.65 0.04</size> -->
+                            <!-- <size>0.04 1.0 0.04</size> -->
+                            <size>0.04 1.65 0.04</size>
                         </box>
                     </geometry>
                 </visualization_shape>
