@@ -211,31 +211,6 @@
                 </collision_shape>                                
             </body>
 
-            <body name="h_blade_left">
-                <transformation>0.01649408 -0.85354016 -0.09072832 0.0 0.0 0.0</transformation>
-                <inertia>
-                    <mass>1.0831</mass>
-                    <offset>0.0216 -0.0216 0.0</offset>
-                </inertia>
-                <visualization_shape>
-                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
-                    <geometry>
-                        <box>
-                            <size>0.2080 0.07 0.005</size>
-                        </box>
-                    </geometry>
-                    <color>1.0 0.0 0.5</color>
-                </visualization_shape>
-                <collision_shape>
-                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
-                    <geometry>
-                        <box>
-                            <size>0.2080 0.07 0.005</size>
-                        </box>
-                    </geometry>
-                </collision_shape>                                
-            </body>
-
             <!-- Right Leg -->
             <body name="h_thigh_right">
                 <transformation>0.01649408 -0.05774016 0.09072832 0.0 0.0 0.0</transformation>
@@ -311,31 +286,6 @@
                         <box>
                             <!--size>1.0000*0.108 0.5000*0.108 1.0000*0.108</size-->
                             <size>0.2080 0.0540 0.1080</size>
-                        </box>
-                    </geometry>
-                </collision_shape>                                
-            </body>
-
-            <body name="h_blade_right">
-                <transformation>0.01649408 -0.85354016 0.09072832 0.0 0.0 0.0</transformation>
-                <inertia>
-                    <mass>1.0831</mass>
-                    <offset>0.0216 -0.0216 0.0</offset>
-                </inertia>
-                <visualization_shape>
-                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
-                    <geometry>
-                        <box>
-                            <size>0.2080 0.07 0.005</size>
-                        </box>
-                    </geometry>
-                    <color>1.0 0.0 0.5</color>
-                </visualization_shape>
-                <collision_shape>
-                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
-                    <geometry>
-                        <box>
-                            <size>0.2080 0.07 0.005</size>
                         </box>
                     </geometry>
                 </collision_shape>                                
@@ -676,12 +626,6 @@
                 <init_vel>0 0</init_vel>
             </joint>
 
-            <joint type="weld" name="j_blade_left">
-                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
-                <parent>h_heel_left</parent>
-                <child>h_blade_left</child>
-            </joint>
-
             <!-- JOINT: Right Leg -->
             <joint type="euler" name="j_thigh_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
@@ -716,13 +660,7 @@
                 <init_pos>0 0</init_pos>
                 <init_vel>0 0</init_vel>
             </joint>
-
-            <joint type="weld" name="j_blade_right">
-                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
-                <parent>h_heel_right</parent>
-                <child>h_blade_right</child>
-            </joint>
-
+            
             <!-- -->
             <joint type="universal" name="j_abdomen">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>

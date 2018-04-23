@@ -84,6 +84,56 @@ def apply_control_input(cart, pendulum, F, time_delta, theta_dot, g):
     # cart.x += ((time_delta**2) * x_double_dot) + (((cart.x - x_tminus2) * time_delta) / previous_time_delta)
     # pendulum.theta += ((time_delta**2)*theta_double_dot) + (((pendulum.theta - theta_tminus2)*time_delta)/previous_time_delta)
 
+from cvxopt import matrix, solvers
+
+class QPcontroller(object):
+    def __init__(self, skel, h):
+        self.h = h
+        self.skel = skel
+        ndofs = self.skel.ndofs
+
+        self.Kp = np.diagflat([0.0] * 6 + [400.0] * (ndofs - 6))
+        self.Kd = np.diagflat([0.0] * 6 + [40.0] * (ndofs - 6))
+
+    def compute(self):
+        # goal : get acceleration and lambda to satisfy the objectives and constraints below
+        skel = self.skel
+        ndofs = self.skel.ndofs
+        # todo : get number of contact
+        nContacts = 4
+
+        # get desired acceleration
+        invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
+        p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+        d = -self.Kd.dot(skel.dq)
+        qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+        des_accel = p + d + qddot
+
+        # coefficient of each term
+        K_tr = 1.0
+        K_cf = 0.1
+
+        P = 2 * matrix(np.diagflat([K_tr] * ndofs + [K_cf] * nContacts))
+        # print("P: ")
+        # print(P)
+        q = np.append(2 * K_tr * des_accel, np.zeros(nContacts))
+        # print("q: ")
+        # print(q)
+
+        # inequality constraint
+        # todo : formulate the contact force !!!!
+        G = matrix([[-1.0, 0.0], [0.0, -1.0]])
+        h = matrix([0.0, 0.0])
+        # equality constraint  -> motion of equation
+        # todo : get J_c * V_c
+        A = matrix([skel.mass_matrix, J_c*V_c], (1, 2))
+        b = matrix(skel.tau-skel.c)
+        sol = solvers.qp(P, q, G, h, A, b)
+
+        #print(sol['x'])
+
+        return sol['x']
 
 class Controller(object):
     def __init__(self, skel, h):
@@ -163,11 +213,11 @@ class MyWorld(pydart.World):
     def __init__(self, ):
         """
         """
-        pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole.skel')
-
+        pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole_blade.skel')
+        # pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole.skel')
         self.force = None
         self.duration = 0
-        # self.skeletons[0].body('ground').set_friction_coeff(0.02)
+        self.skeletons[0].body('ground').set_friction_coeff(0.02)
         self.state = [0., 0., 0., 0.]
         self.cart = Cart(0., 1.)
         self.pendulum = Pendulum(1.65*0.5, 0., 59.999663)
@@ -183,7 +233,10 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # Set target pose
         # self.target = skel.positions()
-        self.controller = Controller(skel, self.dt)
+
+        # self.controller = Controller(skel, self.dt)
+
+        self.controller = QPcontroller(skel, self.dt)
 
         self.gtime = 0
         self.update_target()
@@ -206,7 +259,7 @@ class MyWorld(pydart.World):
         t = np.append([0, 0, 0], t)
         t = np.append(t, [1, 1, 1])
         tck = [t, [x, y], 3]
-        u3 = np.linspace(0, 1, (200), endpoint=True)
+        u3 = np.linspace(0, 1, (500), endpoint=True)
 
         # tck, u = interpolate.splprep([x, y], k=3, s=0)
         # u = np.linspace(0, 1, num=50, endpoint=True)
@@ -283,7 +336,8 @@ class MyWorld(pydart.World):
 
         # todo : calculate the x_axis according to the spline
 
-        x_axis = np.array([0., 0., self.left_der[0][self.gtime]])
+        # x_axis = np.array([0., 0., self.left_der[0][self.gtime]])
+        x_axis = np.array([1.0, 0., 1.0])
         x_axis = x_axis / np.linalg.norm(x_axis)            #normalize
         y_axis = np.array([0., 1., 0.])
         z_axis = np.cross(x_axis, y_axis)
@@ -350,6 +404,10 @@ class MyWorld(pydart.World):
         return res['x']
 
     def step(self):
+        if self.force is not None and self.duration >= 0:
+            self.duration -= 1
+            self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+
         # todo : Update pendulum state according to present character state
         skel = world.skeletons[1]
         q = skel.q
@@ -397,6 +455,10 @@ class MyWorld(pydart.World):
 
         # print("q", q)
 
+        # if self.gtime < 250:
+        #     world.skeletons[2].q["j_pelvis_rot_z"] = -0.2
+        #     print(self.gtime)
+
         #solve ik
         if (len(self.left_foot_traj[0]) -1) > self.gtime:
             self.gtime = self.gtime + 1
@@ -410,15 +472,10 @@ class MyWorld(pydart.World):
         super(MyWorld, self).step()
         skel.set_positions(q)
 
-    def on_step_event(self, ):
-         if self.force is not None and self.duration >= 0:
-             self.duration -= 1
-             self.skeletons[2].body('h_spine').add_ext_force(self.force)
-
     def on_key_press(self, key):
         if key == '1':
-            self.force = np.array([50.0, 0.0, 0.0])
-            self.duration = 100
+            self.force = np.array([500.0, 0.0, 0.0])
+            self.duration = 1000
             print('push backward: f = %s' % self.force)
         elif key == '2':
             self.force = np.array([-50.0, 0.0, 0.0])
@@ -427,7 +484,7 @@ class MyWorld(pydart.World):
 
     def render_with_ri(self, ri):
         if self.force is not None and self.duration >= 0:
-            p0 = self.skeletons[2].body('h_spine').C
+            p0 = self.skeletons[2].body('h_pelvis').C
             p1 = p0 + 0.01 * self.force
             ri.set_color(1.0, 0.0, 0.0)
             ri.render_arrow(p0, p1, r_base=0.05, head_width=0.1, head_len=0.1)
@@ -476,14 +533,24 @@ if __name__ == '__main__':
     skel = world.skeletons[2]
     q = skel.q
 
-    q["j_pelvis_pos_y"] = -0.05
-    q["j_pelvis_rot_y"] = -0.2
-    q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.15, -0.4, 0.25
-    q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.15, -0.4, 0.25
+    # q["j_pelvis_pos_y"] = -0.05
+    # q["j_pelvis_rot_y"] = -0.2
+    # q["j_pelvis_rot_z"] = -0.1
+    # q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.15, -0.4, 0.25
+    # q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.15, -0.4, 0.25
+
+    q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.30, -0.5, 0.25
+    q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.30, -0.5, 0.25
+
+    q["j_heel_left_2"] = 0.7
+    q["j_heel_right_2"] = -0.7
+
     q["j_abdomen_2"] = 0.0
     # both arm T-pose
     q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
     q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
+
+    q["j_pelvis_rot_z"] = -0.2
 
     skel.set_positions(q)
     print('skeleton position OK')
