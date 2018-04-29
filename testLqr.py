@@ -86,21 +86,85 @@ def apply_control_input(cart, pendulum, F, time_delta, theta_dot, g):
 
 from cvxopt import matrix, solvers
 
-class QPcontroller(object):
+class Controller(object):
     def __init__(self, skel, h):
         self.h = h
         self.skel = skel
         ndofs = self.skel.ndofs
+        self.target = None
+
+        self.contact_num = 0
+
+        self.V_c = []
+        self.sol_tau = []
+        self.sol_accel = []
+        self.sol_lambda = []
 
         self.Kp = np.diagflat([0.0] * 6 + [400.0] * (ndofs - 6))
         self.Kd = np.diagflat([0.0] * 6 + [40.0] * (ndofs - 6))
 
+        # coefficient of each term
+        self.K_ef = 10.0
+        self.K_tr = 100
+        self.K_cf = 0.05
+
+    def rotationMatrixToEulerAngles(R):
+
+        # assert (isRotationMatrix(R))
+
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+
+        singular = sy < 1e-6
+
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+
+        return np.array([x, y, z])
+
+    def check_contact(self):
+        # todo : get number of contact
+        skel = self.skel
+
+        contact_name_list = ['h_blade_left', 'h_blade_left', 'h_blade_right', 'h_blade_right']
+        offset_list = [[-0.1040+0.0216, +0.80354016-0.85354016, 0.0],
+                       [0.1040+0.0216, +0.80354016-0.85354016, 0.0],
+                       [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
+                       [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]]
+
+        contact_candi_list = [skel.body(contact_name_list[0]).to_world(offset_list[0]),
+                        skel.body(contact_name_list[1]).to_world(offset_list[1]),
+                        skel.body(contact_name_list[2]).to_world(offset_list[2]),
+                        skel.body(contact_name_list[3]).to_world(offset_list[3])]
+        contact_list = []
+        # print("contact_list", contact_candi_list)
+        cn = 0      # the number of contact point
+        # print("len(contact_list): ", len(contact_list))
+        for ii in range(len(contact_candi_list)):
+            # print(ii, contact_candi_list[ii][1])
+            if -0.92 + 0.025 > contact_candi_list[ii][1]:
+                contact_list.append(contact_name_list[ii])
+                contact_list.append(offset_list[ii])
+                cn = cn + 1
+
+        self.contact_num = cn
+        return contact_list
+
     def compute(self):
         # goal : get acceleration and lambda to satisfy the objectives and constraints below
+
         skel = self.skel
         ndofs = self.skel.ndofs
-        # todo : get number of contact
-        nContacts = 4
+
+        contact_list = self.check_contact()
+        self.contact_list = contact_list
+        contact_num = self.contact_num
+        print("The number of contact is ", contact_num)
 
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
@@ -110,103 +174,202 @@ class QPcontroller(object):
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
-        # coefficient of each term
-        K_tr = 1.0
-        K_cf = 0.1
+        K_ef = self.K_ef
+        K_tr = self.K_tr
+        K_cf = self.K_cf
 
-        P = 2 * matrix(np.diagflat([K_tr] * ndofs + [K_cf] * nContacts))
+        # ===========================
+        # Objective function
+        # ===========================
+        P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num))
         # print("P: ")
         # print(P)
-        q = np.append(2 * K_tr * des_accel, np.zeros(nContacts))
-        # print("q: ")
-        # print(q)
+        qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
+        qqv = np.append(qqv, np.zeros(4 * contact_num))
 
+        qq = matrix(qqv)
+        # print("qq: ", len(qq))
+
+        # ===========================
         # inequality constraint
-        # todo : formulate the contact force !!!!
-        G = matrix([[-1.0, 0.0], [0.0, -1.0]])
-        h = matrix([0.0, 0.0])
+        # ===========================
+        if contact_num != 0:
+            J_c_t = np.zeros((ndofs, 3 * contact_num))
+            J_c_t_der = np.zeros((ndofs, 3 * contact_num))
+            # print("contact_list: \n", contact_list)
+            for ii in range(int(len(contact_list)/2)):
+                contact_body_name = contact_list[2*ii]
+                contact_offset = contact_list[2*ii+1]
+                jaco = skel.body(contact_body_name).linear_jacobian(contact_offset)
+                jaco_der = skel.body(contact_body_name).linear_jacobian_deriv(contact_offset)
+                J_c_t[0:, ii*3:(ii + 1) * 3] = np.transpose(jaco)
+                J_c_t_der[0:, ii*3:(ii + 1) * 3] = np.transpose(jaco_der)
+
+            # print("J_c_t :\n", J_c_t)
+            # print("length o f J_c_t: ", len(J_c_t))
+
+            # self.skeletons[0].body('ground').set_friction_coeff(0.02)
+            myu = 0.02
+            self.V_c = np.zeros((3 * self.contact_num, 4 * self.contact_num))
+
+            v1 = np.array([myu, 1, 0])
+            v1 = v1 / np.linalg.norm(v1)  # normalize
+            v2 = np.array([0, 1, myu])
+            v2 = v2 / np.linalg.norm(v2)  # normalize
+            v3 = np.array([-myu, 1, 0])
+            v3 = v3 / np.linalg.norm(v3)  # normalize
+            v4 = np.array([0, 1, -myu])
+            v4 = v4 / np.linalg.norm(v4)  # normalize
+            #
+            # v1 = np.array([0., 1., 0.])
+            # v2 = np.array([0., 1., 0.])
+            # v3 = np.array([0., 1., 0.])
+            # v4 = np.array([0., 1., 0.])
+
+            V_c_1 = np.array([v1, v2, v3, v4])
+
+            # print("V_c_1 :\n", np.transpose(V_c_1))
+
+            for n in range(self.contact_num):
+                self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
+
+            # print("V_c :\n", self.V_c)
+
+            V_c = self.V_c
+
+            Gm = np.zeros((2*4*contact_num, 2*ndofs + 4*contact_num))
+            Gm[0:4*contact_num, 2*ndofs:] = -1 * np.identity(4*contact_num)
+            Gm[4*contact_num:, ndofs:2*ndofs] = -1 * np.transpose(V_c).dot(np.transpose(J_c_t))
+            G = matrix(Gm)
+            # print("G :\n", G)
+            hv = np.zeros(2*4*contact_num)
+            V_c_t_J_c_dot = np.transpose(V_c).dot(np.transpose(J_c_t_der))
+            hv1 = V_c_t_J_c_dot.dot(skel.dq)
+
+            # todo : calculate the derivative of the basis vector matrix V
+            # v1_dot = v1 * skel.body("h_blade_left")
+            #
+            # left_foot_ori = skel.body("h_heel_left").world_transform()
+            # left_axis_angle =self.rotationMatrixToEulerAngles(left_foot_ori[:3, :3])
+            #
+            # V_c_t_dot =
+            # V_c_t_dot_J_c = V_c_t_dot.dot(np.transpose(J_c_t))
+            # hv2 = V_c_t_dot_J_c.dot(skel.dq)
+            # hv[8:] = hv1 + hv2
+
+            # print(len(hv1))
+            # compensate_vel = skel.body("h_blade_left").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
+            compensate_vel = skel.body("h_blade_right").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
+
+            hv[4*contact_num:] = hv1 - compensate_vel
+            h = matrix(hv)
+            # print("h :\n", h)
+
+        # =============================================
         # equality constraint  -> motion of equation
-        # todo : get J_c * V_c
-        A = matrix([skel.mass_matrix, J_c*V_c], (1, 2))
-        b = matrix(skel.tau-skel.c)
-        sol = solvers.qp(P, q, G, h, A, b)
+        # =============================================
+        Am = np.zeros((ndofs, ndofs*2 + 4 * contact_num))
+        Am[0:, 0:ndofs] = -1*np.identity(ndofs)
+        Am[0:, ndofs:2*ndofs] = skel.M
+
+        if contact_num != 0:
+            J_c_t_V_c = J_c_t.dot(V_c)
+            # print("J_c_t_V_c :\n", J_c_t_V_c)
+            # print("size of J_c_t_V_c :", len(J_c_t_V_c))
+            Am[0:, 2*ndofs:] = -1 * J_c_t_V_c
+
+        A = matrix(Am)
+        # print("A :\n", A)
+        b = matrix(-skel.c)
+
+        if contact_num == 0:
+            sol = solvers.qp(P, qq, None, None, A, b)
+        else:
+            sol = solvers.qp(P, qq, G, h, A, b)
 
         #print(sol['x'])
 
-        return sol['x']
+        solution = np.array(sol['x'])
 
-class Controller(object):
-    def __init__(self, skel, h):
-        self.h = h
-        self.skel = skel
-        ndofs = self.skel.ndofs
-        # self.qhat = self.skel.q
-        self.target = None
+        self.sol_tau = solution[:skel.ndofs].flatten()
+        self.sol_accel = solution[skel.ndofs:2 * skel.ndofs].flatten()
+        self.sol_lambda = solution[2 * skel.ndofs:].flatten()
 
-        self.Kp = np.diagflat([0.0] * 6 + [400.0] * (ndofs - 6))
-        self.Kd = np.diagflat([0.0] * 6 + [40.0] * (ndofs - 6))
-        self.preoffset = 0.0
+        # print("self.sol_tau: \n", self.sol_tau)
+        return self.sol_tau
 
-    def compute(self):
-        skel = self.skel
 
-        # Algorithm:
-        # Stable Proportional-Derivative Controllers.
-        # Jie Tan, Karen Liu, Greg Turk
-        # IEEE Computer Graphics and Applications, 31(4), 2011.
-
-        invM = np.linalg.inv(skel.M + self.Kd * self.h)
-        # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
-        p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
-        d = -self.Kd.dot(skel.dq)
-        qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
-        tau = p + d - self.Kd.dot(qddot) * self.h
-        #
-        # # Check the balance
-        # COP = skel.body('h_heel_left').to_world([0.05, 0, 0])
-        # offset = skel.C[0] - COP[0] + 0.03
-        # preoffset = self.preoffset
-        #
-        # # Adjust the target pose -- translated from bipedStand app of DART
-        #
-        # # foot = skel.dof_indices(["j_heel_left_1", "j_toe_left",
-        # #                          "j_heel_right_1", "j_toe_right"])
-        # foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
-        # # if 0.0 < offset < 0.1:
-        # #     k1, k2, kd = 200.0, 100.0, 10.0
-        # #     k = np.array([-k1, -k2, -k1, -k2])
-        # #     tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
-        # #     self.preoffset = offset
-        # # elif -0.2 < offset < -0.05:
-        # #     k1, k2, kd = 2000.0, 100.0, 100.0
-        # #     k = np.array([-k1, -k2, -k1, -k2])
-        # #     tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
-        # #     self.preoffset = offset
-        #
-        # # # High-stiffness
-        # # k1, k2, kd = 200.0, 10.0, 10.0
-        # # k = np.array([-k1, -k2, -k1, -k2])
-        # # tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
-        # # print("offset = %s" % offset)
-        # # self.preoffset = offset
-        #
-        # # Low-stiffness
-        # k1, k2, kd = 20.0, 1.0, 10.0
-        # k = np.array([-k1, -k1])
-        # tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(2)
-        # if offset > 0.03:
-        #     tau[foot] += 0.3 * np.array([-100.0, -100.0])
-        #     # print("Discrete A")
-        # if offset < -0.02:
-        #     tau[foot] += -1.0 * np.array([-100.0, -100.0])
-        #     # print("Discrete B")
-        # # print("offset = %s" % offset)
-        # self.preoffset = offset
-
-        # Make sure the first six are zero
-        tau[:6] = 0
-        return tau
-
+# class Controller(object):
+#     def __init__(self, skel, h):
+#         self.h = h
+#         self.skel = skel
+#         ndofs = self.skel.ndofs
+#         # self.qhat = self.skel.q
+#         self.target = None
+#
+#         self.Kp = np.diagflat([0.0] * 6 + [400.0] * (ndofs - 6))
+#         self.Kd = np.diagflat([0.0] * 6 + [40.0] * (ndofs - 6))
+#         self.preoffset = 0.0
+#
+#     def compute(self):
+#         skel = self.skel
+#
+#         # Algorithm:
+#         # Stable Proportional-Derivative Controllers.
+#         # Jie Tan, Karen Liu, Greg Turk
+#         # IEEE Computer Graphics and Applications, 31(4), 2011.
+#
+#         invM = np.linalg.inv(skel.M + self.Kd * self.h)
+#         # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
+#         p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+#         d = -self.Kd.dot(skel.dq)
+#         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+#         tau = p + d - self.Kd.dot(qddot) * self.h
+#         #
+#         # # Check the balance
+#         # COP = skel.body('h_heel_left').to_world([0.05, 0, 0])
+#         # offset = skel.C[0] - COP[0] + 0.03
+#         # preoffset = self.preoffset
+#         #
+#         # # Adjust the target pose -- translated from bipedStand app of DART
+#         #
+#         # # foot = skel.dof_indices(["j_heel_left_1", "j_toe_left",
+#         # #                          "j_heel_right_1", "j_toe_right"])
+#         # foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
+#         # # if 0.0 < offset < 0.1:
+#         # #     k1, k2, kd = 200.0, 100.0, 10.0
+#         # #     k = np.array([-k1, -k2, -k1, -k2])
+#         # #     tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
+#         # #     self.preoffset = offset
+#         # # elif -0.2 < offset < -0.05:
+#         # #     k1, k2, kd = 2000.0, 100.0, 100.0
+#         # #     k = np.array([-k1, -k2, -k1, -k2])
+#         # #     tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
+#         # #     self.preoffset = offset
+#         #
+#         # # # High-stiffness
+#         # # k1, k2, kd = 200.0, 10.0, 10.0
+#         # # k = np.array([-k1, -k2, -k1, -k2])
+#         # # tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(4)
+#         # # print("offset = %s" % offset)
+#         # # self.preoffset = offset
+#         #
+#         # # Low-stiffness
+#         # k1, k2, kd = 20.0, 1.0, 10.0
+#         # k = np.array([-k1, -k1])
+#         # tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(2)
+#         # if offset > 0.03:
+#         #     tau[foot] += 0.3 * np.array([-100.0, -100.0])
+#         #     # print("Discrete A")
+#         # if offset < -0.02:
+#         #     tau[foot] += -1.0 * np.array([-100.0, -100.0])
+#         #     # print("Discrete B")
+#         # # print("offset = %s" % offset)
+#         # self.preoffset = offset
+#
+#         # Make sure the first six are zero
+#         tau[:6] = 0
+#         return tau
 
 
 class MyWorld(pydart.World):
@@ -234,19 +397,17 @@ class MyWorld(pydart.World):
         # Set target pose
         # self.target = skel.positions()
 
-        # self.controller = Controller(skel, self.dt)
-
-        self.controller = QPcontroller(skel, self.dt)
+        self.controller = Controller(skel, self.dt)
 
         self.gtime = 0
         self.update_target()
-
-        # self.controller.target = self.target
 
         #self.solve()
         self.controller.target = self.solve()
         skel.set_controller(self.controller)
         print('create controller OK')
+
+        self.contact_force = []
 
     def generate_spline_trajectory(self, plist):
         ctr = np.array(plist)
@@ -264,9 +425,9 @@ class MyWorld(pydart.World):
         # tck, u = interpolate.splprep([x, y], k=3, s=0)
         # u = np.linspace(0, 1, num=50, endpoint=True)
         out = interpolate.splev(u3, tck)
-        print("out: ", out)
+        # print("out: ", out)
         der = interpolate.splev(u3, tck, der = 1)
-        print("der: ", der)
+        # print("der: ", der)
 
         # print("x", out[0])
         # print("y", out[1])
@@ -404,11 +565,14 @@ class MyWorld(pydart.World):
         return res['x']
 
     def step(self):
+
+        # cf = pydart.world.CollisionResult.num_contacts()
+        # print("CollisionResult : \n", cf)
+
         if self.force is not None and self.duration >= 0:
             self.duration -= 1
             self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
 
-        # todo : Update pendulum state according to present character state
         skel = world.skeletons[1]
         q = skel.q
 
@@ -469,8 +633,33 @@ class MyWorld(pydart.World):
         self.controller.target = self.solve()
         # print(self.controller.target)
 
+        # print("self.controller.sol_lambda: \n", self.controller.sol_lambda)
+
+        # f= []
+        # print("self.controller.V_c", type(self.controller.V_c), self.controller.V_c)
+        # for n in range(len(self.controller.sol_lambda) // 4):
+        #     f = self.controller.V_c.dot(self.controller.sol_lambda)
+
+        if len(self.controller.sol_lambda) != 0:
+            f_vec = self.controller.V_c.dot(self.controller.sol_lambda)
+            # print("f", f_vec)
+
+            f_vec = np.asarray(f_vec)
+
+            # self.contact_force = np.zeros(self.controller.contact_num)
+            for ii in range(self.controller.contact_num):
+                self.contact_force.append(np.array([f_vec[3*ii], f_vec[3*ii+1], f_vec[3*ii+2]]))
+                # self.contact_force[ii] = np.array([f_vec[3*ii], f_vec[3*ii+1], f_vec[3*ii+2]])
+                # print("contact_force:", self.contact_force[ii])
+
+            for ii in range(len(f_vec) // 3):
+                self.skeletons[2].body(self.controller.contact_list[2 * ii])\
+                    .add_ext_force(self.contact_force[ii], self.controller.contact_list[2 * ii+1])
+
         super(MyWorld, self).step()
+
         skel.set_positions(q)
+
 
     def on_key_press(self, key):
         if key == '1':
@@ -498,6 +687,25 @@ class MyWorld(pydart.World):
         # ri.render_sphere([self.desiredTraj1[2000, 0], 0.2, 0], 0.02)
         ri.render_sphere([2.0, -0.90, 0], 0.05)
         ri.render_sphere([0.0, -0.90, 0], 0.05)
+
+        # render contact force --yul
+
+        # ri.set_color(1.0, 1.0, 1.0)
+        # ri.render_sphere(skel.body('h_blade_right').to_world([-0.1040+0.0216, +0.80354016-0.85354016, 0.0]), 0.01)
+        # ri.render_sphere(skel.body('h_blade_right').to_world([0.1040+0.0216, +0.80354016-0.85354016, 0.0]), 0.01)
+
+        # ri.render_sphere(skel.body('h_blade_right').to_world([-0.1040 + 0.0216, -0.07, 0.0]), 0.01)
+        # ri.render_sphere(skel.body('h_blade_right').to_world([0.1040 + 0.0216, -0.07, 0.0]), 0.01)
+
+        # print("heel", self.skeletons[2].body("h_heel_left").to_world())
+        contact_force = np.asarray(self.contact_force)
+
+        if contact_force.size != 0:
+            ri.set_color(1.0, 0.0, 0.0)
+            for ii in range(self.controller.contact_num):
+                print("contact force : ", contact_force[ii])
+                ri.render_line(self.skeletons[2].body(self.controller.contact_list[2*ii]).
+                               to_world(self.controller.contact_list[2*ii+1]), contact_force[ii])
 
         for ctr_n in range(0, len(self.left_foot_traj[0])-1, 10):
             ri.set_color(0., 1., 0.)
@@ -531,6 +739,11 @@ if __name__ == '__main__':
     print('MyWorld  OK')
 
     skel = world.skeletons[2]
+
+    # enable the contact of skeleton
+    # skel.set_self_collision_check(1)
+    # world.skeletons[0].body('ground').set_collidable(False)
+
     q = skel.q
 
     # q["j_pelvis_pos_y"] = -0.05
@@ -555,12 +768,12 @@ if __name__ == '__main__':
     skel.set_positions(q)
     print('skeleton position OK')
 
-    print('[Joint]')
-    for joint in skel.joints:
-        print("\t" + str(joint))
-        print("\t\tparent = " + str(joint.parent_bodynode))
-        print("\t\tchild = " + str(joint.child_bodynode))
-        print("\t\tdofs = " + str(joint.dofs))
+    # print('[Joint]')
+    # for joint in skel.joints:
+    #     print("\t" + str(joint))
+    #     print("\t\tparent = " + str(joint.parent_bodynode))
+    #     print("\t\tchild = " + str(joint.child_bodynode))
+    #     print("\t\tdofs = " + str(joint.dofs))
 
     # Set joint damping
     # for dof in skel.dofs:
