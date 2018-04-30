@@ -185,7 +185,8 @@ class Controller(object):
         # print("P: ")
         # print(P)
         qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
-        qqv = np.append(qqv, np.zeros(4 * contact_num))
+        if contact_num != 0:
+            qqv = np.append(qqv, np.zeros(4 * contact_num))
 
         qq = matrix(qqv)
         # print("qq: ", len(qq))
@@ -261,7 +262,7 @@ class Controller(object):
             # compensate_vel = skel.body("h_blade_left").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
             compensate_vel = skel.body("h_blade_right").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
 
-            hv[4*contact_num:] = hv1 - compensate_vel
+            hv[4*contact_num:] = hv1 + compensate_vel
             h = matrix(hv)
             # print("h :\n", h)
 
@@ -627,6 +628,7 @@ class MyWorld(pydart.World):
         if (len(self.left_foot_traj[0]) -1) > self.gtime:
             self.gtime = self.gtime + 1
         else:
+            print("TRAJECTORY OVER!!!!")
             self.gtime = self.gtime
 
         self.update_target()
@@ -760,8 +762,8 @@ if __name__ == '__main__':
 
     q["j_abdomen_2"] = 0.0
     # both arm T-pose
-    q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
-    q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
+    # q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
+    # q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
 
     q["j_pelvis_rot_z"] = -0.2
 
