@@ -22,8 +22,8 @@ class Controller(object):
 
         # coefficient of each term
         self.K_ef = 10.0
-        self.K_tr = 100
-        self.K_cf = 0.05
+        self.K_tr = 1000.0
+        self.K_cf = 10000.0
 
     def rotationMatrixToEulerAngles(self, R):
 
@@ -63,7 +63,7 @@ class Controller(object):
         # print("len(contact_list): ", len(contact_list))
         for ii in range(len(contact_candi_list)):
             # print(ii, contact_candi_list[ii][1])
-            if -0.92 + 0.025 > contact_candi_list[ii][1]:
+            if -0.92 + 0.05 > contact_candi_list[ii][1]:
                 contact_list.append(contact_name_list[ii])
                 contact_list.append(offset_list[ii])
                 cn = cn + 1
@@ -85,9 +85,6 @@ class Controller(object):
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
         # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
-        print("+++++++++++++++++++++++++++++++++++")
-        print("target:", self.target)
-        print("+++++++++++++++++++++++++++++++++++")
         p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
         d = -self.Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
@@ -142,9 +139,13 @@ class Controller(object):
             v4 = v4 / np.linalg.norm(v4)  # normalize
             #
             # v1 = np.array([0., 1., 0.])
+            # v1 = v1 / np.linalg.norm(v1)
             # v2 = np.array([0., 1., 0.])
+            # v2 = v2 / np.linalg.norm(v2)
             # v3 = np.array([0., 1., 0.])
+            # v3 = v3 / np.linalg.norm(v3)
             # v4 = np.array([0., 1., 0.])
+            # v4 = v4 / np.linalg.norm(v4)
 
             V_c_1 = np.array([v1, v2, v3, v4])
 
@@ -211,23 +212,33 @@ class Controller(object):
             h = matrix(hv)
             # print("h :\n", h)
 
-        # =============================================
-        # equality constraint  -> motion of equation
-        # =============================================
-        Am = np.zeros((ndofs, ndofs*2 + 4 * contact_num))
-        Am[0:, 0:ndofs] = -1*np.identity(ndofs)
-        Am[0:, ndofs:2*ndofs] = skel.M
-
+        # ===========================================================
+        # Equality constraint
+        # (1) motion of equation
+        # (2) tau[0:6] = 0
+        # ===========================================================
         if contact_num != 0:
+            Am = np.zeros((ndofs+6, ndofs * 2 + 4 * contact_num))
+            Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+            Am[0:ndofs, ndofs:2 * ndofs] = skel.M
             J_c_t_V_c = J_c_t.dot(V_c)
             # print("J_c_t_V_c :\n", J_c_t_V_c)
             # print("size of J_c_t_V_c :", len(J_c_t_V_c))
-            Am[0:, 2*ndofs:] = -1 * J_c_t_V_c
+            Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
+            Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+        else:
+            Am = np.zeros((ndofs+6, ndofs * 2))
+            Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+            Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+            Am[ndofs:ndofs+6, 0:6] = np.eye(6)
 
         A = matrix(Am)
         # print("A :\n", A)
-        b = matrix(-skel.c)
+        b_vec = np.zeros(ndofs+6)
+        b_vec[0:ndofs] = -1 * skel.c
+        b = matrix(b_vec)
 
+        solvers.options['show_progress'] = False
         if contact_num == 0:
             sol = solvers.qp(P, qq, None, None, A, b)
         else:
