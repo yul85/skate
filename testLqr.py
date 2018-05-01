@@ -96,6 +96,7 @@ class Controller(object):
         self.contact_num = 0
 
         self.V_c = []
+        self.V_c_dot = []
         self.sol_tau = []
         self.sol_accel = []
         self.sol_lambda = []
@@ -108,7 +109,7 @@ class Controller(object):
         self.K_tr = 100
         self.K_cf = 0.05
 
-    def rotationMatrixToEulerAngles(R):
+    def rotationMatrixToEulerAngles(self, R):
 
         # assert (isRotationMatrix(R))
 
@@ -128,7 +129,6 @@ class Controller(object):
         return np.array([x, y, z])
 
     def check_contact(self):
-        # todo : get number of contact
         skel = self.skel
 
         contact_name_list = ['h_blade_left', 'h_blade_left', 'h_blade_right', 'h_blade_right']
@@ -247,22 +247,48 @@ class Controller(object):
             V_c_t_J_c_dot = np.transpose(V_c).dot(np.transpose(J_c_t_der))
             hv1 = V_c_t_J_c_dot.dot(skel.dq)
 
-            # todo : calculate the derivative of the basis vector matrix V
-            # v1_dot = v1 * skel.body("h_blade_left")
-            #
-            # left_foot_ori = skel.body("h_heel_left").world_transform()
-            # left_axis_angle =self.rotationMatrixToEulerAngles(left_foot_ori[:3, :3])
-            #
-            # V_c_t_dot =
-            # V_c_t_dot_J_c = V_c_t_dot.dot(np.transpose(J_c_t))
-            # hv2 = V_c_t_dot_J_c.dot(skel.dq)
-            # hv[8:] = hv1 + hv2
+            self.V_c_dot = np.zeros((3 * self.contact_num, 4 * self.contact_num))
 
-            # print(len(hv1))
-            # compensate_vel = skel.body("h_blade_left").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
-            compensate_vel = skel.body("h_blade_right").com_linear_velocity()[1] * self.h * np.ones(len(hv1))
+            omega = []
+            V_c_dot_stack = []
+            compensate_vel = []
 
-            hv[4*contact_num:] = hv1 + compensate_vel
+            for ii in range(self.contact_num):
+                contact_body_name = contact_list[2*ii]
+                blade_ori = skel.body(contact_body_name).world_transform()
+                angle = self.rotationMatrixToEulerAngles(blade_ori[:3, :3])
+                omega.append(np.array([0., angle[1]/self.h, 0.]))
+
+                v1_dot = np.cross(v1, omega[ii])
+                v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
+                v2_dot = np.cross(v2, omega[ii])
+                v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
+                v3_dot = np.cross(v3, omega[ii])
+                v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
+                v4_dot = np.cross(v4, omega[ii])
+                v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
+
+                V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
+
+                compensate_vel.append(skel.body(contact_body_name).com_linear_velocity()[1] * self.h)
+
+            # print("omega: \n", omega)
+            # print("V_c_dot :\n", V_c_dot_stack)
+
+            compensate_vel_vec = np.zeros(4*contact_num)
+            for n in range(self.contact_num):
+                self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
+                compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
+
+            V_c_dot = self.V_c_dot
+            V_c_t_dot_J_c = np.transpose(V_c_dot).dot(np.transpose(J_c_t))
+            hv2 = V_c_t_dot_J_c.dot(skel.dq)
+
+            # print("hv1", hv1)
+            # print("hv2", hv2)
+            # print("compensate_vel: \n", compensate_vel_vec)
+
+            hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
             h = matrix(hv)
             # print("h :\n", h)
 
