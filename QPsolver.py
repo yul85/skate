@@ -1,11 +1,12 @@
 import numpy as np
 import math
 from cvxopt import matrix, solvers
+from pydart2.skeleton import Skeleton
 
 class Controller(object):
     def __init__(self, skel, h):
         self.h = h
-        self.skel = skel
+        self.skel = skel  # type: Skeleton
         ndofs = self.skel.ndofs
         self.target = None
 
@@ -24,6 +25,7 @@ class Controller(object):
         self.K_ef = 10.0
         self.K_tr = 1000.0
         self.K_cf = 10000.0
+        # self.K_cf = 5000.0
 
     def rotationMatrixToEulerAngles(self, R):
 
@@ -70,6 +72,30 @@ class Controller(object):
 
         self.contact_num = cn
         return contact_list
+
+    def get_foot_info(self, body_name):
+        skel = self.skel
+        jaco = skel.body(body_name).linear_jacobian()
+        jaco_der = skel.body(body_name).linear_jacobian_deriv()
+
+        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+        if body_name == "h_blade_right":
+            blade_direction_vec = p2 - p1
+        else:
+            blade_direction_vec = p1 - p2
+        blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+
+        theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        # print("theta: ", theta)
+        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
+        next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * self.h
+        # print("next_step_angle: ", next_step_angle)
+        sa = math.sin(next_step_angle)
+        ca = math.cos(next_step_angle)
+
+        return jaco, jaco_der, sa, ca
 
     def compute(self):
         # goal : get acceleration and lambda to satisfy the objectives and constraints below
@@ -169,24 +195,29 @@ class Controller(object):
 
             self.V_c_dot = np.zeros((3 * self.contact_num, 4 * self.contact_num))
 
+            # compensate the velocity at the moment colliding the ground
+
             omega = []
             V_c_dot_stack = []
             compensate_vel = []
 
             for ii in range(self.contact_num):
                 contact_body_name = contact_list[2*ii]
-                blade_ori = skel.body(contact_body_name).world_transform()
-                angle = self.rotationMatrixToEulerAngles(blade_ori[:3, :3])
-                omega.append(np.array([0., angle[1]/self.h, 0.]))
+                angular_vel = skel.body(contact_body_name).world_angular_velocity()
+                omega.append(angular_vel)
 
                 v1_dot = np.cross(v1, omega[ii])
-                v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
+                if np.linalg.norm(v1_dot) != 0:
+                    v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
                 v2_dot = np.cross(v2, omega[ii])
-                v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
+                if np.linalg.norm(v2_dot) != 0:
+                    v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
                 v3_dot = np.cross(v3, omega[ii])
-                v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
+                if np.linalg.norm(v3_dot) != 0:
+                    v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
                 v4_dot = np.cross(v4, omega[ii])
-                v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
+                if np.linalg.norm(v4_dot) != 0:
+                    v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
 
                 V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
 
@@ -214,11 +245,15 @@ class Controller(object):
 
         # ===========================================================
         # Equality constraint
-        # (1) motion of equation
-        # (2) tau[0:6] = 0
+        # (1) motion of equation                       | ndofs
+        # (2) tau[0:6] = 0                             | 6
+        # (3) non-holonomic constraint : Knife-edge    | 2 (left, right)
         # ===========================================================
+        jaco_L, jaco_der_L, sa_L, ca_L = self.get_foot_info("h_blade_left")
+        jaco_R, jaco_der_R, sa_R, ca_R = self.get_foot_info("h_blade_right")
+
         if contact_num != 0:
-            Am = np.zeros((ndofs+6, ndofs * 2 + 4 * contact_num))
+            Am = np.zeros((ndofs+6+2, ndofs * 2 + 4 * contact_num))
             Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
             Am[0:ndofs, ndofs:2 * ndofs] = skel.M
             J_c_t_V_c = J_c_t.dot(V_c)
@@ -226,17 +261,27 @@ class Controller(object):
             # print("size of J_c_t_V_c :", len(J_c_t_V_c))
             Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
             Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+            Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+            Am[ndofs + 6 + 1:, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
         else:
-            Am = np.zeros((ndofs+6, ndofs * 2))
+            Am = np.zeros((ndofs+6+2, ndofs * 2))
             Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
             Am[0:ndofs, ndofs:2 * ndofs] = skel.M
             Am[ndofs:ndofs+6, 0:6] = np.eye(6)
-
+            Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
+            Am[ndofs + 6+1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
         A = matrix(Am)
         # print("A :\n", A)
-        b_vec = np.zeros(ndofs+6)
+
+        b_vec = np.zeros(ndofs + 6 + 2)
         b_vec[0:ndofs] = -1 * skel.c
+        b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
+                                   (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
+        b_vec[ndofs + 6+1:] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
+                              (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
+
         b = matrix(b_vec)
+        # print("b: \n", b)
 
         solvers.options['show_progress'] = False
         if contact_num == 0:

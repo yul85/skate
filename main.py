@@ -32,11 +32,11 @@ class MyWorld(pydart.World):
         self.controller = QPsolver.Controller(skel, self.dt)
 
         self.gtime = 0
-        # self.ik = IKsolver.IKsolver(self.skeletons[1], self.skeletons[2], self.left_foot_traj, self.right_foot_traj, self.gtime, self.pendulum)
-        # self.ik.update_target()
-        # self.controller.target = self.ik.solve()
+        self.ik = IKsolver.IKsolver(self.skeletons[1], self.skeletons[2], self.left_foot_traj, self.right_foot_traj, self.gtime, self.pendulum)
+        self.ik.update_target()
+        self.controller.target = self.ik.solve()
         # self.controller.target = np.zeros(self.skeletons[2].ndofs)
-        self.controller.target = self.skeletons[2].q
+        # self.controller.target = np.zeros(self.skeletons[2].ndofs)  #self.skeletons[2].q
         skel.set_controller(self.controller)
         print('create controller OK')
 
@@ -134,10 +134,10 @@ class MyWorld(pydart.World):
             self.gtime = self.gtime
 
         #solve ik
-        # self.ik.update_target()
-        # self.controller.target = self.ik.solve()
+        self.ik.update_target()
+        self.controller.target = self.ik.solve()
         # self.controller.target = np.zeros(self.skeletons[2].ndofs)
-        self.controller.target = self.skeletons[2].q
+        # self.controller.target = self.skeletons[2].q
         # print("qqqqqq", self.controller.target)
 
         # print("self.controller.sol_lambda: \n", self.controller.sol_lambda)
@@ -148,18 +148,20 @@ class MyWorld(pydart.World):
         #     f = self.controller.V_c.dot(self.controller.sol_lambda)
         del self.contact_force[:]
         if len(self.controller.sol_lambda) != 0:
+        #     for ii in range(len(self.controller.sol_lambda)):
+                # if ii % 2 != 0.0:
+                #     self.controller.sol_lambda[ii] = 5*self.controller.sol_lambda[ii]
+            print("self.controller.sol_lambda: \n", self.controller.sol_lambda)
+
             f_vec = self.controller.V_c.dot(self.controller.sol_lambda)
             # print("f", f_vec)
-
             f_vec = np.asarray(f_vec)
-
-            print("contact num ?? : ", self.controller.contact_num)
-
+            # print("contact num ?? : ", self.controller.contact_num)
             # self.contact_force = np.zeros(self.controller.contact_num)
             for ii in range(self.controller.contact_num):
                 self.contact_force.append(np.array([f_vec[3*ii], f_vec[3*ii+1], f_vec[3*ii+2]]))
                 # self.contact_force[ii] = np.array([f_vec[3*ii], f_vec[3*ii+1], f_vec[3*ii+2]])
-                print("contact_force:", ii, self.contact_force[ii])
+                # print("contact_force:", ii, self.contact_force[ii])
 
             # print("contact_force:\n", self.contact_force)
             for ii in range(self.controller.contact_num):
@@ -169,7 +171,6 @@ class MyWorld(pydart.World):
         super(MyWorld, self).step()
 
         skel.set_positions(q)
-
 
     def on_key_press(self, key):
         if key == '1':
@@ -192,18 +193,18 @@ class MyWorld(pydart.World):
         ri.render_sphere([0.0, -0.90, 0], 0.05)
 
         # render contact force --yul
-        # contact_force = np.asarray(self.contact_force)
         contact_force = self.contact_force
 
         if len(contact_force) != 0:
             print(len(contact_force), len(self.controller.contact_list))
             # print("contact_force.size?", contact_force.size, len(contact_force))
             ri.set_color(1.0, 0.0, 0.0)
-            for ii in range(len(self.controller.contact_list)//2):
-                body = self.skeletons[2].body(self.controller.contact_list[2*ii])
-                contact_offset = self.controller.contact_list[2*ii+1]
-                # print("contact force : ", contact_force[ii])
-                ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
+            for ii in range(len(contact_force)):
+                if 2 * len(contact_force) == len(self.controller.contact_list):
+                    body = self.skeletons[2].body(self.controller.contact_list[2*ii])
+                    contact_offset = self.controller.contact_list[2*ii+1]
+                    # print("contact force : ", contact_force[ii])
+                    ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
 
         for ctr_n in range(0, len(self.left_foot_traj[0])-1, 10):
             ri.set_color(0., 1., 0.)
@@ -237,12 +238,16 @@ if __name__ == '__main__':
     q["j_heel_left_2"] = 0.7
     q["j_heel_right_2"] = -0.7
 
+    # q["j_heel_left_2"] = 0.01
+    # q["j_heel_right_2"] = -0.01
+
     q["j_abdomen_2"] = 0.0
     # both arm T-pose
     # q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
     # q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
 
-    q["j_pelvis_rot_z"] = -0.1
+    # todo : make the character move forward !!!!
+    q["j_pelvis_rot_z"] = -0.2
 
     skel.set_positions(q)
     print('skeleton position OK')
