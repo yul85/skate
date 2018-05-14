@@ -41,7 +41,7 @@ def find_lqr_control_input(cart, pendulum, g):
     # The Q and R matrices are emperically tuned. It is described further in the report
     Q = np.matrix([
         [1000, 0, 0, 0],
-        [0, 0.01, 0, 0],
+        [0, 0.001, 0, 0],
         [0, 0, 0.0000001, 0],
         [0, 0, 0, 100]
     ])
@@ -60,8 +60,8 @@ def find_lqr_control_input(cart, pendulum, g):
     ])
 
     desired = np.matrix([
-        [2.],
-        [0.05],
+        [2.0],
+        [0.1],
         [0.],
         [0]
     ])

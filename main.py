@@ -8,15 +8,15 @@ from scipy import interpolate
 
 class MyWorld(pydart.World):
     def __init__(self, ):
-        pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole_blade.skel')
+        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade.skel')
         # pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole.skel')
         self.force = None
         self.duration = 0
         self.skeletons[0].body('ground').set_friction_coeff(0.02)
         self.state = [0., 0., 0., 0.]
         self.cart = IPC_1D.Cart(0., 1.)
-        self.pendulum = IPC_1D.Pendulum(1.65*0.5, 0., 59.999663)
-
+        # self.pendulum = IPC_1D.Pendulum(1.65*0.5, 0., 59.999663)
+        self.pendulum = IPC_1D.Pendulum(1.65 * 0.5, 0., 59.999663)
         # self.out_spline = self.generate_spline_trajectory()
         plist = [(0, 0), (0.2, 0), (0.5, -0.3), (1.0, -0.5), (1.5, -0.3), (1.8, 0), (2.0, 0.0)]
         self.left_foot_traj, self.left_der = self.generate_spline_trajectory(plist)
@@ -151,7 +151,7 @@ class MyWorld(pydart.World):
         #     for ii in range(len(self.controller.sol_lambda)):
                 # if ii % 2 != 0.0:
                 #     self.controller.sol_lambda[ii] = 5*self.controller.sol_lambda[ii]
-            print("self.controller.sol_lambda: \n", self.controller.sol_lambda)
+            # print("self.controller.sol_lambda: \n", self.controller.sol_lambda)
 
             f_vec = self.controller.V_c.dot(self.controller.sol_lambda)
             # print("f", f_vec)
@@ -192,11 +192,23 @@ class MyWorld(pydart.World):
         ri.render_sphere([2.0, -0.90, 0], 0.05)
         ri.render_sphere([0.0, -0.90, 0], 0.05)
 
+        # ri.set_color(0.0, 0.0, 1.0)
+        # ri.render_sphere(self.skeletons[2].body("h_pelvis").to_world([0.0, 0.0, 0.0]), 0.1)
+
+        # ri.render_sphere([0.0, -0.92+ self.pendulum.length, 0], 0.05)
+        # ri.render_sphere([0.0, -0.92+ 0.5*self.pendulum.length, 0], 0.05)
+        # ri.set_color(0.0, 1.0, 0.0)
+        # ri.render_sphere([self.skeletons[1].q["j_cart_x"] - self.pendulum.length *
+        #                   math.sin(self.pendulum.theta), -0.92 + self.pendulum.length * math.cos(self.pendulum.theta), 0.], 0.05)
+
+        # ri.render_sphere([self.skeletons[1].q["j_cart_x"] - self.pendulum.length *
+        #                   math.sin(self.pendulum.theta), 0., 0.], 0.05)
+
         # render contact force --yul
         contact_force = self.contact_force
 
         if len(contact_force) != 0:
-            print(len(contact_force), len(self.controller.contact_list))
+            # print(len(contact_force), len(self.controller.contact_list))
             # print("contact_force.size?", contact_force.size, len(contact_force))
             ri.set_color(1.0, 0.0, 0.0)
             for ii in range(len(contact_force)):
@@ -216,7 +228,7 @@ class MyWorld(pydart.World):
         ri.render_axes(np.array([0, 0, 0]), 0.5)
 
 if __name__ == '__main__':
-    print('Example: test IPC in 3D')
+    print('Example: Skating -- Swizzles')
 
     pydart.init()
     print('pydart initialization OK')
@@ -235,19 +247,36 @@ if __name__ == '__main__':
     q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.30, -0.5, 0.25
     q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.30, -0.5, 0.25
 
+    # q["j_thigh_left_z", "j_shin_left", "j_heel_left_1"] = 0.30, -0.0, 0.0
+    # q["j_thigh_right_z", "j_shin_right", "j_heel_right_1"] = 0.30, -0.0, 0.0
+
     q["j_heel_left_2"] = 0.7
     q["j_heel_right_2"] = -0.7
 
     # q["j_heel_left_2"] = 0.01
     # q["j_heel_right_2"] = -0.01
 
-    q["j_abdomen_2"] = 0.0
+    # q["j_abdomen_2"] = -0.5
     # both arm T-pose
     # q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
     # q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
 
     # todo : make the character move forward !!!!
     q["j_pelvis_rot_z"] = -0.2
+    # q["j_thigh_left_z"] = 0.30
+    # q["j_thigh_right_z"] = 0.30
+    # q["j_shin_left"] = -0.3
+    # q["j_shin_right"] = -0.3
+    # q["j_heel_left_1"] = 0.25
+    # q["j_heel_right_1"] = 0.25
+
+    print('[Joint]')
+    for joint in skel.joints:
+        print("\t" + str(joint))
+        print("\t\tparent = " + str(joint.parent_bodynode))
+        print("\t\tchild = " + str(joint.child_bodynode))
+        print("\t\tdofs = " + str(joint.dofs))
+
 
     skel.set_positions(q)
     print('skeleton position OK')

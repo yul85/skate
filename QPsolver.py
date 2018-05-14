@@ -27,25 +27,6 @@ class Controller(object):
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
 
-    def rotationMatrixToEulerAngles(self, R):
-
-        # assert (isRotationMatrix(R))
-
-        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
-
-        singular = sy < 1e-6
-
-        if not singular:
-            x = math.atan2(R[2, 1], R[2, 2])
-            y = math.atan2(-R[2, 0], sy)
-            z = math.atan2(R[1, 0], R[0, 0])
-        else:
-            x = math.atan2(-R[1, 2], R[1, 1])
-            y = math.atan2(-R[2, 0], sy)
-            z = 0
-
-        return np.array([x, y, z])
-
     def check_contact(self):
         skel = self.skel
 
@@ -66,6 +47,7 @@ class Controller(object):
         for ii in range(len(contact_candi_list)):
             # print(ii, contact_candi_list[ii][1])
             if -0.92 + 0.05 > contact_candi_list[ii][1]:
+            # if -0.92 > contact_candi_list[ii][1]:
                 contact_list.append(contact_name_list[ii])
                 contact_list.append(offset_list[ii])
                 cn = cn + 1
@@ -106,7 +88,7 @@ class Controller(object):
         contact_list = self.check_contact()
         self.contact_list = contact_list
         contact_num = self.contact_num
-        print("The number of contact is ", contact_num)
+        # print("The number of contact is ", contact_num)
 
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
@@ -221,7 +203,7 @@ class Controller(object):
 
                 V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
 
-                compensate_vel.append(skel.body(contact_body_name).com_linear_velocity()[1] * self.h)
+                compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
 
             # print("omega: \n", omega)
             # print("V_c_dot :\n", V_c_dot_stack)
@@ -243,43 +225,66 @@ class Controller(object):
             h = matrix(hv)
             # print("h :\n", h)
 
-        # ===========================================================
+        # ================================================================
         # Equality constraint
         # (1) motion of equation                       | ndofs
         # (2) tau[0:6] = 0                             | 6
         # (3) non-holonomic constraint : Knife-edge    | 2 (left, right)
-        # ===========================================================
+        # ================================================================
         jaco_L, jaco_der_L, sa_L, ca_L = self.get_foot_info("h_blade_left")
         jaco_R, jaco_der_R, sa_R, ca_R = self.get_foot_info("h_blade_right")
 
-        if contact_num != 0:
-            Am = np.zeros((ndofs+6+2, ndofs * 2 + 4 * contact_num))
-            Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
-            Am[0:ndofs, ndofs:2 * ndofs] = skel.M
-            J_c_t_V_c = J_c_t.dot(V_c)
-            # print("J_c_t_V_c :\n", J_c_t_V_c)
-            # print("size of J_c_t_V_c :", len(J_c_t_V_c))
-            Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
-            Am[ndofs:ndofs+6, 0:6] = np.eye(6)
-            Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-            Am[ndofs + 6 + 1:, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+        is_non_holonomic = 1
+
+        if is_non_holonomic == 1:
+            # print("NON-HOLONOMIC!!!")
+            if contact_num != 0:
+                Am = np.zeros((ndofs+6+2, ndofs * 2 + 4 * contact_num))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                J_c_t_V_c = J_c_t.dot(V_c)
+                # print("J_c_t_V_c :\n", J_c_t_V_c)
+                # print("size of J_c_t_V_c :", len(J_c_t_V_c))
+                Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
+                Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+                Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+                Am[ndofs + 6 + 1:, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+            else:
+                Am = np.zeros((ndofs+6+2, ndofs * 2))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+                Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
+                Am[ndofs + 6+1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+            b_vec = np.zeros(ndofs + 6 + 2)
+            b_vec[0:ndofs] = -1 * skel.c
+            b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
+                                       (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
+            b_vec[ndofs + 6+1:] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
+                                  (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
         else:
-            Am = np.zeros((ndofs+6+2, ndofs * 2))
-            Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
-            Am[0:ndofs, ndofs:2 * ndofs] = skel.M
-            Am[ndofs:ndofs+6, 0:6] = np.eye(6)
-            Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
-            Am[ndofs + 6+1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+            # print("HOLONOMIC!!!")
+            if contact_num != 0:
+                Am = np.zeros((ndofs+6, ndofs * 2 + 4 * contact_num))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                J_c_t_V_c = J_c_t.dot(V_c)
+                # print("J_c_t_V_c :\n", J_c_t_V_c)
+                # print("size of J_c_t_V_c :", len(J_c_t_V_c))
+                Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
+                Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+            else:
+                Am = np.zeros((ndofs+6, ndofs * 2))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                Am[ndofs:ndofs+6, 0:6] = np.eye(6)
+
+            b_vec = np.zeros(ndofs + 6)
+            b_vec[0:ndofs] = -1 * skel.c
+
         A = matrix(Am)
         # print("A :\n", A)
-
-        b_vec = np.zeros(ndofs + 6 + 2)
-        b_vec[0:ndofs] = -1 * skel.c
-        b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
-                                   (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
-        b_vec[ndofs + 6+1:] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
-                              (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
-
         b = matrix(b_vec)
         # print("b: \n", b)
 

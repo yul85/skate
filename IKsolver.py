@@ -23,20 +23,9 @@ class IKsolver(object):
             [self.skel1.q["j_cart_x"], ground_height, self.right_foot_traj[1][self.gtime] + 0.05 + 0.3])
         # l = self.skeletons[1].body('h_pole').local_com()[1]
         l = self.pendulum.length
+        # self.target_pelvis = np.array([0, 0, 0])
         self.target_pelvis = np.array(
-            [self.skel1.q["j_cart_x"] - l * math.sin(self.pendulum.theta), l * math.cos(self.pendulum.theta), 0])
-
-        # # Update PD-control target
-        # self.target = self.skeletons[2].positions()
-        # self.target[("j_bicep_left_x", "j_bicep_right_x")] = 1.5, -1.5
-        # self.target[("j_heel_left_2")] = self.left_foot_traj[1][self.gtime] - 0.05
-        # self.target[("j_heel_right_2")] = self.right_foot_traj[1][self.gtime] + 0.05
-
-        # print("target", self.target_pelvis)
-
-        # print("target", self.target_pelvis)
-        # self.target_pelvis = np.array([0.5, 0.5, 0.])
-        # print("target", self.target_pelvis)
+            [self.skel1.q["j_cart_x"] - l * math.sin(self.pendulum.theta), -0.92 + l * math.cos(self.pendulum.theta), 0])
 
     def set_params(self, x):
         q = self.skel2.q
@@ -45,6 +34,16 @@ class IKsolver(object):
         self.skel2.set_positions(q)
 
     def f(self, x):
+
+        def rotationMatrixToAxisAngles(R):
+            temp_r = np.array([R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0]-R[0,1]])
+            angle = math.acos((R[0, 0]+R[1, 1]+R[2, 2] - 1)/2.)
+            temp_r_norm = np.linalg.norm(temp_r)
+            if temp_r_norm < 0.000001:
+                return np.zeros(3)
+
+            return temp_r/temp_r_norm * angle
+
         def rotationMatrixToEulerAngles(R):
 
             # assert (isRotationMatrix(R))
@@ -66,10 +65,14 @@ class IKsolver(object):
 
         self.set_params(x)
         pelvis_state = self.skel2.body("h_pelvis").to_world([0.0, 0.0, 0.0])
-        left_foot_state = self.skel2.body("h_heel_left").to_world([0.0, 0.0, 0.0])
-        left_foot_ori = self.skel2.body("h_heel_left").world_transform()
-        right_foot_state = self.skel2.body("h_heel_right").to_world([0.0, 0.0, 0.0])
-        right_foot_ori = self.skel2.body("h_heel_right").world_transform()
+        # pelvis_state = self.skel2.body("h_abdomen").to_world([0.0, 0.0, 0.0])
+        left_foot_state = self.skel2.body("h_blade_left").to_world([0.0, 0.0, 0.0])
+        left_foot_ori = self.skel2.body("h_blade_left").world_transform()
+        right_foot_state = self.skel2.body("h_blade_right").to_world([0.0, 0.0, 0.0])
+        right_foot_ori = self.skel2.body("h_blade_right").world_transform()
+
+        abdomen_ori = self.skel2.body("h_abdomen").world_transform()
+
 
         # print("foot_ori: ", left_foot_ori[:3, :3], type(left_foot_ori[:3, :3]))
 
@@ -91,14 +94,16 @@ class IKsolver(object):
         # print("R: \n")
         # print(R_des)
 
-        # left_axis_angle =rotationMatrixToEulerAngles(left_foot_ori[:3, :3])
-        # right_axis_angle = rotationMatrixToEulerAngles(right_foot_ori[:3, :3])
+        # left_axis_angle =rotationMatrixToAxisAngles(left_foot_ori[:3, :3])
+        # right_axis_angle = rotationMatrixToAxisAngles(right_foot_ori[:3, :3])
 
         left_res_rot = np.transpose(R_des).dot(left_foot_ori[:3, :3])
         right_res_rot = np.transpose(R_des).dot(right_foot_ori[:3, :3])
         # print("vec res: ", left_res_rot)
-        left_axis_angle = rotationMatrixToEulerAngles(left_res_rot)
-        right_axis_angle = rotationMatrixToEulerAngles(right_res_rot)
+        left_axis_angle = rotationMatrixToAxisAngles(left_res_rot)
+        right_axis_angle = rotationMatrixToAxisAngles(right_res_rot)
+
+        abdomen_axis_angle = rotationMatrixToAxisAngles(abdomen_ori[:3, :3])
 
         # print("axis_angle", axis_angle)
 
@@ -107,18 +112,20 @@ class IKsolver(object):
             left_foot_state - self.target_left_foot) ** 2 + np.linalg.norm(
             right_foot_state - self.target_right_foot) ** 2 + np.linalg.norm(
             left_axis_angle - np.array([0., 0., 0.])) ** 2 + np.linalg.norm(
-            right_axis_angle - np.array([0., 0., 0.])) ** 2)
+            right_axis_angle - np.array([0., 0., 0.])) ** 2 + np.linalg.norm(
+            abdomen_axis_angle - np.array([0., 0., 0.])) ** 2)
 
     def g(self, x):
         self.set_params(x)
 
         pelvis_state = self.skel2.body("h_pelvis").to_world([0.0, 0.0, 0.0])
-        left_foot_state = self.skel2.body("h_heel_left").to_world([0.0, 0.0, 0.0])
-        right_foot_state = self.skel2.body("h_heel_right").to_world([0.0, 0.0, 0.0])
+        # pelvis_state = self.skel2.body("h_abdomen").to_world([0.0, 0.0, 0.0])
+        left_foot_state = self.skel2.body("h_blade_left").to_world([0.0, 0.0, 0.0])
+        right_foot_state = self.skel2.body("h_blade_right").to_world([0.0, 0.0, 0.0])
 
         J_pelvis = self.skel2.body("h_pelvis").linear_jacobian()
-        J_left_foot = self.skel2.body("h_heel_left").linear_jacobian()
-        J_right_foot = self.skel2.body("h_heel_right").linear_jacobian()
+        J_left_foot = self.skel2.body("h_blade_left").linear_jacobian()
+        J_right_foot = self.skel2.body("h_blade_right").linear_jacobian()
 
         J_temp = np.vstack((J_pelvis, J_left_foot))
         J = np.vstack((J_temp, J_right_foot))
