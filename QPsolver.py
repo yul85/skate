@@ -18,14 +18,20 @@ class Controller(object):
         self.sol_accel = []
         self.sol_lambda = []
 
-        self.Kp = np.diagflat([0.0] * 6 + [400.0] * (ndofs - 6))
-        self.Kd = np.diagflat([0.0] * 6 + [40.0] * (ndofs - 6))
+        self.pre_tau = np.zeros(skel.ndofs)
+
+        self.Kp = np.diagflat([0.0] * 6 + [4000.0] * (ndofs - 6))
+        # kp = 4000
+        # kd <= 2 * math.sqrt(kp)
+        self.Kd = np.diagflat([0.0] * 6 + [100.0] * (ndofs - 6))
 
         # coefficient of each term
         self.K_ef = 10.0
         self.K_tr = 1000.0
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
+
+        self.preoffset = 0.0
 
     def check_contact(self):
         skel = self.skel
@@ -230,9 +236,22 @@ class Controller(object):
         # (1) motion of equation                       | ndofs
         # (2) tau[0:6] = 0                             | 6
         # (3) non-holonomic constraint : Knife-edge    | 2 (left, right)
+        # comment (4) balancing                                | 2 (l_foot, r_foot)
         # ================================================================
         jaco_L, jaco_der_L, sa_L, ca_L = self.get_foot_info("h_blade_left")
         jaco_R, jaco_der_R, sa_R, ca_R = self.get_foot_info("h_blade_right")
+
+        # Check the balance
+        COP = skel.body('h_heel_left').to_world([0.05, 0, 0])
+        offset = skel.C[0] - COP[0] + 0.03
+        preoffset = self.preoffset
+
+        # Adjust the target pose -- translated from bipedStand app of DART
+        foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
+        # print("index: ", foot)
+
+        # Low-stiffness
+        k1, kd = 20.0, 10.0
 
         is_non_holonomic = 1
 
@@ -249,13 +268,18 @@ class Controller(object):
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
                 Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
                 Am[ndofs + 6 + 1:, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
+                # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
             else:
                 Am = np.zeros((ndofs+6+2, ndofs * 2))
                 Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
                 Am[0:ndofs, ndofs:2 * ndofs] = skel.M
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
                 Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
-                Am[ndofs + 6+1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                Am[ndofs + 6 + 1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
+                # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
+
 
             b_vec = np.zeros(ndofs + 6 + 2)
             b_vec[0:ndofs] = -1 * skel.c
@@ -263,6 +287,16 @@ class Controller(object):
                                        (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
             b_vec[ndofs + 6+1:] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
                                   (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
+            # b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = self.pre_tau[skel.dof_indices(["j_heel_left_1"])] + -k1 * offset + kd * (preoffset - offset)
+            # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = self.pre_tau[skel.dof_indices(["j_heel_right_1"])] + -k1 * offset + kd * (preoffset - offset)
+            # if offset > 0.03:
+            #     b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = b_vec[ndofs + 6 + 2:ndofs + 6 + 3] + 0.3 * np.array([-10.0])
+            #     b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] + 0.3 * np.array([-10.0])
+            #     print("Discrete A:", offset)
+            # if offset < -0.02:
+            #     b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = b_vec[ndofs + 6 + 2:ndofs + 6 + 3] - 1.0 * np.array([-10.0])
+            #     b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] - 1.0 * np.array([-10.0])
+            #     print("Discrete B:", offset)
         else:
             # print("HOLONOMIC!!!")
             if contact_num != 0:
@@ -302,5 +336,6 @@ class Controller(object):
         self.sol_accel = solution[skel.ndofs:2 * skel.ndofs].flatten()
         self.sol_lambda = solution[2 * skel.ndofs:].flatten()
 
+        self.pre_tau = self.sol_tau
         # print("self.sol_tau: \n", self.sol_tau)
         return self.sol_tau
