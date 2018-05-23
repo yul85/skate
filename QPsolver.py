@@ -32,6 +32,7 @@ class Controller(object):
         # self.K_cf = 5000.0
 
         self.preoffset = 0.0
+        self.preoffset_pelvis = np.zeros(2)
 
     def check_contact(self):
         skel = self.skel
@@ -52,7 +53,7 @@ class Controller(object):
         # print("len(contact_list): ", len(contact_list))
         for ii in range(len(contact_candi_list)):
             # print(ii, contact_candi_list[ii][1])
-            if -0.92 + 0.05 > contact_candi_list[ii][1]:
+            if -0.92 +0.03 > contact_candi_list[ii][1]:
             # if -0.92 > contact_candi_list[ii][1]:
                 contact_list.append(contact_name_list[ii])
                 contact_list.append(offset_list[ii])
@@ -187,10 +188,12 @@ class Controller(object):
 
             omega = []
             V_c_dot_stack = []
+            compensate_depth = []
             compensate_vel = []
 
             for ii in range(self.contact_num):
                 contact_body_name = contact_list[2*ii]
+                contact_offset = contact_list[2 * ii + 1]
                 angular_vel = skel.body(contact_body_name).world_angular_velocity()
                 omega.append(angular_vel)
 
@@ -209,15 +212,22 @@ class Controller(object):
 
                 V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
 
+                #calculate the penetraction depth : compensate depth instead of velocity
+                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.92)
+
                 compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
 
+            # print("depth: ", compensate_depth)
+            # print("velocity: ", compensate_vel)
             # print("omega: \n", omega)
             # print("V_c_dot :\n", V_c_dot_stack)
 
+            compensate_depth_vec = np.zeros(4 * contact_num)
             compensate_vel_vec = np.zeros(4*contact_num)
             for n in range(self.contact_num):
                 self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
                 compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
+                compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
 
             V_c_dot = self.V_c_dot
             V_c_t_dot_J_c = np.transpose(V_c_dot).dot(np.transpose(J_c_t))
@@ -227,7 +237,9 @@ class Controller(object):
             # print("hv2", hv2)
             # print("compensate_vel: \n", compensate_vel_vec)
 
-            hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
+            compensate_gain = 10
+            # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
+            hv[4 * contact_num:] = hv1 + hv2 + compensate_gain*compensate_depth_vec # + compensate_vel_vec
             h = matrix(hv)
             # print("h :\n", h)
 
@@ -245,9 +257,14 @@ class Controller(object):
         COP = skel.body('h_heel_left').to_world([0.05, 0, 0])
         offset = skel.C[0] - COP[0] + 0.03
         preoffset = self.preoffset
+        preoffset_pelvis = self.preoffset_pelvis
+        offset_x = skel.C[0] - COP[0]
+        offset_z = skel.C[2] - COP[2]
+        offset_pelvis = np.array([offset_x, offset_z])
 
         # Adjust the target pose -- translated from bipedStand app of DART
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
+        # pelvis = skel.dof_indices(["j_pelvis_rot_x", "j_pelvis_rot_z"])
         # print("index: ", foot)
 
         # Low-stiffness
@@ -291,12 +308,14 @@ class Controller(object):
             # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = self.pre_tau[skel.dof_indices(["j_heel_right_1"])] + -k1 * offset + kd * (preoffset - offset)
             # if offset > 0.03:
             #     b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = b_vec[ndofs + 6 + 2:ndofs + 6 + 3] + 0.3 * np.array([-10.0])
-            #     b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] + 0.3 * np.array([-10.0])
+            #     # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] + 0.3 * np.array([-10.0])
             #     print("Discrete A:", offset)
             # if offset < -0.02:
             #     b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = b_vec[ndofs + 6 + 2:ndofs + 6 + 3] - 1.0 * np.array([-10.0])
-            #     b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] - 1.0 * np.array([-10.0])
+            #     # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] - 1.0 * np.array([-10.0])
             #     print("Discrete B:", offset)
+            # self.preoffset = offset
+
         else:
             # print("HOLONOMIC!!!")
             if contact_num != 0:
@@ -336,6 +355,27 @@ class Controller(object):
         self.sol_accel = solution[skel.ndofs:2 * skel.ndofs].flatten()
         self.sol_lambda = solution[2 * skel.ndofs:].flatten()
 
-        self.pre_tau = self.sol_tau
-        # print("self.sol_tau: \n", self.sol_tau)
+        # self.pre_tau = self.sol_tau
+        # # print("self.sol_tau: \n", self.sol_tau)
+        #
+        # Low-stiffness
+        k1, k2, kd = 20.0, 1.0, 10.0
+        k = np.array([-k1, -k1])
+        self.sol_tau[foot] += k * offset + kd * (preoffset - offset) * np.ones(2)
+        # self.sol_tau[pelvis] += k * offset_pelvis + kd * (preoffset_pelvis - offset_pelvis)
+
+        if offset > 0.03:
+            self.sol_tau[foot] += 0.3 * np.array([-100.0, -100.0])
+            # self.sol_tau[pelvis] += 0.3 * np.array([-100.0, -100.0])
+            print("Discrete A")
+        if offset < -0.02:
+            self.sol_tau[foot] += -1.0 * np.array([-100.0, -100.0])
+            # self.sol_tau[pelvis] += -1.0 * np.array([-100.0, -100.0])
+            print("Discrete B")
+        print("offset = %s" % offset)
+        # print("offset_pelvis = %s" % offset_pelvis)
+        self.preoffset = offset
+        # self.preoffset_pelvis = preoffset_pelvis
+
+
         return self.sol_tau

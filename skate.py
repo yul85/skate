@@ -19,19 +19,47 @@ class MyWorld(pydart.World):
 
         skel = self.skeletons[2]
 
+        s2q = np.zeros(skel.ndofs)
+        pelvis = skel.dof_indices((["j_pelvis_rot_y"]))
+        upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
+        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
+        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
+        arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
+        foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
+
+        s2q[pelvis] = -0.3
+        s2q[upper_body] = 0.0, -0.2
+        s2q[right_leg] = 0., -0.5, 0.2, -0.3
+        s2q[left_leg] = 0.0, 0.5, -0.5, -0.5
+        s2q[arms] = 1.5, -1.5
+        s2q[foot] = 0.2, 0.2
+
+        state2 = State(0.07, 0.0, 0.2, s2q)
+
         s0q = np.zeros(skel.ndofs)
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        s0q[right_leg] = 0., -0.5, 0.2, -0.3
-        s0q[left_leg] = 0.3, 0.8, -0.5, -0.17
+        s0q[pelvis] = -0.3
+        s0q[upper_body] = 0.0, -0.2
+        # s0q[right_leg] = 0., -0.5, 0.2, -0.3
+        s0q[right_leg] = 0., -0.5, 0.0, -0.17
+        s0q[left_leg] = 0.5, 0.8, -0.5, -0.17
         s0q[arms] = 1.5, -1.5
-        state0 = State(0.2, 0.0, 0.2, s0q)
+        s0q[foot] = 0.2, 0.2
+        state0 = State(0.07, 0.0, 0.2, s0q)
 
         s1q = np.zeros(skel.ndofs)
+        s1q[upper_body] = 0.3, -0.3
+        s1q[right_leg] = 0., -0.5, 0.0, -0.17
+        s1q[left_leg] = 0., -0.5, 0.0, -0.17
+        s1q[pelvis] = 0.3
         s1q[arms] = 1.5, -1.5
         state1 = State(0.3, 2.2, 0.0, s1q)
-        self.state_list = [state0, state1]
+        self.state_list = [state2, state0, state1]
+        state_num = len(self.state_list)
+        self.state_num = state_num
+        # print("state_num: ", state_num)
 
         self.curr_state = self.state_list[0]
         self.elapsedTime = 0.0
@@ -54,7 +82,7 @@ class MyWorld(pydart.World):
         if self.curr_state.dt < self.time() - self.elapsedTime:
             print("change the state!!!", self.curr_state_index)
             self.curr_state_index = self.curr_state_index + 1
-            self.curr_state_index = self.curr_state_index % 2
+            self.curr_state_index = self.curr_state_index % self.state_num
             self.elapsedTime = self.time()
             self.curr_state = self.state_list[self.curr_state_index]
             print("state_", self.curr_state_index)
@@ -115,7 +143,7 @@ class MyWorld(pydart.World):
                     # print("contact force : ", contact_force[ii])
                     ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
         ri.set_color(1, 0,0)
-        ri.render_sphere(np.array([self.skeletons[2].C[0], -0.92,self.skeletons[2].C[2]]), 0.05)
+        ri.render_sphere(np.array([self.skeletons[2].C[0], -0.92, self.skeletons[2].C[2]]), 0.05)
 
         COP = self.skeletons[2].body('h_heel_right').to_world([0.05, 0, 0])
         ri.set_color(0, 0,1)
@@ -147,21 +175,21 @@ if __name__ == '__main__':
     # q["j_thigh_left_z", "j_shin_left"] = 0.30, -0.5
     # q["j_thigh_right_z", "j_shin_right"] = 0.30, -0.5
     #
-    # q["j_heel_left_1"] = 0.2
-    # q["j_heel_right_1"] = 0.2
+    q["j_heel_left_1"] = 0.2
+    q["j_heel_right_1"] = 0.2
     #
     # # both arm T-pose
-    # q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
-    # q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
+    q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
+    q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
 
     skel.set_positions(q)
     print('skeleton position OK')
 
-    print('[Joint]')
-    for joint in skel.joints:
-        print("\t" + str(joint))
-        print("\t\tparent = " + str(joint.parent_bodynode))
-        print("\t\tchild = " + str(joint.child_bodynode))
-        print("\t\tdofs = " + str(joint.dofs))
+    # print('[Joint]')
+    # for joint in skel.joints:
+    #     print("\t" + str(joint))
+    #     print("\t\tparent = " + str(joint.parent_bodynode))
+    #     print("\t\tchild = " + str(joint.child_bodynode))
+    #     print("\t\tdofs = " + str(joint.dofs))
 
     pydart.gui.viewer.launch_pyqt5(world)
