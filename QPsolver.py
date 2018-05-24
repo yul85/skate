@@ -30,9 +30,14 @@ class Controller(object):
         self.K_tr = 1000.0
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
+        self.K_lm = 100.0
+        self.K_am = 100.0
 
         self.preoffset = 0.0
         self.preoffset_pelvis = np.zeros(2)
+
+        self.pre_v = np.array([0.0, 0.0, 0.0])
+        self.pre_p = np.array([0.0, 0.0, 0.0])
 
     def check_contact(self):
         skel = self.skel
@@ -89,6 +94,23 @@ class Controller(object):
     def compute(self):
         # goal : get acceleration and lambda to satisfy the objectives and constraints below
 
+        def transformToSkewSymmetricMatrix(v):
+
+            x = v[0]
+            y = v[1]
+            z = v[2]
+
+            mat = np.zeros((3, 3))
+            mat[0, 1] = -z
+            mat[0, 2] = y
+            mat[1, 2] = -x
+
+            mat[1, 0] = z
+            mat[2, 0] = -y
+            mat[2, 1] = x
+
+            return mat
+
         skel = self.skel
         ndofs = self.skel.ndofs
 
@@ -96,6 +118,22 @@ class Controller(object):
         self.contact_list = contact_list
         contact_num = self.contact_num
         # print("The number of contact is ", contact_num)
+
+        def world_cop():
+
+            contacted_bodies = []
+            for ii in range(int(len(contact_list) / 2)):
+                contact_body_name = contact_list[2 * ii]
+                contacted_bodies.append(skel.body(contact_body_name))
+
+            print("contacted_bodies: ", contacted_bodies)
+            if len(contacted_bodies) == 0:
+                # return None
+                return np.array([0.0, 0.0, 0.0])
+            pos_list = [b.C for b in contacted_bodies]
+            avg = sum(pos_list) / len(pos_list)
+            self.pre_p = avg
+            return avg
 
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
@@ -105,17 +143,113 @@ class Controller(object):
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
+        # get desired linear momentum (des_L_dot)
+
+        k_l = 400
+        d_l = 10
+        # print("COM POSITION : ", skel.C, skel.m)
+        print("com velocity : ", skel.com_velocity())
+        l_p = skel.m * k_l * (skel.body("h_blade_right").to_world([0., 0., 0.]) - skel.C)
+        # l_d = skel.m * d_l * (skel.com_velocity())
+        l_d = skel.m * d_l * (skel.com_velocity() - np.array([0.005, 0., 0.005]))
+        des_L_dot = l_p - l_d
+        # print("des_L_dot: ", des_L_dot)
+
+        #  get desired angular momentum (des_H_dot)
+        k_h = 400
+        d_h = 10
+
+        p_r_dot = np.zeros((1, 3))
+        # todo: calculate p_dot by finite difference
+        p_dot = np.zeros((1, 3))
+
+        # print("skel.COP: ", world_cop())
+        d_des_two_dot = k_h * (world_cop() - skel.body("h_blade_right").to_world([0., 0., 0.])) + d_h * (p_r_dot - p_dot)
+        p_des = np.zeros((1, 3))
+        # integrate p_des
+        pre_v = self.pre_v
+        pre_p = self.pre_p
+        p_v = pre_v + d_des_two_dot * self.h
+        p_des = pre_p + p_v * self.h
+        des_H_dot = np.cross(p_des - skel.C, des_L_dot - skel.m * np.array([0.0, -9.81, 0.0]))
+
+        # calculate momentum derivative matrices : R, S, r_bias, s_bias
+        # [R S]_transpose = PJ
+
+        Pmat = np.zeros((6, 6*skel.num_bodynodes()))
+        J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+        Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
+        J_dot = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+        # print("mm", skel.M)
+
+        T = np.zeros((3, 3 * skel.num_bodynodes()))
+        U = np.zeros((3, 3 * skel.num_bodynodes()))
+        Udot = np.zeros((3, 3 * skel.num_bodynodes()))
+        V = np.zeros((3, 3 * skel.num_bodynodes()))
+        Vdot = np.zeros((3, 3 * skel.num_bodynodes()))
+
+        for bi in range(skel.num_bodynodes()):
+            r_v = skel.body(bi).to_world([0, 0, 0]) - skel.C
+            r_m = transformToSkewSymmetricMatrix(r_v)
+            T[:, 3*bi:3*(bi+1)] = skel.body(bi).mass() * np.identity(3)
+            U[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass()*r_m
+            v_v = skel.body(bi).dC - skel.dC
+            v_m = transformToSkewSymmetricMatrix(v_v)
+            Udot[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * v_m
+            V[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).inertia()
+
+            body_w_v = skel.body(bi).world_angular_velocity()
+            body_w_m = transformToSkewSymmetricMatrix(body_w_v)
+            # print("w: ", skel.body(bi).world_angular_velocity())
+            Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
+
+            J[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
+            J[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian()
+
+            J_dot[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian_deriv([0, 0, 0])
+            J_dot[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian_deriv()
+
+        # print("r", r)
+        Pmat[0:3, 0: 3 * skel.num_bodynodes()] = T
+        Pmat[3:, 0:3 * skel.num_bodynodes()] = U
+        Pmat[3:, 3 * skel.num_bodynodes():] = V
+
+        Pmat_dot[3:, 0:3 * skel.num_bodynodes()] = Udot
+        Pmat_dot[3:, 3 * skel.num_bodynodes():] = Vdot
+
+        PJ = np.dot(Pmat, J)
+        R = PJ[0:3, :]
+        S = PJ[3:, :]
+
+        pdotJ_pJdot = (np.dot(Pmat_dot, J) + np.dot(Pmat, J_dot))
+        bias = np.dot(pdotJ_pJdot, skel.dq)
+        # print("bias", bias)
+
+        r_bias = bias[0:3]
+        s_bias = bias[3:]
+
         K_ef = self.K_ef
         K_tr = self.K_tr
         K_cf = self.K_cf
+        K_lm = self.K_lm
+        K_am = self.K_am
 
         # ===========================
         # Objective function
         # ===========================
-        P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num))
+        middle_p = np.diagflat([K_ef] * ndofs + [K_tr ] * ndofs + [K_cf] * 4 * contact_num)
+        # + K_lm * np.dot(R.transpose(), R)
+        # print("P1: ")
+        # print(middle_p)
+        middle_p[ndofs:2*ndofs, ndofs:2*ndofs] = K_tr * np.identity(ndofs) + K_lm * np.dot(R.transpose(), R) + K_am * np.dot(S.transpose(), S)
+        # print("P2: ")
+        # print(middle_p)
+        # P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr ] * ndofs + [K_cf] * 4 * contact_num))
+        P = 2 * matrix(middle_p)
         # print("P: ")
         # print(P)
-        qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
+        # qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
+        qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel + 2 * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * (np.dot(s_bias, S) - np.dot(des_H_dot, S)))
         if contact_num != 0:
             qqv = np.append(qqv, np.zeros(4 * contact_num))
 
@@ -213,7 +347,8 @@ class Controller(object):
                 V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
 
                 #calculate the penetraction depth : compensate depth instead of velocity
-                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.92)
+                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
+                # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
 
                 compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
 
@@ -229,6 +364,8 @@ class Controller(object):
                 compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
                 compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
 
+            # print("compensate_depth_vec: \n", compensate_depth_vec)
+
             V_c_dot = self.V_c_dot
             V_c_t_dot_J_c = np.transpose(V_c_dot).dot(np.transpose(J_c_t))
             hv2 = V_c_t_dot_J_c.dot(skel.dq)
@@ -237,9 +374,9 @@ class Controller(object):
             # print("hv2", hv2)
             # print("compensate_vel: \n", compensate_vel_vec)
 
-            compensate_gain = 10
+            compensate_gain = 80000.
             # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
-            hv[4 * contact_num:] = hv1 + hv2 + compensate_gain*compensate_depth_vec # + compensate_vel_vec
+            hv[4 * contact_num:] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
             # print("h :\n", h)
 
@@ -367,12 +504,12 @@ class Controller(object):
         if offset > 0.03:
             self.sol_tau[foot] += 0.3 * np.array([-100.0, -100.0])
             # self.sol_tau[pelvis] += 0.3 * np.array([-100.0, -100.0])
-            print("Discrete A")
+            # print("Discrete A")
         if offset < -0.02:
             self.sol_tau[foot] += -1.0 * np.array([-100.0, -100.0])
             # self.sol_tau[pelvis] += -1.0 * np.array([-100.0, -100.0])
-            print("Discrete B")
-        print("offset = %s" % offset)
+            # print("Discrete B")
+        # print("offset = %s" % offset)
         # print("offset_pelvis = %s" % offset_pelvis)
         self.preoffset = offset
         # self.preoffset_pelvis = preoffset_pelvis

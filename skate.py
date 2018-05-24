@@ -20,28 +20,29 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
 
         s2q = np.zeros(skel.ndofs)
-        pelvis = skel.dof_indices((["j_pelvis_rot_y"]))
+        pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
         upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
 
-        s2q[pelvis] = -0.3
-        s2q[upper_body] = 0.0, -0.2
-        s2q[right_leg] = 0., -0.5, 0.2, -0.3
+        s2q[pelvis] = -0.3, -0.0
+        # s2q[upper_body] = 0.0, -0.5
+        s2q[right_leg] = 0.3, -0.0, -0.2, -0.1
         s2q[left_leg] = 0.0, 0.5, -0.5, -0.5
         s2q[arms] = 1.5, -1.5
-        s2q[foot] = 0.2, 0.2
+        s2q[foot] = 0.2, 0.4
 
-        state2 = State(0.07, 0.0, 0.2, s2q)
+        # state2 = State(0.1, 0.0, 0.2, s2q)
+        state2 = State(0.5, 0.0, 0.2, s2q)
 
         s0q = np.zeros(skel.ndofs)
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        s0q[pelvis] = -0.3
-        s0q[upper_body] = 0.0, -0.2
+        s0q[pelvis] = -0.3, -0.0
+        # s0q[upper_body] = 0.0, -0.2
         # s0q[right_leg] = 0., -0.5, 0.2, -0.3
         s0q[right_leg] = 0., -0.5, 0.0, -0.17
         s0q[left_leg] = 0.5, 0.8, -0.5, -0.17
@@ -50,13 +51,14 @@ class MyWorld(pydart.World):
         state0 = State(0.07, 0.0, 0.2, s0q)
 
         s1q = np.zeros(skel.ndofs)
-        s1q[upper_body] = 0.3, -0.3
-        s1q[right_leg] = 0., -0.5, 0.0, -0.17
-        s1q[left_leg] = 0., -0.5, 0.0, -0.17
-        s1q[pelvis] = 0.3
+        s1q[pelvis] = -0.3, -0.0
+        # s1q[upper_body] = 0.0, -0.2
+        s1q[right_leg] = 0., -0.0, -0.0, -0.17
+        s1q[left_leg] = -0., -0.0, 0.0, -0.17
         s1q[arms] = 1.5, -1.5
         state1 = State(0.3, 2.2, 0.0, s1q)
-        self.state_list = [state2, state0, state1]
+        # self.state_list = [state2, state0, state1]
+        self.state_list = [state2, state1]
         state_num = len(self.state_list)
         self.state_num = state_num
         # print("state_num: ", state_num)
@@ -69,6 +71,7 @@ class MyWorld(pydart.World):
         self.controller = QPsolver.Controller(skel, self.dt)
 
         self.skeletons[3].set_positions(self.curr_state.angles)
+        # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
         self.controller.target = self.curr_state.angles
         # self.controller.target = skel.q
         skel.set_controller(self.controller)
@@ -78,7 +81,7 @@ class MyWorld(pydart.World):
 
     def step(self):
         self.skeletons[3].set_positions(self.curr_state.angles)
-
+        # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
         if self.curr_state.dt < self.time() - self.elapsedTime:
             print("change the state!!!", self.curr_state_index)
             self.curr_state_index = self.curr_state_index + 1
