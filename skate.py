@@ -1,6 +1,8 @@
 import numpy as np
 import pydart2 as pydart
 import QPsolver
+import bvh
+import math
 
 class State(object):
     def __init__(self, dt, c_d, c_v, angles):
@@ -79,7 +81,100 @@ class MyWorld(pydart.World):
 
         self.contact_force = []
 
+        # bvh_file = open('./data/mocap/dance1.bvh', "r")
+        # bvh_data = bvh_file.read()
+        # mybvh = bvh.Bvh(bvh_data)
+        # print('bvh file load successfully')
+        #
+        # # print("bvh frame time : ", mybvh.frame_time)
+        # # print(mybvh.get_joints())
+        # # print(mybvh.get_joints_names())
+        # # print(mybvh.frame_joint_channel(1, 'root', 'Xposition'))
+        # # print(mybvh.joint_channels('root'))
+        # # print(mybvh.frame_joint_channels(0, 'root', ['Xposition', 'Yposition', 'Zposition', 'Zrotation', 'Xrotation', 'Yrotation']))
+        # # print(mybvh.frame_joint_channels(0, 'root', mybvh.joint_channels('root')))
+        #
+        # # print("frame num : ", mybvh.nframes)
+        #
+        # # self.bvh_fn = mybvh.nframes
+        # self.bvh_fn = 300
+        # bvh_joint_list = mybvh.get_joints_names()
+        # self.bvh_motion_list = []
+        #
+        # for i in range(self.bvh_fn):
+        #     motion_q = []
+        #     for j in bvh_joint_list:
+        #         if j == 'root':
+        #             channels = mybvh.joint_channels(j)
+        #             for channel in channels:
+        #                 # motion_q.append(mybvh.frame_joint_channel(0, j, channel))
+        #                 motion_q.append(0.0)
+        #         elif j == 'lfemur':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'ltibia':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #         elif j == 'lfoot':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'rfemur':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'rtibia':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #         elif j == 'rfoot':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'lowerback':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'upperback':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
+        #         elif j == 'head':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'lclavicle':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #         elif j == 'lhumerus':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'lradius':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'lwrist':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #         elif j == 'rclavicle':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #         elif j == 'rhumerus':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'rradius':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
+        #         elif j == 'rwrist':
+        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
+        #
+        #     # degree 2 radian
+        #     for ii in range(len(motion_q)):
+        #         motion_q[ii] = motion_q[ii] * math.pi / 180.
+        #     # print("q: ", motion_q)
+        #     # todo : arrange the axis order of motion_q??
+        #     self.bvh_motion_list.append(motion_q)
+        #
+        # self.skeletons[3].set_positions(self.bvh_motion_list[2])
+        # self.fn_bvh = 0
+
+
+
     def step(self):
+        # if self.fn_bvh < self.bvh_fn:
+        #     self.fn_bvh = self.fn_bvh + 1
+        #
+        #     self.skeletons[3].set_positions(self.bvh_motion_list[self.fn_bvh])
+        # else:
+        #     self.skeletons[3].set_positions(self.bvh_motion_list[self.bvh_fn-1])
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
         if self.curr_state.dt < self.time() - self.elapsedTime:
