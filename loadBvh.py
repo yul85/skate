@@ -5,10 +5,12 @@ import math
 
 class MyWorld(pydart.World):
 
-    def eulerToRotationMatrix(self, z, x, y):
-        rad_z = z * math.pi/180.
-        rad_x = x * math.pi/180.
-        rad_y = y * math.pi/180.
+    def eulerToRotationMatrix(self, z, x, y, isdeg=True):
+        rad_z, rad_x, rad_y = z, x, y
+        if isdeg:
+            rad_z = z * math.pi/180.
+            rad_x = x * math.pi/180.
+            rad_y = y * math.pi/180.
 
         c1 = math.cos(rad_z)
         s1 = math.sin(rad_z)
@@ -17,7 +19,7 @@ class MyWorld(pydart.World):
         c3 = math.cos(rad_y)
         s3 = math.sin(rad_y)
 
-        mat = np.zeros((3,3))
+        mat = np.zeros((3, 3))
         mat[0, 0] = c1*c3 - s1 * s2 * s3
         mat[0, 1] = -c2 * s1
         mat[0, 2] = c1*s3 + c3 * s1 * s2
@@ -29,7 +31,6 @@ class MyWorld(pydart.World):
         mat[2, 2] = c2*c3
 
         return mat
-
 
     def rotationMatrixToAxisAngles(self, R):
         temp_r = np.array([R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0]-R[0,1]])
@@ -79,8 +80,8 @@ class MyWorld(pydart.World):
     #     return out_angle, axis
 
     def __init__(self, ):
-        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade.skel')
-        bvh_file = open('./data/mocap/dance1.bvh', "r")
+        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade_zxy.skel')
+        bvh_file = open('./data/mocap/local_dance1.bvh', "r")
         bvh_data = bvh_file.read()
         mybvh = bvh.Bvh(bvh_data)
 
@@ -103,220 +104,87 @@ class MyWorld(pydart.World):
         for i in range(self.bvh_fn):
             motion_q = []
             for j in bvh_joint_list:
+                x = mybvh.frame_joint_channel(i, j, 'Xrotation')
+                y = mybvh.frame_joint_channel(i, j, 'Yrotation')
+                z = mybvh.frame_joint_channel(i, j, 'Zrotation')
+                rm = self.eulerToRotationMatrix(z, x, y)
+                axis_v = self.rotationMatrixToAxisAngles(rm)
                 if j == 'root':
-                    channels = mybvh.joint_channels(j)
-                    for channel in channels:
-                        # motion_q.append(mybvh.frame_joint_channel(0, j, channel))
-                        motion_q.append(0.0)
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
+
+                    motion_q.append(mybvh.frame_joint_channel(i, j, 'Xposition')/100)
+                    motion_q.append(mybvh.frame_joint_channel(i, j, 'Yposition')/100-0.92)
+                    motion_q.append(mybvh.frame_joint_channel(i, j, 'Zposition')/100)
                 elif j == 'lfemur':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'ltibia':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    # motion_q.append(z * math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    motion_q.append(y* math.pi / 180.)
                 elif j == 'lfoot':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'rfemur':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:",axis_vector)
-                    motion_q.append(axis_vector[0])
-                    motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'rtibia':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    # motion_q.append(z* math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    motion_q.append(y* math.pi / 180.)
                 elif j == 'rfoot':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'lowerback':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'upperback':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = 0
-                    # y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    # z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    # motion_q.append(axis_vector[0])
-                    motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    motion_q.append(z* math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
                 elif j == 'head':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'lclavicle':
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = 0
-                    z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    motion_q.append(z* math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
                 elif j == 'lhumerus':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'lradius':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = 0
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    # motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(z* math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
                 elif j == 'lwrist':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    # motion_q.append(z* math.pi / 180.)
+                    motion_q.append(x* math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
                 elif j == 'rclavicle':
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = 0
-                    z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    motion_q.append(z* math.pi / 180.)
+                    # motion_q.append(x* math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
                 elif j == 'rhumerus':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(axis_v[0])
+                    motion_q.append(axis_v[1])
+                    motion_q.append(axis_v[2])
                 elif j == 'rradius':
-                    # x = 0
-                    # y = 0
-                    # z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    # motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    motion_q.append(axis_vector[2])
+                    motion_q.append(z * math.pi / 180.)
+                    # motion_q.append(x * math.pi / 180.)
+                    # motion_q.append(y * math.pi / 180.)
                 elif j == 'rwrist':
-                    x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    y = mybvh.frame_joint_channel(i, j, 'Yrotation')
-                    z = mybvh.frame_joint_channel(i, j, 'Zrotation')
-                    # x = mybvh.frame_joint_channel(i, j, 'Xrotation')
-                    # y = 0
-                    # z = 0
-                    rotation_mat = self.eulerToRotationMatrix(z, x, y)
-                    axis_vector = self.rotationMatrixToAxisAngles(rotation_mat)
-                    # print("axis:", axis_vector)
-                    motion_q.append(axis_vector[0])
-                    # motion_q.append(axis_vector[1])
-                    # motion_q.append(axis_vector[2])
+                    # motion_q.append(z * math.pi / 180.)
+                    motion_q.append(x * math.pi / 180.)
+                    # motion_q.append(y* math.pi / 180.)
 
             # degree 2 radian
             # for ii in range(len(motion_q)):
@@ -328,6 +196,8 @@ class MyWorld(pydart.World):
         print('bvh file load successfully')
 
         self.skeletons[3].set_positions(self.bvh_motion_list[0])
+        print(self.skeletons[3].num_dofs())
+        print(len(self.bvh_motion_list[0]))
         self.fn_bvh = 0
 
         self.duration = mybvh.frame_time
@@ -338,7 +208,7 @@ class MyWorld(pydart.World):
         # print(self.time())
 
         if self.time() > 9.0:
-            self.skeletons[3].set_positions(self.bvh_motion_list[self.bvh_fn-1])
+            self.skeletons[3].set_positions(self.bvh_motion_list[self.fn_bvh])
         elif self.time() - self.elapsedTime > self.duration:
         # if self.fn_bvh < self.bvh_fn:
             self.elapsedTime = self.time()

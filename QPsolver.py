@@ -126,7 +126,7 @@ class Controller(object):
                 contact_body_name = contact_list[2 * ii]
                 contacted_bodies.append(skel.body(contact_body_name))
 
-            print("contacted_bodies: ", contacted_bodies)
+            # print("contacted_bodies: ", contacted_bodies)
             if len(contacted_bodies) == 0:
                 # return None
                 return np.array([0.0, 0.0, 0.0])
@@ -148,10 +148,10 @@ class Controller(object):
         k_l = 400
         d_l = 10
         # print("COM POSITION : ", skel.C, skel.m)
-        print("com velocity : ", skel.com_velocity())
+        # print("com velocity : ", skel.com_velocity())
         l_p = skel.m * k_l * (skel.body("h_blade_right").to_world([0., 0., 0.]) - skel.C)
         # l_d = skel.m * d_l * (skel.com_velocity())
-        l_d = skel.m * d_l * (skel.com_velocity() - np.array([0.005, 0., 0.005]))
+        l_d = skel.m * d_l * (skel.com_velocity() - np.array([0.0, 0., 0.0]))
         des_L_dot = l_p - l_d
         # print("des_L_dot: ", des_L_dot)
 
@@ -159,20 +159,29 @@ class Controller(object):
         k_h = 400
         d_h = 10
 
+        pre_v = self.pre_v
+        pre_p = self.pre_p
+
         p_r_dot = np.zeros((1, 3))
         # todo: calculate p_dot by finite difference
-        p_dot = np.zeros((1, 3))
+        # p_dot = np.zeros((1, 3))
+        p_dot = (pre_p - skel.body("h_blade_right").to_world([0., 0., 0.]))/self.h
+        # print("pre_p: ", pre_p)
+        # print("body posi: ", skel.body("h_blade_right").to_world([0., 0., 0.]))
+        # print("p_dot: ", p_dot)
 
         # print("skel.COP: ", world_cop())
         d_des_two_dot = k_h * (world_cop() - skel.body("h_blade_right").to_world([0., 0., 0.])) + d_h * (p_r_dot - p_dot)
         p_des = np.zeros((1, 3))
         # integrate p_des
-        pre_v = self.pre_v
-        pre_p = self.pre_p
+
         p_v = pre_v + d_des_two_dot * self.h
         p_des = pre_p + p_v * self.h
         des_H_dot = np.cross(p_des - skel.C, des_L_dot - skel.m * np.array([0.0, -9.81, 0.0]))
 
+        self.pre_v = p_dot
+        self.pre_p = world_cop()
+        # self.pre_p = skel.body("h_blade_right").to_world([0., 0., 0.])
         # calculate momentum derivative matrices : R, S, r_bias, s_bias
         # [R S]_transpose = PJ
 

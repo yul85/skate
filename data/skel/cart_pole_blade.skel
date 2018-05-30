@@ -673,7 +673,7 @@
                     <xyz>0.0 0.0 1.0</xyz>
                 </axis>
                 <axis2>
-                    <xyz>0.0 1.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                 </axis2>
                 <init_pos>0 0</init_pos>
                 <init_vel>0 0</init_vel>
@@ -714,7 +714,7 @@
                     <xyz>0.0 0.0 1.0</xyz>
                 </axis>
                 <axis2>
-                    <xyz>0.0 1.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                 </axis2>
                 <init_pos>0 0</init_pos>
                 <init_vel>0 0</init_vel>
@@ -1435,7 +1435,7 @@
                     <xyz>0.0 0.0 1.0</xyz>
                 </axis>
                 <axis2>
-                    <xyz>0.0 1.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                 </axis2>
                 <init_pos>0 0</init_pos>
                 <init_vel>0 0</init_vel>
@@ -1476,7 +1476,7 @@
                     <xyz>0.0 0.0 1.0</xyz>
                 </axis>
                 <axis2>
-                    <xyz>0.0 1.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                 </axis2>
                 <init_pos>0 0</init_pos>
                 <init_vel>0 0</init_vel>

@@ -3,9 +3,11 @@ import pydart2 as pydart
 import QPsolver
 import bvh
 import math
+import IKsolve_one
 
 class State(object):
-    def __init__(self, dt, c_d, c_v, angles):
+    def __init__(self, name, dt, c_d, c_v, angles):
+        self.name = name
         self.dt = dt
         self.c_d = c_d
         self.c_v = c_v
@@ -27,40 +29,77 @@ class MyWorld(pydart.World):
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        foot = skel.dof_indices(["j_heel_left_1", "j_heel_right_1"])
+        foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
 
-        s2q[pelvis] = -0.3, -0.0
-        # s2q[upper_body] = 0.0, -0.5
-        s2q[right_leg] = 0.3, -0.0, -0.2, -0.1
-        s2q[left_leg] = 0.0, 0.5, -0.5, -0.5
+        # s2q[pelvis] = -0.3, -0.0
+        # # s2q[upper_body] = 0.0, -0.5
+        # s2q[right_leg] = 0.3, -0.5, -0.2, -0.1
+        # s2q[left_leg] = 0.0, 0.5, -0.5, -0.5
+        # s2q[arms] = 1.5, -1.5
+        # s2q[foot] = 0.2, 0.4
+
+        # s2q[pelvis] = -0.3, -0.0
+        # # s2q[upper_body] = 0.0, -0.5
+        s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
+        s2q[left_leg] = 0.0, 0.0, 1.2, -2.0
         s2q[arms] = 1.5, -1.5
-        s2q[foot] = 0.2, 0.4
+        s2q[foot] = 0.1, 0.0, 0.1, -0.0
 
-        # state2 = State(0.1, 0.0, 0.2, s2q)
-        state2 = State(0.5, 0.0, 0.2, s2q)
+        state2 = State("state2", 0.05, 0.0, 0.2, s2q)
+        # state2 = State(0.5, 0.0, 0.2, s2q)
 
         s0q = np.zeros(skel.ndofs)
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        s0q[pelvis] = -0.3, -0.0
+        # s0q[pelvis] = -0.3, -0.0
         # s0q[upper_body] = 0.0, -0.2
         # s0q[right_leg] = 0., -0.5, 0.2, -0.3
         s0q[right_leg] = 0., -0.5, 0.0, -0.17
         s0q[left_leg] = 0.5, 0.8, -0.5, -0.17
         s0q[arms] = 1.5, -1.5
-        s0q[foot] = 0.2, 0.2
-        state0 = State(0.07, 0.0, 0.2, s0q)
+        s0q[foot] = 0.2, 0.1, 0.2, -0.1
+        state0 = State("state0", 0.05, 0.0, 0.2, s0q)
 
         s1q = np.zeros(skel.ndofs)
-        s1q[pelvis] = -0.3, -0.0
+        # s1q[pelvis] = -0.3, -0.0
         # s1q[upper_body] = 0.0, -0.2
-        s1q[right_leg] = 0., -0.0, -0.0, -0.17
-        s1q[left_leg] = -0., -0.0, 0.0, -0.17
+        s1q[right_leg] = 0., -0.0, 0.2, -0.4
+        s1q[left_leg] = -0., -0.0, 0.2, -0.4
         s1q[arms] = 1.5, -1.5
-        state1 = State(0.3, 2.2, 0.0, s1q)
+        s1q[foot] = 0.3, 0.0, 0.3, 0.0
+        state1 = State("state1", 0.1, 2.2, 0.0, s1q)
+
+        s3q = np.zeros(skel.ndofs)
+        # s3q[pelvis] = -0.3, -0.0
+        # # s3q[upper_body] = 0.0, -0.5
+        s3q[right_leg] = 0.0, 0.0, 1.2, -2.0
+        s3q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        s3q[arms] = 1.5, -1.5
+        s3q[foot] = 0.1, 0.0, 0.1, 0.0
+
+        # s3q[right_leg] = 0.0, -0.0, -0.5, -0.5
+        # s3q[left_leg] = 0.3, 0.0, 0.3, -0.4
+        # s3q[arms] = 1.5, -1.5
+        # s3q[foot] = 0.1, 0.3, 0.1, 0.0
+
+        state3 = State("state3", 0.05, 0.0, 0.2, s3q)
+
+
+        s4q = np.zeros(skel.ndofs)
+        # s3q[pelvis] = -0.3, -0.0
+        # # s3q[upper_body] = 0.0, -0.5
+        s4q[right_leg] = -0.5, -0.0, 0.5, -0.4
+        s4q[left_leg] = 0.0, 0.0, 0.2, -0.4
+        s4q[arms] = 1.5, -1.5
+        s4q[foot] =0.3, 0.0, 0.3, 0.0
+
+        state4 = State("state4", 0.1, 0.0, 0.2, s4q)
+
         # self.state_list = [state2, state0, state1]
-        self.state_list = [state2, state1]
+        # self.state_list = [state2, state1]
+        # self.state_list = [state1, state2]
+        self.state_list = [state1, state2, state1, state3]
         state_num = len(self.state_list)
         self.state_num = state_num
         # print("state_num: ", state_num)
@@ -69,112 +108,47 @@ class MyWorld(pydart.World):
         self.elapsedTime = 0.0
         self.curr_state_index = 0
         # print("backup angle: ", backup_q)
-        print("cur angle: ", self.curr_state.angles)
+        # print("cur angle: ", self.curr_state.angles)
         self.controller = QPsolver.Controller(skel, self.dt)
 
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
-        self.controller.target = self.curr_state.angles
+
+        self.ik = IKsolve_one.IKsolver(self.skeletons[2])
+
+        merged_target = self.curr_state.angles
+        self.ik.update_target(0)
+        merged_target = np.zeros(skel.ndofs)
+        merged_target[:12] = self.curr_state.angles[:12]
+        merged_target[12:18] = self.ik.solve()
+        merged_target[18:] = self.curr_state.angles[18:]
+        # print("ik res: ", self.ik.solve())
+        # print("merged_target: ", merged_target)
+        self.controller.target = merged_target
+
+        # self.controller.target = self.curr_state.angles
         # self.controller.target = skel.q
         skel.set_controller(self.controller)
         print('create controller OK')
 
         self.contact_force = []
-
-        # bvh_file = open('./data/mocap/dance1.bvh', "r")
-        # bvh_data = bvh_file.read()
-        # mybvh = bvh.Bvh(bvh_data)
-        # print('bvh file load successfully')
-        #
-        # # print("bvh frame time : ", mybvh.frame_time)
-        # # print(mybvh.get_joints())
-        # # print(mybvh.get_joints_names())
-        # # print(mybvh.frame_joint_channel(1, 'root', 'Xposition'))
-        # # print(mybvh.joint_channels('root'))
-        # # print(mybvh.frame_joint_channels(0, 'root', ['Xposition', 'Yposition', 'Zposition', 'Zrotation', 'Xrotation', 'Yrotation']))
-        # # print(mybvh.frame_joint_channels(0, 'root', mybvh.joint_channels('root')))
-        #
-        # # print("frame num : ", mybvh.nframes)
-        #
-        # # self.bvh_fn = mybvh.nframes
-        # self.bvh_fn = 300
-        # bvh_joint_list = mybvh.get_joints_names()
-        # self.bvh_motion_list = []
-        #
-        # for i in range(self.bvh_fn):
-        #     motion_q = []
-        #     for j in bvh_joint_list:
-        #         if j == 'root':
-        #             channels = mybvh.joint_channels(j)
-        #             for channel in channels:
-        #                 # motion_q.append(mybvh.frame_joint_channel(0, j, channel))
-        #                 motion_q.append(0.0)
-        #         elif j == 'lfemur':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'ltibia':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #         elif j == 'lfoot':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'rfemur':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'rtibia':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #         elif j == 'rfoot':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'lowerback':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'upperback':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
-        #         elif j == 'head':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'lclavicle':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #         elif j == 'lhumerus':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'lradius':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'lwrist':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #         elif j == 'rclavicle':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #         elif j == 'rhumerus':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Yrotation'))
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'rradius':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Zrotation'))
-        #         elif j == 'rwrist':
-        #             motion_q.append(mybvh.frame_joint_channel(i, j, 'Xrotation'))
-        #
-        #     # degree 2 radian
-        #     for ii in range(len(motion_q)):
-        #         motion_q[ii] = motion_q[ii] * math.pi / 180.
-        #     # print("q: ", motion_q)
-        #     # todo : arrange the axis order of motion_q??
-        #     self.bvh_motion_list.append(motion_q)
-        #
-        # self.skeletons[3].set_positions(self.bvh_motion_list[2])
-        # self.fn_bvh = 0
-
-
+        # print("dof: ", skel.ndofs)
 
     def step(self):
-        # if self.fn_bvh < self.bvh_fn:
-        #     self.fn_bvh = self.fn_bvh + 1
-        #
-        #     self.skeletons[3].set_positions(self.bvh_motion_list[self.fn_bvh])
-        # else:
-        #     self.skeletons[3].set_positions(self.bvh_motion_list[self.bvh_fn-1])
+        print("self.curr_state: ", self.curr_state.name)
+        # if self.curr_state.name == "state2" or self.curr_state.name == "state3":
+        if self.curr_state.name == "state1":
+            self.force = np.array([300.0, 0.0, 0.0])
+        if self.force is not None:
+            self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+            # if self.curr_state.name == "state2":
+            #     self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+            # if self.curr_state.name == "state3":
+            #     self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+        # if self.force is not None and self.duration >= 0:
+        #     self.duration -= 1
+        #     self.skeletons[2].body('h_spine').add_ext_force(self.force)
+
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
         if self.curr_state.dt < self.time() - self.elapsedTime:
@@ -187,7 +161,36 @@ class MyWorld(pydart.World):
             print(self.curr_state.angles)
 
         # self.controller.target = skel.q
-        self.controller.target = self.curr_state.angles
+        # self.controller.target = self.curr_state.angles
+
+        if self.curr_state.name == "state2":
+            self.ik.update_target(0)
+            merged_target = np.zeros(skel.ndofs)
+            merged_target[:12] = self.curr_state.angles[:12]
+            merged_target[12:18] = self.ik.solve()
+            merged_target[18:] = self.curr_state.angles[18:]
+            # print("ik res: ", self.ik.solve())
+            # print("merged_target: ", merged_target)
+            self.controller.target = merged_target
+        elif self.curr_state.name == "state3":
+            self.ik.update_target(1)
+            merged_target = np.zeros(skel.ndofs)
+            merged_target[:6] = self.curr_state.angles[:6]
+            merged_target[6:12] = self.ik.solve()
+            merged_target[12:] = self.curr_state.angles[12:]
+            # print("ik res: ", self.ik.solve())
+            # print("merged_target: ", merged_target)
+            self.controller.target = merged_target
+        else:
+            # self.controller.target = self.curr_state.angles
+            self.ik.update_target(2)
+            merged_target = np.zeros(skel.ndofs)
+            merged_target[:6] = self.curr_state.angles[:6]
+            merged_target[6:18] = self.ik.solve()
+            merged_target[18:] = self.curr_state.angles[18:]
+            # print("ik res: ", self.ik.solve())
+            # print("merged_target: ", merged_target)
+            self.controller.target = merged_target
 
         del self.contact_force[:]
         if len(self.controller.sol_lambda) != 0:
@@ -212,20 +215,32 @@ class MyWorld(pydart.World):
 
     def on_key_press(self, key):
         if key == '1':
-            self.force = np.array([500.0, 0.0, 0.0])
+            self.force = np.array([100.0, 0.0, 0.0])
             self.duration = 1000
             print('push backward: f = %s' % self.force)
         elif key == '2':
-            self.force = np.array([-50.0, 0.0, 0.0])
+            self.force = np.array([-100.0, 0.0, 0.0])
             self.duration = 100
             print('push backward: f = %s' % self.force)
 
     def render_with_ri(self, ri):
-        if self.force is not None and self.duration >= 0:
-            p0 = self.skeletons[2].body('h_pelvis').C
-            p1 = p0 + 0.01 * self.force
+        # if self.force is not None and self.duration >= 0:
+        if self.force is not None:
+            # if self.curr_state.name == "state2":
+            #     p0 = self.skeletons[2].body('h_heel_right').C
+            #     p1 = p0 + 0.01 * self.force
+            #     ri.set_color(1.0, 0.0, 0.0)
+            #     ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
+            # if self.curr_state.name == "state3":
+            #     p0 = self.skeletons[2].body('h_heel_left').C
+            #     p1 = p0 + 0.01 * self.force
+            #     ri.set_color(1.0, 0.0, 0.0)
+            #     ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
+            p0 = self.skeletons[2].body('h_spine').C
+            p1 = p0 + 0.005 * self.force
             ri.set_color(1.0, 0.0, 0.0)
-            ri.render_arrow(p0, p1, r_base=0.05, head_width=0.1, head_len=0.1)
+            ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
+
 
         # render contact force --yul
         contact_force = self.contact_force
@@ -240,8 +255,10 @@ class MyWorld(pydart.World):
                     contact_offset = self.controller.contact_list[2*ii+1]
                     # print("contact force : ", contact_force[ii])
                     ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
-        ri.set_color(1, 0,0)
+        ri.set_color(1, 0, 0)
         ri.render_sphere(np.array([self.skeletons[2].C[0], -0.92, self.skeletons[2].C[2]]), 0.05)
+        ri.set_color(1, 0, 1)
+        ri.render_sphere(self.ik.target_foot, 0.05)
 
         COP = self.skeletons[2].body('h_heel_right').to_world([0.05, 0, 0])
         ri.set_color(0, 0,1)
@@ -268,11 +285,11 @@ if __name__ == '__main__':
     # q["j_abdomen_1"] = -0.2
     # q["j_abdomen_2"] = -0.2
 
-    # q["j_thigh_right_x", "j_thigh_right_y"] = -0.2, -0.5
+    # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
     # q["j_thigh_left_x", "j_thigh_left_y"] = 0.2, 0.5
-    # q["j_thigh_left_z", "j_shin_left"] = 0.30, -0.5
-    # q["j_thigh_right_z", "j_shin_right"] = 0.30, -0.5
-    #
+    q["j_thigh_left_z", "j_shin_left"] = 0.2, -0.4
+    q["j_thigh_right_z", "j_shin_right"] = 0.2, -0.4
+    # #
     q["j_heel_left_1"] = 0.2
     q["j_heel_right_1"] = 0.2
     #
