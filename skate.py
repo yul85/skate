@@ -22,6 +22,7 @@ class MyWorld(pydart.World):
         self.skeletons[0].body('ground').set_friction_coeff(0.02)
 
         skel = self.skeletons[2]
+        # print("mass: ", skel.m, "kg")
 
         s2q = np.zeros(skel.ndofs)
         pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
@@ -40,13 +41,23 @@ class MyWorld(pydart.World):
 
         # s2q[pelvis] = -0.3, -0.0
         # # s2q[upper_body] = 0.0, -0.5
-        s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
+        s2q[right_leg] = 0., -0.0, 0.2, -0.4
+        # s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
         s2q[left_leg] = 0.0, 0.0, 1.2, -2.0
         s2q[arms] = 1.5, -1.5
-        s2q[foot] = 0.1, 0.0, 0.1, -0.0
+        # s2q[foot] = 0.1, 0.0, 0.1, -0.0
 
-        state2 = State("state2", 0.05, 0.0, 0.2, s2q)
+        state2 = State("state2", 5.0, 0.0, 0.2, s2q)
         # state2 = State(0.5, 0.0, 0.2, s2q)
+
+        s22q = np.zeros(skel.ndofs)
+        s22q[right_leg] = 0.0, -0.0, -0.2, -0.17
+        s22q[left_leg] = 0.0, 0.0, 0.2, -1.0
+        s22q[arms] = 1.5, -1.5
+        s22q[foot] = 0.1, 0.0, 0.1, -0.0
+
+        state22 = State("state22", 0.1, 0.0, 0.2, s22q)
+
 
         s0q = np.zeros(skel.ndofs)
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
@@ -67,8 +78,8 @@ class MyWorld(pydart.World):
         s1q[right_leg] = 0., -0.0, 0.2, -0.4
         s1q[left_leg] = -0., -0.0, 0.2, -0.4
         s1q[arms] = 1.5, -1.5
-        s1q[foot] = 0.3, 0.0, 0.3, 0.0
-        state1 = State("state1", 0.1, 2.2, 0.0, s1q)
+        s1q[foot] = 0.2, 0.0, 0.2, 0.0
+        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
         s3q = np.zeros(skel.ndofs)
         # s3q[pelvis] = -0.3, -0.0
@@ -83,7 +94,17 @@ class MyWorld(pydart.World):
         # s3q[arms] = 1.5, -1.5
         # s3q[foot] = 0.1, 0.3, 0.1, 0.0
 
-        state3 = State("state3", 0.05, 0.0, 0.2, s3q)
+        state3 = State("state3", 0.1, 0.0, 0.2, s3q)
+
+        s33q = np.zeros(skel.ndofs)
+        # s3q[pelvis] = -0.3, -0.0
+        # # s3q[upper_body] = 0.0, -0.5
+        s33q[right_leg] = -0.2, 0.0, 0.2, -1.0
+        s33q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        s33q[arms] = 1.5, -1.5
+        s33q[foot] = 0.1, 0.0, 0.1, 0.0
+
+        state33 = State("state33", 0.1, 0.0, 0.2, s33q)
 
 
         s4q = np.zeros(skel.ndofs)
@@ -100,6 +121,7 @@ class MyWorld(pydart.World):
         # self.state_list = [state2, state1]
         # self.state_list = [state1, state2]
         self.state_list = [state1, state2, state1, state3]
+        # self.state_list = [state1, state2, state22, state3, state33]
         state_num = len(self.state_list)
         self.state_num = state_num
         # print("state_num: ", state_num)
@@ -114,13 +136,13 @@ class MyWorld(pydart.World):
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
 
-        self.ik = IKsolve_one.IKsolver(self.skeletons[2])
+        self.ik = IKsolve_one.IKsolver(self.skeletons[2], self.dt)
 
         merged_target = self.curr_state.angles
-        self.ik.update_target(0)
+        self.ik.update_target(self.curr_state.name)
         merged_target = np.zeros(skel.ndofs)
-        merged_target[:12] = self.curr_state.angles[:12]
-        merged_target[12:18] = self.ik.solve()
+        merged_target[:6] = self.curr_state.angles[:6]
+        merged_target[6:18] = self.ik.solve()
         merged_target[18:] = self.curr_state.angles[18:]
         # print("ik res: ", self.ik.solve())
         # print("merged_target: ", merged_target)
@@ -135,12 +157,16 @@ class MyWorld(pydart.World):
         # print("dof: ", skel.ndofs)
 
     def step(self):
-        print("self.curr_state: ", self.curr_state.name)
+        # print("self.curr_state: ", self.curr_state.name)
         # if self.curr_state.name == "state2" or self.curr_state.name == "state3":
-        if self.curr_state.name == "state1":
-            self.force = np.array([300.0, 0.0, 0.0])
+        # if self.curr_state.name == "state1":
+        if self.time() > 0.4 and self.time() < 0.5:
+            self.force = np.array([30.0, 0.0, 0.0])
+        else:
+            self.force = None
         if self.force is not None:
-            self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+            # self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+            self.skeletons[2].body('h_spine').add_ext_force(self.force)
             # if self.curr_state.name == "state2":
             #     self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
             # if self.curr_state.name == "state3":
@@ -152,19 +178,19 @@ class MyWorld(pydart.World):
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
         if self.curr_state.dt < self.time() - self.elapsedTime:
-            print("change the state!!!", self.curr_state_index)
+            # print("change the state!!!", self.curr_state_index)
             self.curr_state_index = self.curr_state_index + 1
             self.curr_state_index = self.curr_state_index % self.state_num
             self.elapsedTime = self.time()
             self.curr_state = self.state_list[self.curr_state_index]
-            print("state_", self.curr_state_index)
-            print(self.curr_state.angles)
+            # print("state_", self.curr_state_index)
+            # print(self.curr_state.angles)
 
         # self.controller.target = skel.q
         # self.controller.target = self.curr_state.angles
 
         if self.curr_state.name == "state2":
-            self.ik.update_target(0)
+            self.ik.update_target(self.curr_state.name)
             merged_target = np.zeros(skel.ndofs)
             merged_target[:12] = self.curr_state.angles[:12]
             merged_target[12:18] = self.ik.solve()
@@ -172,18 +198,20 @@ class MyWorld(pydart.World):
             # print("ik res: ", self.ik.solve())
             # print("merged_target: ", merged_target)
             self.controller.target = merged_target
+            # self.controller.target = self.curr_state.angles
         elif self.curr_state.name == "state3":
-            self.ik.update_target(1)
+            self.ik.update_target(self.curr_state.name)
             merged_target = np.zeros(skel.ndofs)
             merged_target[:6] = self.curr_state.angles[:6]
             merged_target[6:12] = self.ik.solve()
             merged_target[12:] = self.curr_state.angles[12:]
             # print("ik res: ", self.ik.solve())
             # print("merged_target: ", merged_target)
-            self.controller.target = merged_target
+            # self.controller.target = merged_target
+            self.controller.target = self.curr_state.angles
         else:
             # self.controller.target = self.curr_state.angles
-            self.ik.update_target(2)
+            self.ik.update_target(self.curr_state.name)
             merged_target = np.zeros(skel.ndofs)
             merged_target[:6] = self.curr_state.angles[:6]
             merged_target[6:18] = self.ik.solve()
@@ -237,7 +265,7 @@ class MyWorld(pydart.World):
             #     ri.set_color(1.0, 0.0, 0.0)
             #     ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
             p0 = self.skeletons[2].body('h_spine').C
-            p1 = p0 + 0.005 * self.force
+            p1 = p0 + 0.05 * self.force
             ri.set_color(1.0, 0.0, 0.0)
             ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
 
@@ -258,16 +286,19 @@ class MyWorld(pydart.World):
         ri.set_color(1, 0, 0)
         ri.render_sphere(np.array([self.skeletons[2].C[0], -0.92, self.skeletons[2].C[2]]), 0.05)
         ri.set_color(1, 0, 1)
-        ri.render_sphere(self.ik.target_foot, 0.05)
+        ri.render_sphere(self.ik.target_foot + np.array([0.0, 0.0, -0.1]), 0.05)
 
-        COP = self.skeletons[2].body('h_heel_right').to_world([0.05, 0, 0])
-        ri.set_color(0, 0,1)
-        ri.render_sphere(COP, 0.05)
+        # COP = self.skeletons[2].body('h_heel_right').to_world([0.05, 0, 0])
+        # ri.set_color(0, 0, 1)
+        # ri.render_sphere(COP, 0.05)
 
         # todo : ground rendering
         # ri.render_chessboard(5)
         # render axes
         ri.render_axes(np.array([0, 0, 0]), 0.5)
+
+        #Height
+        # ri.render_sphere(np.array([0.0, 1.56-0.92, 0.0]), 0.01)
 
 if __name__ == '__main__':
     print('Example: Skating -- pushing side to side')

@@ -91,6 +91,28 @@ class Controller(object):
 
         return jaco, jaco_der, sa, ca
 
+    def get_parallel_blade_info(self, body_name):
+        skel = self.skel
+        jaco = skel.body(body_name).linear_jacobian()
+        jaco_der = skel.body(body_name).linear_jacobian_deriv()
+
+        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+        if body_name == "h_blade_right":
+            blade_direction_vec = p2 - p1
+        else:
+            blade_direction_vec = p1 - p2
+        blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+
+        theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        next_step_angle = theta + skel.body(body_name).world_angular_velocity()[2] * self.h
+        # print("next_step_angle: ", next_step_angle)
+        sa = math.sin(next_step_angle)
+        ca = math.cos(next_step_angle)
+
+        return jaco, jaco_der, sa, ca, theta
+
     def compute(self):
         # goal : get acceleration and lambda to satisfy the objectives and constraints below
 
@@ -125,7 +147,8 @@ class Controller(object):
             for ii in range(int(len(contact_list) / 2)):
                 contact_body_name = contact_list[2 * ii]
                 contacted_bodies.append(skel.body(contact_body_name))
-
+            #     print(contact_body_name, "\t")
+            # print("======================================")
             # print("contacted_bodies: ", contacted_bodies)
             if len(contacted_bodies) == 0:
                 # return None
@@ -383,7 +406,7 @@ class Controller(object):
             # print("hv2", hv2)
             # print("compensate_vel: \n", compensate_vel_vec)
 
-            compensate_gain = 80000.
+            compensate_gain = 70000.
             # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
             hv[4 * contact_num:] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
@@ -395,9 +418,14 @@ class Controller(object):
         # (2) tau[0:6] = 0                             | 6
         # (3) non-holonomic constraint : Knife-edge    | 2 (left, right)
         # comment (4) balancing                                | 2 (l_foot, r_foot)
+        # (4) ground-parallel blade                    | 2 (left, right)
         # ================================================================
         jaco_L, jaco_der_L, sa_L, ca_L = self.get_foot_info("h_blade_left")
         jaco_R, jaco_der_R, sa_R, ca_R = self.get_foot_info("h_blade_right")
+
+        # parallel term
+        pa_jaco_L, pa_jaco_der_L, pa_sa_L, pa_ca_L, pa_theta_L = self.get_parallel_blade_info("h_blade_left")
+        pa_jaco_R, pa_jaco_der_R, pa_sa_R, pa_ca_R, pa_theta_R = self.get_parallel_blade_info("h_blade_right")
 
         # Check the balance
         COP = skel.body('h_heel_left').to_world([0.05, 0, 0])
@@ -430,7 +458,10 @@ class Controller(object):
                 Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
                 Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-                Am[ndofs + 6 + 1:, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                Am[ndofs + 6 + 1:ndofs + 6 + 2, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+                # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
+                # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
                 # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
                 # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
             else:
@@ -440,6 +471,9 @@ class Controller(object):
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
                 Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
                 Am[ndofs + 6 + 1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+                # Am[ndofs + 6 + 2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
+                # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
                 # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
                 # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
 
@@ -448,8 +482,11 @@ class Controller(object):
             b_vec[0:ndofs] = -1 * skel.c
             b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
                                        (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
-            b_vec[ndofs + 6+1:] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
+            b_vec[ndofs + 6+1:ndofs + 6+2] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
                                   (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
+
+            # b_vec[ndofs + 6+2:ndofs + 6 + 3] = -(np.dot(pa_jaco_L, skel.dq) + np.dot(pa_jaco_der_L, skel.dq))[1] * pa_sa_L
+            # b_vec[ndofs + 6 + 3:] = -(np.dot(pa_jaco_R, skel.dq) + np.dot(pa_jaco_der_R, skel.dq))[1] * pa_sa_R
             # b_vec[ndofs + 6 + 2:ndofs + 6 + 3] = self.pre_tau[skel.dof_indices(["j_heel_left_1"])] + -k1 * offset + kd * (preoffset - offset)
             # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = self.pre_tau[skel.dof_indices(["j_heel_right_1"])] + -k1 * offset + kd * (preoffset - offset)
             # if offset > 0.03:
