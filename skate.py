@@ -1,9 +1,11 @@
 import numpy as np
 import pydart2 as pydart
 import QPsolver
-import bvh
-import math
 import IKsolve_one
+
+from fltk import *
+from PyCommon.modules.GUI import hpSimpleViewer as hsv
+from PyCommon.modules.Renderer import ysRenderer as yr
 
 class State(object):
     def __init__(self, name, dt, c_d, c_v, angles):
@@ -338,4 +340,18 @@ if __name__ == '__main__':
     #     print("\t\tchild = " + str(joint.child_bodynode))
     #     print("\t\tdofs = " + str(joint.dofs))
 
-    pydart.gui.viewer.launch_pyqt5(world)
+    # pydart.gui.viewer.launch_pyqt5(world)
+    viewer = hsv.hpSimpleViewer(viewForceWnd=False)
+    viewer.setMaxFrame(1000)
+    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
+    viewer.startTimer(1/25.)
+    viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.92+0.0251, 0.)
+
+    def simulateCallback(frame):
+        for i in range(40):
+            world.step()
+
+    viewer.setSimulateCallback(simulateCallback)
+    viewer.show()
+
+    Fl.run()
