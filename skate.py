@@ -7,6 +7,13 @@ from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 
+
+render_vector = []
+render_vector_origin = []
+push_force = []
+push_force_origin = []
+
+
 class State(object):
     def __init__(self, name, dt, c_d, c_v, angles):
         self.name = name
@@ -26,7 +33,6 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
 
-        s2q = np.zeros(skel.ndofs)
         pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
         upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
@@ -34,95 +40,46 @@ class MyWorld(pydart.World):
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
 
-        # s2q[pelvis] = -0.3, -0.0
-        # # s2q[upper_body] = 0.0, -0.5
-        # s2q[right_leg] = 0.3, -0.5, -0.2, -0.1
-        # s2q[left_leg] = 0.0, 0.5, -0.5, -0.5
-        # s2q[arms] = 1.5, -1.5
-        # s2q[foot] = 0.2, 0.4
-
-        # s2q[pelvis] = -0.3, -0.0
-        # # s2q[upper_body] = 0.0, -0.5
-        s2q[right_leg] = 0., -0.0, 0.2, -0.4
-        # s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
-        s2q[left_leg] = 0.0, 0.0, 1.2, -2.0
-        s2q[arms] = 1.5, -1.5
-        # s2q[foot] = 0.1, 0.0, 0.1, -0.0
-
-        state2 = State("state2", 5.0, 0.0, 0.2, s2q)
-        # state2 = State(0.5, 0.0, 0.2, s2q)
-
-        s22q = np.zeros(skel.ndofs)
-        s22q[right_leg] = 0.0, -0.0, -0.2, -0.17
-        s22q[left_leg] = 0.0, 0.0, 0.2, -1.0
-        s22q[arms] = 1.5, -1.5
-        s22q[foot] = 0.1, 0.0, 0.1, -0.0
-
-        state22 = State("state22", 0.1, 0.0, 0.2, s22q)
-
-
         s0q = np.zeros(skel.ndofs)
-        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
-        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
-        arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        # s0q[pelvis] = -0.3, -0.0
-        # s0q[upper_body] = 0.0, -0.2
-        # s0q[right_leg] = 0., -0.5, 0.2, -0.3
-        s0q[right_leg] = 0., -0.5, 0.0, -0.17
-        s0q[left_leg] = 0.5, 0.8, -0.5, -0.17
+        s0q[right_leg] = 0., -0.0, -0.1, -0.17
+        s0q[left_leg] = 0.0, 0.0, 0.1, -0.17
         s0q[arms] = 1.5, -1.5
-        s0q[foot] = 0.2, 0.1, 0.2, -0.1
-        state0 = State("state0", 0.05, 0.0, 0.2, s0q)
+        s0q[foot] = 0.2, 0.0, 0.2, -0.0
+        state0 = State("state0", 1.0, 0.0, 0.2, s0q)
 
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = -0.3, -0.0
         # s1q[upper_body] = 0.0, -0.2
-        s1q[right_leg] = 0., -0.0, 0.2, -0.4
-        s1q[left_leg] = -0., -0.0, 0.2, -0.4
+        s1q[right_leg] = 0., -0.0, -0.3, -0.17
+        s1q[left_leg] = 0., -0.0, 0.0, -0.17
         s1q[arms] = 1.5, -1.5
-        s1q[foot] = 0.2, 0.0, 0.2, 0.0
+        s1q[foot] = 0.1, 0.0, -0.6,  0.0
         state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
+        s2q = np.zeros(skel.ndofs)
+        # s2q[pelvis] = -0.3, -0.0
+        # # s2q[upper_body] = 0.0, -0.5
+        s2q[right_leg] = 0., -0.0, 0.9, -1.5
+        # s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
+        s2q[left_leg] = 0.0, 0.0, 0.0, -0.17
+        s2q[arms] = 1.5, -1.5
+        s2q[foot] = 0.1, 0.0, -0.6, -0.0
+        state2 = State("state2", 5.0, 0.0, 0.2, s2q)
+
         s3q = np.zeros(skel.ndofs)
-        # s3q[pelvis] = -0.3, -0.0
-        # # s3q[upper_body] = 0.0, -0.5
-        s3q[right_leg] = 0.0, 0.0, 1.2, -2.0
-        s3q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        # s1q[pelvis] = -0.3, -0.0
+        # s1q[upper_body] = 0.0, -0.2
+        s3q[right_leg] = 0.5, -0.0, 0.1, -0.17
+        s3q[left_leg] = -0., -0.0, 0.1, -0.17
         s3q[arms] = 1.5, -1.5
-        s3q[foot] = 0.1, 0.0, 0.1, 0.0
+        s3q[foot] = 0.2, 0.0, 0.2, 0.0
+        state3 = State("state3", 3.0, 2.2, 0.0, s3q)
 
-        # s3q[right_leg] = 0.0, -0.0, -0.5, -0.5
-        # s3q[left_leg] = 0.3, 0.0, 0.3, -0.4
-        # s3q[arms] = 1.5, -1.5
-        # s3q[foot] = 0.1, 0.3, 0.1, 0.0
-
-        state3 = State("state3", 0.1, 0.0, 0.2, s3q)
-
-        s33q = np.zeros(skel.ndofs)
-        # s3q[pelvis] = -0.3, -0.0
-        # # s3q[upper_body] = 0.0, -0.5
-        s33q[right_leg] = -0.2, 0.0, 0.2, -1.0
-        s33q[left_leg] = 0.0, -0.0, -0.2, -0.17
-        s33q[arms] = 1.5, -1.5
-        s33q[foot] = 0.1, 0.0, 0.1, 0.0
-
-        state33 = State("state33", 0.1, 0.0, 0.2, s33q)
-
-
-        s4q = np.zeros(skel.ndofs)
-        # s3q[pelvis] = -0.3, -0.0
-        # # s3q[upper_body] = 0.0, -0.5
-        s4q[right_leg] = -0.5, -0.0, 0.5, -0.4
-        s4q[left_leg] = 0.0, 0.0, 0.2, -0.4
-        s4q[arms] = 1.5, -1.5
-        s4q[foot] =0.3, 0.0, 0.3, 0.0
-
-        state4 = State("state4", 0.1, 0.0, 0.2, s4q)
-
+        self.state_list = [state1, state2, state3]
         # self.state_list = [state2, state0, state1]
         # self.state_list = [state2, state1]
         # self.state_list = [state1, state2]
-        self.state_list = [state1, state2, state1, state3]
+        # self.state_list = [state1, state2, state1, state3]
         # self.state_list = [state1, state2, state22, state3, state33]
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -140,7 +97,7 @@ class MyWorld(pydart.World):
 
         self.ik = IKsolve_one.IKsolver(self.skeletons[2], self.dt)
 
-        merged_target = self.curr_state.angles
+        # merged_target = self.curr_state.angles
         self.ik.update_target(self.curr_state.name)
         merged_target = np.zeros(skel.ndofs)
         merged_target[:6] = self.curr_state.angles[:6]
@@ -162,13 +119,13 @@ class MyWorld(pydart.World):
         # print("self.curr_state: ", self.curr_state.name)
         # if self.curr_state.name == "state2" or self.curr_state.name == "state3":
         # if self.curr_state.name == "state1":
-        if self.time() > 0.4 and self.time() < 0.5:
-            self.force = np.array([30.0, 0.0, 0.0])
-        else:
-            self.force = None
+        # if self.time() < 0.44 :
+        #     self.force = np.array([5.0, 0.0, 0.0])
+        # else:
+        #     self.force = None
         if self.force is not None:
-            # self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
-            self.skeletons[2].body('h_spine').add_ext_force(self.force)
+            self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+            # self.skeletons[2].body('h_spine').add_ext_force(self.force)
             # if self.curr_state.name == "state2":
             #     self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
             # if self.curr_state.name == "state3":
@@ -191,17 +148,17 @@ class MyWorld(pydart.World):
         # self.controller.target = skel.q
         # self.controller.target = self.curr_state.angles
 
+        # if self.curr_state.name == "state2":
+        #     self.ik.update_target(self.curr_state.name)
+        #     merged_target = np.zeros(skel.ndofs)
+        #     merged_target[:12] = self.curr_state.angles[:12]
+        #     merged_target[12:18] = self.ik.solve()
+        #     merged_target[18:] = self.curr_state.angles[18:]
+        #     # print("ik res: ", self.ik.solve())
+        #     # print("merged_target: ", merged_target)
+        #     self.controller.target = merged_target
+        #     # self.controller.target = self.curr_state.angles
         if self.curr_state.name == "state2":
-            self.ik.update_target(self.curr_state.name)
-            merged_target = np.zeros(skel.ndofs)
-            merged_target[:12] = self.curr_state.angles[:12]
-            merged_target[12:18] = self.ik.solve()
-            merged_target[18:] = self.curr_state.angles[18:]
-            # print("ik res: ", self.ik.solve())
-            # print("merged_target: ", merged_target)
-            self.controller.target = merged_target
-            # self.controller.target = self.curr_state.angles
-        elif self.curr_state.name == "state3":
             self.ik.update_target(self.curr_state.name)
             merged_target = np.zeros(skel.ndofs)
             merged_target[:6] = self.curr_state.angles[:6]
@@ -209,8 +166,8 @@ class MyWorld(pydart.World):
             merged_target[12:] = self.curr_state.angles[12:]
             # print("ik res: ", self.ik.solve())
             # print("merged_target: ", merged_target)
-            # self.controller.target = merged_target
-            self.controller.target = self.curr_state.angles
+            self.controller.target = merged_target
+            # self.controller.target = self.curr_state.angles
         else:
             # self.controller.target = self.curr_state.angles
             self.ik.update_target(self.curr_state.name)
@@ -221,6 +178,7 @@ class MyWorld(pydart.World):
             # print("ik res: ", self.ik.solve())
             # print("merged_target: ", merged_target)
             self.controller.target = merged_target
+            # self.controller.target = self.curr_state.angles
 
         del self.contact_force[:]
         if len(self.controller.sol_lambda) != 0:
@@ -302,6 +260,30 @@ class MyWorld(pydart.World):
         #Height
         # ri.render_sphere(np.array([0.0, 1.56-0.92, 0.0]), 0.01)
 
+    def render_with_ys(self):
+        # render contact force --yul
+        contact_force = self.contact_force
+        del render_vector[:]
+        del render_vector_origin[:]
+        del push_force[:]
+        del push_force_origin[:]
+        if self.force is not None:
+            push_force.append(self.force*0.05)
+            push_force_origin.append(self.skeletons[2].body('h_spine').to_world())
+        if len(contact_force) != 0:
+            # print(len(contact_force), len(self.controller.contact_list))
+            # print("contact_force.size?", contact_force.size, len(contact_force))
+            # ri.set_color(1.0, 0.0, 0.0)
+            for ii in range(len(contact_force)):
+                if 2 * len(contact_force) == len(self.controller.contact_list):
+                    body = self.skeletons[2].body(self.controller.contact_list[2*ii])
+                    contact_offset = self.controller.contact_list[2*ii+1]
+                    # print("contact force : ", contact_force[ii])
+                    # ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
+                    render_vector.append(contact_force[ii]/100.)
+                    render_vector_origin.append(body.to_world(contact_offset))
+
+
 if __name__ == '__main__':
     print('Example: Skating -- pushing side to side')
 
@@ -320,8 +302,8 @@ if __name__ == '__main__':
 
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
     # q["j_thigh_left_x", "j_thigh_left_y"] = 0.2, 0.5
-    q["j_thigh_left_z", "j_shin_left"] = 0.2, -0.4
-    q["j_thigh_right_z", "j_shin_right"] = 0.2, -0.4
+    q["j_thigh_left_z", "j_shin_left"] = 0.1, -0.4
+    q["j_thigh_right_z", "j_shin_right"] = -0.1, -0.4
     # #
     q["j_heel_left_1"] = 0.2
     q["j_heel_right_1"] = 0.2
@@ -344,12 +326,15 @@ if __name__ == '__main__':
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
+    viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.startTimer(1/25.)
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.92+0.0251, 0.)
 
     def simulateCallback(frame):
         for i in range(40):
             world.step()
+        world.render_with_ys()
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()

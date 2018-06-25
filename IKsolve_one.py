@@ -12,7 +12,7 @@ class IKsolver(object):
 
     def update_target(self, state):
         self.state = state
-        ground_height = -0.85
+        ground_height = -0.92
 
         if state == "state2":
             self.target_foot = self.skel.C + self.skel.dC * self.h

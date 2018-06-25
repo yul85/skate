@@ -1786,10 +1786,10 @@ class RenderContext:
         arrowT = mm.Rp2T(mm.getSO3FromVectors((length,0,0), vector), startPos)
         glMultMatrixf(arrowT.transpose())
 
-        # triWidth = lineWidth * 3
-        # triLength = triWidth * 1.2
-        triWidth = lineWidth * 1.5
+        triWidth = lineWidth * 3
         triLength = triWidth * 1.2
+        # triWidth = lineWidth * 1.5
+        # triLength = triWidth * 1.2
 
         # line + cone all parts
         glePolyCone(((0,0,0), (0,0,0), (length-triLength,0,0), (length-triLength,0,0), (length,0,0), (length,0,0)), None,

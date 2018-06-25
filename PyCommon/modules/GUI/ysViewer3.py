@@ -12,7 +12,7 @@ from PyCommon.modules.Math import mmMath as mmMath
 from PyCommon.modules.Renderer import ysRenderer as yr
 
 from time import gmtime, strftime
-from PyCommon.modules.GUI.csDump import dump_png
+# from PyCommon.modules.GUI.csDump import dump_png
 from PIL import Image as im
 
 POLYGON_LINE = 0
@@ -460,7 +460,7 @@ class GlWindow(Fl_Gl_Window):
             self.initGLFlag = False
 
         # glClearColor(.8, .8, .8, .8)
-        glClearColor(.1, .1, .1, .8)
+        glClearColor(0.9, 0.9, 0.9, .8)
         # glClearColor(.3, .3, .3, .5)
         # glClearColor(1., 1., 1., .8)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
