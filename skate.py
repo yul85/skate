@@ -41,41 +41,60 @@ class MyWorld(pydart.World):
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
 
         s0q = np.zeros(skel.ndofs)
-        s0q[right_leg] = 0., -0.0, -0.1, -0.17
-        s0q[left_leg] = 0.0, 0.0, 0.1, -0.17
+        # s0q[right_leg] = 0., -0.0, 0.2, -0.2
+        # s0q[left_leg] = 0.0, 0.0, 0.2, -0.2
         s0q[arms] = 1.5, -1.5
-        s0q[foot] = 0.2, 0.0, 0.2, -0.0
-        state0 = State("state0", 1.0, 0.0, 0.2, s0q)
+        # s0q[foot] = 0.1, 0.0, 0.1, -0.0
+        state0 = State("state0", 0.5, 0.0, 0.2, s0q)
 
         s1q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = -0.3, -0.0
-        # s1q[upper_body] = 0.0, -0.2
-        s1q[right_leg] = 0., -0.0, -0.3, -0.17
-        s1q[left_leg] = 0., -0.0, 0.0, -0.17
+        # s1q[pelvis] = -0.0, -0.3
+        s1q[upper_body] = 0.0, -0.4
+        s1q[right_leg] = 0.0, -0.0, -0.4, -0.3
+        s1q[left_leg] = -0.0, -0.0, -0.0, -0.3
         s1q[arms] = 1.5, -1.5
-        s1q[foot] = 0.1, 0.0, -0.6,  0.0
+        # s1q[foot] = -0.0, 0.0, 0.4,  0.0
         state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+
+        s11q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = -0.0, -0.3
+        # s1q[upper_body] = 0.0, -0.2
+        s11q[right_leg] = 0.0, -0.0, -0.5, -0.17
+        s11q[left_leg] = -0.0, -0.0, 0.0, -0.3
+        s11q[arms] = 1.5, -1.5
+        # s11q[foot] = -0.0, 0.0, -0.4, 0.0
+        state11 = State("state11", 0.5, 2.2, 0.0, s11q)
+
+        # s1q = np.zeros(skel.ndofs)
+        # # s1q[pelvis] = -0.3, -0.0
+        # # s1q[upper_body] = 0.0, -0.2
+        # s1q[right_leg] = 0., -0.0, -0.3, -0.17
+        # s1q[left_leg] = 0., -0.0, 0.0, -0.17
+        # s1q[arms] = 1.5, -1.5
+        # s1q[foot] = 0.1, 0.0, -0.6,  0.0
+        # state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
         s2q = np.zeros(skel.ndofs)
         # s2q[pelvis] = -0.3, -0.0
-        # # s2q[upper_body] = 0.0, -0.5
-        s2q[right_leg] = 0., -0.0, 0.9, -1.5
-        # s2q[right_leg] = 0.0, -0.0, -0.2, -0.17
-        s2q[left_leg] = 0.0, 0.0, 0.0, -0.17
+        # s2q[upper_body] = 0.0, -0.4
+        s2q[right_leg] = -0.0, -0.0, 0.8, -1.5
+        # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        s2q[left_leg] = 0.0, 0.0, 0.0, -0.3
         s2q[arms] = 1.5, -1.5
-        s2q[foot] = 0.1, 0.0, -0.6, -0.0
+        s2q[foot] = 0.2, 0.0, -0.6, -0.0
         state2 = State("state2", 5.0, 0.0, 0.2, s2q)
 
         s3q = np.zeros(skel.ndofs)
         # s1q[pelvis] = -0.3, -0.0
         # s1q[upper_body] = 0.0, -0.2
-        s3q[right_leg] = 0.5, -0.0, 0.1, -0.17
+        s3q[right_leg] = 0.9, -0.0, 0.1, -0.17
         s3q[left_leg] = -0., -0.0, 0.1, -0.17
         s3q[arms] = 1.5, -1.5
         s3q[foot] = 0.2, 0.0, 0.2, 0.0
         state3 = State("state3", 3.0, 2.2, 0.0, s3q)
 
-        self.state_list = [state1, state2, state3]
+        # self.state_list = [state0, state2, state3]
+        self.state_list = [state0, state1, state2, state3]
         # self.state_list = [state2, state0, state1]
         # self.state_list = [state2, state1]
         # self.state_list = [state1, state2]
@@ -90,7 +109,7 @@ class MyWorld(pydart.World):
         self.curr_state_index = 0
         # print("backup angle: ", backup_q)
         # print("cur angle: ", self.curr_state.angles)
-        self.controller = QPsolver.Controller(skel, self.dt)
+        self.controller = QPsolver.Controller(skel, self.dt, self.curr_state.name)
 
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
@@ -123,6 +142,8 @@ class MyWorld(pydart.World):
         #     self.force = np.array([5.0, 0.0, 0.0])
         # else:
         #     self.force = None
+
+        self.controller.cur_state = self.curr_state.name
         if self.force is not None:
             self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
             # self.skeletons[2].body('h_spine').add_ext_force(self.force)
@@ -177,8 +198,8 @@ class MyWorld(pydart.World):
             merged_target[18:] = self.curr_state.angles[18:]
             # print("ik res: ", self.ik.solve())
             # print("merged_target: ", merged_target)
-            self.controller.target = merged_target
-            # self.controller.target = self.curr_state.angles
+            # self.controller.target = merged_target
+            self.controller.target = self.curr_state.angles
 
         del self.contact_force[:]
         if len(self.controller.sol_lambda) != 0:
@@ -244,7 +265,7 @@ class MyWorld(pydart.World):
                     # print("contact force : ", contact_force[ii])
                     ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
         ri.set_color(1, 0, 0)
-        ri.render_sphere(np.array([self.skeletons[2].C[0], -0.92, self.skeletons[2].C[2]]), 0.05)
+        ri.render_sphere(np.array([self.skeletons[2].C[0], -0.99, self.skeletons[2].C[2]]), 0.05)
         ri.set_color(1, 0, 1)
         ri.render_sphere(self.ik.target_foot + np.array([0.0, 0.0, -0.1]), 0.05)
 
@@ -302,11 +323,10 @@ if __name__ == '__main__':
 
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
     # q["j_thigh_left_x", "j_thigh_left_y"] = 0.2, 0.5
-    q["j_thigh_left_z", "j_shin_left"] = 0.1, -0.4
-    q["j_thigh_right_z", "j_shin_right"] = -0.1, -0.4
-    # #
-    q["j_heel_left_1"] = 0.2
-    q["j_heel_right_1"] = 0.2
+    # q["j_thigh_left_z", "j_shin_left"] = 0.2, -0.2
+    # q["j_thigh_right_z", "j_shin_right"] = 0.2, -0.2
+    # q["j_heel_left_1"] = 0.2
+    # q["j_heel_right_1"] = 0.2
     #
     # # both arm T-pose
     q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
@@ -329,7 +349,7 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.startTimer(1/25.)
-    viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.92+0.0251, 0.)
+    viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99+0.0251, 0.)
 
     def simulateCallback(frame):
         for i in range(40):

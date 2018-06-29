@@ -12,7 +12,7 @@ class IKsolver(object):
 
     def update_target(self, state):
         self.state = state
-        ground_height = -0.92
+        ground_height = -0.99
 
         if state == "state2":
             self.target_foot = self.skel.C + self.skel.dC * self.h
@@ -41,10 +41,11 @@ class IKsolver(object):
 
     def set_params(self, x):
         q = self.skel.q
+
         if self.state == "state2":
-            q[12:18] = x
-        elif self.state == "state3":
             q[6:12] = x
+        # elif self.state == "state3":
+        #     q[12:18] = x
         else:
             q[6:18] = x
         # q = x
@@ -63,7 +64,7 @@ class IKsolver(object):
 
         self.set_params(x)
         if self.state == "state2":
-            body_name = ["h_blade_right"]
+            body_name = ["h_blade_left"]
         elif self.state == "state3":
             body_name = ["h_blade_left"]
         else:
@@ -163,9 +164,9 @@ class IKsolver(object):
 
         # print("g:", g)
         if self.state == "state2":
-            return g[12:18]
-        elif self.state == "state3":
             return g[6:12]
+        # elif self.state == "state3":
+        #     return g[12:18]
         else:
             return g[6:18]
 
@@ -173,9 +174,9 @@ class IKsolver(object):
     def solve(self, ):
         q_backup = self.skel.q
         if self.state == "state2":
-            res = minimize(self.f, x0= self.skel.q[12:18], jac=self.g, method="SLSQP")
-        elif self.state == "state3":
             res = minimize(self.f, x0=self.skel.q[6:12], jac=self.g, method="SLSQP")
+        # elif self.state == "state3":
+        #     res = minimize(self.f, x0=self.skel.q[12:18], jac=self.g, method="SLSQP")
         else:
             res = minimize(self.f, x0=self.skel.q[6:18], jac=self.g, method="SLSQP")
         # res = minimize(self.f, x0=self.skel.q, jac=self.g, method="SLSQP")

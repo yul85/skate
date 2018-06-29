@@ -4,9 +4,10 @@ from cvxopt import matrix, solvers
 from pydart2.skeleton import Skeleton
 
 class Controller(object):
-    def __init__(self, skel, h):
+    def __init__(self, skel, h, cur_state):
         self.h = h
         self.skel = skel  # type: Skeleton
+        self.cur_state = cur_state
         ndofs = self.skel.ndofs
         self.target = None
 
@@ -27,6 +28,7 @@ class Controller(object):
 
         # coefficient of each term
         self.K_ef = 10.0
+        # self.K_tr = 1000.0
         self.K_tr = 1000.0
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
@@ -58,8 +60,8 @@ class Controller(object):
         # print("len(contact_list): ", len(contact_list))
         for ii in range(len(contact_candi_list)):
             # print(ii, contact_candi_list[ii][1])
-            if -0.92 +0.03 > contact_candi_list[ii][1]:
-            # if -0.92 > contact_candi_list[ii][1]:
+            if -0.99 > contact_candi_list[ii][1]:
+            # if -0.99 > contact_candi_list[ii][1]:
                 contact_list.append(contact_name_list[ii])
                 contact_list.append(offset_list[ii])
                 cn = cn + 1
@@ -75,14 +77,15 @@ class Controller(object):
         p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
         p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
 
-        if body_name == "h_blade_right":
-            blade_direction_vec = p2 - p1
-        else:
-            blade_direction_vec = p1 - p2
+        blade_direction_vec = p2 - p1
+        # if body_name == "h_blade_right":
+        #     blade_direction_vec = p2 - p1
+        # else:
+        #     blade_direction_vec = p1 - p2
         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
         theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-        # print("theta: ", theta)
+        # print("theta: ", body_name, ", ", theta)
         # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * self.h
         # print("next_step_angle: ", next_step_angle)
@@ -140,7 +143,7 @@ class Controller(object):
         self.contact_list = contact_list
         contact_num = self.contact_num
         # print("The number of contact is ", contact_num)
-
+        # print(contact_list)
         def world_cop():
 
             contacted_bodies = []
@@ -157,6 +160,38 @@ class Controller(object):
             avg = sum(pos_list) / len(pos_list)
             self.pre_p = avg
             return avg
+
+        # print("Current state: ", self.cur_state)
+        # if self.cur_state == "state1":
+        #     print("PD gain in state 1 only position!")
+        #     self.Kp = np.diagflat([0.0] * 6 + [0] * (ndofs - 6))
+        #     self.Kd = np.diagflat([0.0] * 6 + [1000.] * (ndofs - 6))
+        #     # get desired acceleration
+        #     invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        #     p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+        #     qddot = invM.dot(-skel.c + p + skel.constraint_forces())
+        #     des_accel = p + qddot
+        # if self.cur_state == "state2":
+        #     print("PD gain in state 2 only velocity!")
+        #     self.Kp = np.diagflat([0.0] * 6 + [1000.0] * (ndofs - 6))
+        #     self.Kd = np.diagflat([0.0] * 6 + [10.0] * (ndofs - 6))
+        #
+        #     # get desired acceleration
+        #     invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        #     d = -self.Kd.dot(skel.dq)
+        #     qddot = invM.dot(-skel.c + d + skel.constraint_forces())
+        #     des_accel = d + qddot
+        # else:
+        #     print("PD gain BOTH!!")
+        #     self.Kp = np.diagflat([0.0] * 6 + [4000] * (ndofs - 6))
+        #     self.Kd = np.diagflat([0.0] * 6 + [100.] * (ndofs - 6))
+        #     # get desired acceleration
+        #     invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        #     # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
+        #     p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+        #     d = -self.Kd.dot(skel.dq)
+        #     qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+        #     des_accel = p + d + qddot
 
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
@@ -269,19 +304,19 @@ class Controller(object):
         # ===========================
         # Objective function
         # ===========================
-        middle_p = np.diagflat([K_ef] * ndofs + [K_tr ] * ndofs + [K_cf] * 4 * contact_num)
+        middle_p = np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num)
         # + K_lm * np.dot(R.transpose(), R)
         # print("P1: ")
         # print(middle_p)
         middle_p[ndofs:2*ndofs, ndofs:2*ndofs] = K_tr * np.identity(ndofs) + K_lm * np.dot(R.transpose(), R) + K_am * np.dot(S.transpose(), S)
         # print("P2: ")
         # print(middle_p)
-        # P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr ] * ndofs + [K_cf] * 4 * contact_num))
-        P = 2 * matrix(middle_p)
+        P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr ] * ndofs + [K_cf] * 4 * contact_num))
+        # P = 2 * matrix(middle_p)
         # print("P: ")
         # print(P)
-        # qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
-        qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel + 2 * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * (np.dot(s_bias, S) - np.dot(des_H_dot, S)))
+        qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
+        # qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel + 2 * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * (np.dot(s_bias, S) - np.dot(des_H_dot, S)))
         if contact_num != 0:
             qqv = np.append(qqv, np.zeros(4 * contact_num))
 
@@ -379,7 +414,7 @@ class Controller(object):
                 V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
 
                 #calculate the penetraction depth : compensate depth instead of velocity
-                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
+                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.99)
                 # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
 
                 compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
@@ -406,7 +441,7 @@ class Controller(object):
             # print("hv2", hv2)
             # print("compensate_vel: \n", compensate_vel_vec)
 
-            compensate_gain = 70000.
+            compensate_gain = 80000.
             # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
             hv[4 * contact_num:] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
@@ -457,8 +492,8 @@ class Controller(object):
                 # print("size of J_c_t_V_c :", len(J_c_t_V_c))
                 Am[0:ndofs, 2*ndofs:] = -1 * J_c_t_V_c
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
-                Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-                Am[ndofs + 6 + 1:ndofs + 6 + 2, ndofs:2 * ndofs] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                Am[ndofs + 6:ndofs + 6 + 1, ndofs:2*ndofs] = np.dot(self.h*np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+                Am[ndofs + 6 + 1:ndofs + 6 + 2, ndofs:2 * ndofs] = np.dot(self.h*np.array([sa_R, 0., -1 * ca_R]), jaco_R)
 
                 # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
                 # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
@@ -469,8 +504,8 @@ class Controller(object):
                 Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
                 Am[0:ndofs, ndofs:2 * ndofs] = skel.M
                 Am[ndofs:ndofs+6, 0:6] = np.eye(6)
-                Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(np.array([sa_L, 0., -1*ca_L]), jaco_L)
-                Am[ndofs + 6 + 1:, ndofs:] = np.dot(np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+                Am[ndofs + 6:ndofs + 6+1, ndofs:] = np.dot(self.h*np.array([sa_L, 0., -1*ca_L]), jaco_L)
+                Am[ndofs + 6 + 1:, ndofs:] = np.dot(self.h*np.array([sa_R, 0., -1 * ca_R]), jaco_R)
 
                 # Am[ndofs + 6 + 2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
                 # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
@@ -480,10 +515,10 @@ class Controller(object):
 
             b_vec = np.zeros(ndofs + 6 + 2)
             b_vec[0:ndofs] = -1 * skel.c
-            b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
-                                       (np.dot(jaco_L, skel.dq) + np.dot(jaco_der_L, skel.dq))[0] * sa_L
-            b_vec[ndofs + 6+1:ndofs + 6+2] = (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
-                                  (np.dot(jaco_R, skel.dq) + np.dot(jaco_der_R, skel.dq))[0] * sa_R
+            b_vec[ndofs+6:ndofs+6+1] = (np.dot(jaco_L, skel.dq) + self.h*np.dot(jaco_der_L, skel.dq))[2]*ca_L - \
+                                       (np.dot(jaco_L, skel.dq) + self.h*np.dot(jaco_der_L, skel.dq))[0] * sa_L
+            b_vec[ndofs + 6+1:ndofs + 6+2] = (np.dot(jaco_R, skel.dq) + self.h*np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
+                                  (np.dot(jaco_R, skel.dq) + self.h*np.dot(jaco_der_R, skel.dq))[0] * sa_R
 
             # b_vec[ndofs + 6+2:ndofs + 6 + 3] = -(np.dot(pa_jaco_L, skel.dq) + np.dot(pa_jaco_der_L, skel.dq))[1] * pa_sa_L
             # b_vec[ndofs + 6 + 3:] = -(np.dot(pa_jaco_R, skel.dq) + np.dot(pa_jaco_der_R, skel.dq))[1] * pa_sa_R
