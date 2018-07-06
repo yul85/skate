@@ -84,7 +84,10 @@ class Controller(object):
         #     blade_direction_vec = p1 - p2
         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        if body_name == "h_blade_left":
+            theta = math.acos(np.dot(np.array([-1., 0., 0.]), blade_direction_vec))
+        else:
+            theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
         # print("theta: ", body_name, ", ", theta)
         # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * self.h

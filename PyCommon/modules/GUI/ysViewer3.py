@@ -12,7 +12,7 @@ from PyCommon.modules.Math import mmMath as mmMath
 from PyCommon.modules.Renderer import ysRenderer as yr
 
 from time import gmtime, strftime
-# from PyCommon.modules.GUI.csDump import dump_png
+from PyCommon.modules.GUI.csDump import dump_png
 from PIL import Image as im
 
 POLYGON_LINE = 0

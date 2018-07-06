@@ -33,53 +33,100 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
 
+        pelvis_x = skel.dof_indices((["j_pelvis_rot_x"]))
         pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
         upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
+        leg_y = skel.dof_indices(["j_thigh_right_y", "j_thigh_left_y"])
+        blade = skel.dof_indices(["j_heel_right_2"])
 
+        #----------------------------------
+        # one foot glide
+        #----------------------------------
+        # s0q = np.zeros(skel.ndofs)
+        # # s0q[pelvis] = 0., -0.5
+        # # s0q[right_leg] = -0.0, -0., 0., -0.17
+        # # s0q[left_leg] = 0.0, 0., 0., -0.17
+        # # s0q[leg_y] = -0.785, 0.785
+        # s0q[arms] = 1.5, -1.5
+        # # s0q[foot] = 0.1, 0.0, 0.1, -0.0
+        # state0 = State("state0", 2.0, 0.0, 0.2, s0q)
+        #
+        # s1q = np.zeros(skel.ndofs)
+        # # s1q[pelvis_x] = -0.5
+        # # s1q[pelvis] = 0., -0.3
+        # s1q[upper_body] = -0.5, -0.
+        # s1q[left_leg] = 0., 0., 0., -0.17
+        # # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        # s1q[right_leg] = -0., -0., 0.9, -1.5
+        # s1q[arms] = 0.8, -2.2
+        # # s1q[blade] = -0.3
+        # # s1q[foot] = -0.0, 0.0, 0.4,  0.0
+        # state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+        #
+        # self.state_list = [state0, state1]
+
+        #----------------------------------
+        # pushing side to side
+        #----------------------------------
         s0q = np.zeros(skel.ndofs)
-        # s0q[right_leg] = 0., -0.0, 0.2, -0.2
-        # s0q[left_leg] = 0.0, 0.0, 0.2, -0.2
+        s0q[pelvis] = 0., -0.5
+        s0q[right_leg] = -0.02, -0.785, 0.5, -0.17
+        s0q[left_leg] = 0.02, 0.785, 0.5, -0.17
+        # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
         # s0q[foot] = 0.1, 0.0, 0.1, -0.0
-        state0 = State("state0", 0.5, 0.0, 0.2, s0q)
+        state0 = State("state0", 1.0, 0.0, 0.2, s0q)
+
+        s01q = np.zeros(skel.ndofs)
+        s01q[pelvis] = 0., -0.3
+        # s01q[upper_body] = 0.0, -0.5
+        s01q[left_leg] = 0., 0.785, 0., -0.17
+        # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s01q[right_leg] = -0.3, -0.785, 0.3, -0.3
+        s01q[arms] = 1.5, -1.5
+        # s01q[blade] = -0.3
+        # s01q[foot] = -0.0, 0.0, 0.4,  0.0
+        state01 = State("state01", 0.5, 2.2, 0.0, s01q)
 
         s1q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = -0.0, -0.3
-        s1q[upper_body] = 0.0, -0.4
-        s1q[right_leg] = 0.0, -0.0, -0.4, -0.3
-        s1q[left_leg] = -0.0, -0.0, -0.0, -0.3
+        s1q[pelvis] = 0., -0.1
+        # s1q[upper_body] = 0.0, -0.5
+        s1q[left_leg] = 0., 0.785, 0., -0.17
+        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s1q[right_leg] = -0.5, -0.785, -0., -0.17
         s1q[arms] = 1.5, -1.5
+        # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.0, 0.4,  0.0
-        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+        state1 = State("state1", 1.0, 2.2, 0.0, s1q)
 
         s11q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = -0.0, -0.3
+        s11q[pelvis] = -0.0, 0.3
         # s1q[upper_body] = 0.0, -0.2
-        s11q[right_leg] = 0.0, -0.0, -0.5, -0.17
-        s11q[left_leg] = -0.0, -0.0, 0.0, -0.3
+        s11q[right_leg] = 0.0, -0.9, -0.2, -0.
+        s11q[left_leg] = 0.0, 0.785, 0.35, -0.3
         s11q[arms] = 1.5, -1.5
         # s11q[foot] = -0.0, 0.0, -0.4, 0.0
         state11 = State("state11", 0.5, 2.2, 0.0, s11q)
 
         # s1q = np.zeros(skel.ndofs)
-        # # s1q[pelvis] = -0.3, -0.0
-        # # s1q[upper_body] = 0.0, -0.2
-        # s1q[right_leg] = 0., -0.0, -0.3, -0.17
-        # s1q[left_leg] = 0., -0.0, 0.0, -0.17
+        # # s1q[pelvis] = -0., -0.3
+        # s1q[upper_body] = 0.0, -0.3
+        # s1q[right_leg] = 0., -0.785, -0.3, -0.17
+        # s1q[left_leg] = 0., 0.2, 0.2, -0.4
         # s1q[arms] = 1.5, -1.5
-        # s1q[foot] = 0.1, 0.0, -0.6,  0.0
-        # state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+        # # s1q[foot] = 0.1, 0.0, -0.6,  0.0
+        # state1 = State("state1", 1.0, 2.2, 0.0, s1q)
 
         s2q = np.zeros(skel.ndofs)
         # s2q[pelvis] = -0.3, -0.0
         # s2q[upper_body] = 0.0, -0.4
-        s2q[right_leg] = -0.0, -0.0, 0.8, -1.5
+        s2q[right_leg] = -0.0, -0., 0.8, -1.5
         # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
-        s2q[left_leg] = 0.0, 0.0, 0.0, -0.3
+        s2q[left_leg] = 0.0, 0.785, 0.0, -0.17
         s2q[arms] = 1.5, -1.5
         s2q[foot] = 0.2, 0.0, -0.6, -0.0
         state2 = State("state2", 5.0, 0.0, 0.2, s2q)
@@ -87,14 +134,16 @@ class MyWorld(pydart.World):
         s3q = np.zeros(skel.ndofs)
         # s1q[pelvis] = -0.3, -0.0
         # s1q[upper_body] = 0.0, -0.2
-        s3q[right_leg] = 0.9, -0.0, 0.1, -0.17
-        s3q[left_leg] = -0., -0.0, 0.1, -0.17
+        s3q[right_leg] = 0.9, -0.785, 0.1, -0.17
+        s3q[left_leg] = -0., 0.785, 0.1, -0.17
         s3q[arms] = 1.5, -1.5
         s3q[foot] = 0.2, 0.0, 0.2, 0.0
         state3 = State("state3", 3.0, 2.2, 0.0, s3q)
 
         # self.state_list = [state0, state2, state3]
-        self.state_list = [state0, state1, state2, state3]
+        # self.state_list = [state0, state1, state11, state2, state3]
+        self.state_list = [state0, state01, state1, state2, state3]
+        # self.state_list = [state0,  state1, state2, state3]
         # self.state_list = [state2, state0, state1]
         # self.state_list = [state2, state1]
         # self.state_list = [state1, state2]
@@ -138,8 +187,8 @@ class MyWorld(pydart.World):
         # print("self.curr_state: ", self.curr_state.name)
         # if self.curr_state.name == "state2" or self.curr_state.name == "state3":
         # if self.curr_state.name == "state1":
-        # if self.time() < 0.44 :
-        #     self.force = np.array([5.0, 0.0, 0.0])
+        # if self.time() > 1.0 and self.time() < 2.0:
+        #     self.force = np.array([20.0, 0.0, 0.0])
         # else:
         #     self.force = None
 
@@ -321,6 +370,8 @@ if __name__ == '__main__':
     # q["j_abdomen_1"] = -0.2
     # q["j_abdomen_2"] = -0.2
 
+    q["j_thigh_right_y", "j_thigh_left_y"] = -0.785, 0.785
+    q["j_shin_right", "j_shin_left"] = 0., 0.
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
     # q["j_thigh_left_x", "j_thigh_left_y"] = 0.2, 0.5
     # q["j_thigh_left_z", "j_shin_left"] = 0.2, -0.2
