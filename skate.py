@@ -12,6 +12,8 @@ render_vector = []
 render_vector_origin = []
 push_force = []
 push_force_origin = []
+blade_force = []
+blade_force_origin = []
 
 
 class State(object):
@@ -69,67 +71,132 @@ class MyWorld(pydart.World):
         #
         # self.state_list = [state0, state1]
 
+        # #----------------------------------
+        # # pushing side to side
+        # #----------------------------------
+        # s0q = np.zeros(skel.ndofs)
+        # s0q[pelvis] = 0., -0.5
+        # s0q[right_leg] = -0.02, -0.785, 0.5, -0.17
+        # s0q[left_leg] = 0.02, 0.785, 0.5, -0.17
+        # # s0q[leg_y] = -0.785, 0.785
+        # s0q[arms] = 1.5, -1.5
+        # # s0q[foot] = 0.1, 0.0, 0.1, -0.0
+        # state0 = State("state0", 1.0, 0.0, 0.2, s0q)
+        #
+        # s01q = np.zeros(skel.ndofs)
+        # s01q[pelvis] = 0., -0.3
+        # # s01q[upper_body] = 0.0, -0.5
+        # s01q[left_leg] = 0., 0.785, 0., -0.17
+        # # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        # s01q[right_leg] = -0.3, -0.785, 0.3, -0.3
+        # s01q[arms] = 1.5, -1.5
+        # # s01q[blade] = -0.3
+        # # s01q[foot] = -0.0, 0.0, 0.4,  0.0
+        # state01 = State("state01", 0.5, 2.2, 0.0, s01q)
+        #
+        # s1q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = 0., -0.1
+        # # s1q[upper_body] = 0.0, -0.5
+        # s1q[left_leg] = 0., 0.785, 0., -0.17
+        # # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        # s1q[right_leg] = -0.5, -0.785, -0., -0.17
+        # s1q[arms] = 1.5, -1.5
+        # # s1q[blade] = -0.3
+        # # s1q[foot] = -0.0, 0.0, 0.4,  0.0
+        # state1 = State("state1", 1.0, 2.2, 0.0, s1q)
+        #
+        # s11q = np.zeros(skel.ndofs)
+        # s11q[pelvis] = -0.0, 0.3
+        # # s1q[upper_body] = 0.0, -0.2
+        # s11q[right_leg] = 0.0, -0.9, -0.2, -0.
+        # s11q[left_leg] = 0.0, 0.785, 0.35, -0.3
+        # s11q[arms] = 1.5, -1.5
+        # # s11q[foot] = -0.0, 0.0, -0.4, 0.0
+        # state11 = State("state11", 0.5, 2.2, 0.0, s11q)
+        #
+        # # s1q = np.zeros(skel.ndofs)
+        # # # s1q[pelvis] = -0., -0.3
+        # # s1q[upper_body] = 0.0, -0.3
+        # # s1q[right_leg] = 0., -0.785, -0.3, -0.17
+        # # s1q[left_leg] = 0., 0.2, 0.2, -0.4
+        # # s1q[arms] = 1.5, -1.5
+        # # # s1q[foot] = 0.1, 0.0, -0.6,  0.0
+        # # state1 = State("state1", 1.0, 2.2, 0.0, s1q)
+        #
+        # s2q = np.zeros(skel.ndofs)
+        # # s2q[pelvis] = -0.3, -0.0
+        # # s2q[upper_body] = 0.0, -0.4
+        # s2q[right_leg] = -0.0, -0., 0.8, -1.5
+        # # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        # s2q[left_leg] = 0.0, 0.785, 0.0, -0.17
+        # s2q[arms] = 1.5, -1.5
+        # s2q[foot] = 0.2, 0.0, -0.6, -0.0
+        # state2 = State("state2", 5.0, 0.0, 0.2, s2q)
+        #
+        # s3q = np.zeros(skel.ndofs)
+        # # s1q[pelvis] = -0.3, -0.0
+        # # s1q[upper_body] = 0.0, -0.2
+        # s3q[right_leg] = 0.9, -0.785, 0.1, -0.17
+        # s3q[left_leg] = -0., 0.785, 0.1, -0.17
+        # s3q[arms] = 1.5, -1.5
+        # s3q[foot] = 0.2, 0.0, 0.2, 0.0
+        # state3 = State("state3", 3.0, 2.2, 0.0, s3q)
+
         #----------------------------------
-        # pushing side to side
+        # pushing side to side new (180718)
         #----------------------------------
         s0q = np.zeros(skel.ndofs)
-        s0q[pelvis] = 0., -0.5
-        s0q[right_leg] = -0.02, -0.785, 0.5, -0.17
-        s0q[left_leg] = 0.02, 0.785, 0.5, -0.17
-        # s0q[leg_y] = -0.785, 0.785
+        # s0q[pelvis] = 0., -0.
+        # s0q[upper_body] = 0.0, -0.5
+        # s0q[right_leg] = -0., -0., 0., -0.5
+        # s0q[left_leg] = 0., 0., 0., -0.5
+        # # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
         # s0q[foot] = 0.1, 0.0, 0.1, -0.0
         state0 = State("state0", 1.0, 0.0, 0.2, s0q)
 
         s01q = np.zeros(skel.ndofs)
-        s01q[pelvis] = 0., -0.3
-        # s01q[upper_body] = 0.0, -0.5
-        s01q[left_leg] = 0., 0.785, 0., -0.17
+        # s01q[pelvis] = 0., -0.3
+        s01q[upper_body] = 0.0, -0.4
+        s01q[left_leg] = 0., 0., 0., -0.4
         # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s01q[right_leg] = -0.3, -0.785, 0.3, -0.3
+        s01q[right_leg] = -0., -0., 0., -0.4
         s01q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
         # s01q[foot] = -0.0, 0.0, 0.4,  0.0
         state01 = State("state01", 0.5, 2.2, 0.0, s01q)
 
         s1q = np.zeros(skel.ndofs)
-        s1q[pelvis] = 0., -0.1
-        # s1q[upper_body] = 0.0, -0.5
+        # s1q[pelvis] = 0., -0.1
+        s1q[upper_body] = 0.0, -0.4
         s1q[left_leg] = 0., 0.785, 0., -0.17
         # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
         s1q[right_leg] = -0.5, -0.785, -0., -0.17
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.0, 0.4,  0.0
-        state1 = State("state1", 1.0, 2.2, 0.0, s1q)
+        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
         s11q = np.zeros(skel.ndofs)
-        s11q[pelvis] = -0.0, 0.3
-        # s1q[upper_body] = 0.0, -0.2
-        s11q[right_leg] = 0.0, -0.9, -0.2, -0.
-        s11q[left_leg] = 0.0, 0.785, 0.35, -0.3
+        # s1q[pelvis] = 0., -0.1
+        s11q[upper_body] = 0.0, -0.4
+        s11q[left_leg] = 0., 0.785, 0., -0.17
+        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s11q[right_leg] = -0.5, -0.785, -0., -0.17
         s11q[arms] = 1.5, -1.5
-        # s11q[foot] = -0.0, 0.0, -0.4, 0.0
-        state11 = State("state11", 0.5, 2.2, 0.0, s11q)
-
-        # s1q = np.zeros(skel.ndofs)
-        # # s1q[pelvis] = -0., -0.3
-        # s1q[upper_body] = 0.0, -0.3
-        # s1q[right_leg] = 0., -0.785, -0.3, -0.17
-        # s1q[left_leg] = 0., 0.2, 0.2, -0.4
-        # s1q[arms] = 1.5, -1.5
-        # # s1q[foot] = 0.1, 0.0, -0.6,  0.0
-        # state1 = State("state1", 1.0, 2.2, 0.0, s1q)
+        # s1q[blade] = -0.3
+        # s1q[foot] = -0.0, 0.0, 0.4,  0.0
+        state11 = State("state11", 0.2, 2.2, 0.0, s11q)
 
         s2q = np.zeros(skel.ndofs)
         # s2q[pelvis] = -0.3, -0.0
         # s2q[upper_body] = 0.0, -0.4
-        s2q[right_leg] = -0.0, -0., 0.8, -1.5
+        s2q[right_leg] = -0.3, -0., 0., -0.1
         # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
         s2q[left_leg] = 0.0, 0.785, 0.0, -0.17
         s2q[arms] = 1.5, -1.5
-        s2q[foot] = 0.2, 0.0, -0.6, -0.0
-        state2 = State("state2", 5.0, 0.0, 0.2, s2q)
+        # s2q[foot] = 0.2, 0.0, -0.6, -0.0
+        state2 = State("state2", 1.0, 0.0, 0.2, s2q)
 
         s3q = np.zeros(skel.ndofs)
         # s1q[pelvis] = -0.3, -0.0
@@ -337,6 +404,14 @@ class MyWorld(pydart.World):
         del render_vector_origin[:]
         del push_force[:]
         del push_force_origin[:]
+        del blade_force[:]
+        del blade_force_origin[:]
+
+        if self.curr_state.name == "state1":
+            # blade_force.append(self.controller.blade_direction_L)
+            # blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
+            blade_force.append(-self.controller.blade_direction_L)
+            blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
         if self.force is not None:
             push_force.append(self.force*0.05)
             push_force_origin.append(self.skeletons[2].body('h_spine').to_world())
@@ -370,8 +445,8 @@ if __name__ == '__main__':
     # q["j_abdomen_1"] = -0.2
     # q["j_abdomen_2"] = -0.2
 
-    q["j_thigh_right_y", "j_thigh_left_y"] = -0.785, 0.785
-    q["j_shin_right", "j_shin_left"] = 0., 0.
+    # q["j_thigh_right_y", "j_thigh_left_y"] = -0.785, 0.785
+    # q["j_shin_right", "j_shin_left"] = 0., 0.
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
     # q["j_thigh_left_x", "j_thigh_left_y"] = 0.2, 0.5
     # q["j_thigh_left_z", "j_shin_left"] = 0.2, -0.2
@@ -401,6 +476,8 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.startTimer(1/25.)
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99+0.0251, 0.)
+
+    viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
 
     def simulateCallback(frame):
         for i in range(40):
