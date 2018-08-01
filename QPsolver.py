@@ -9,8 +9,6 @@ is_non_holonomic = False
 inequality_non_holonomic = True
 non_holonomic_epsilon = 0.5
 # non_holonomic_epsilon = 0.01
-momentum_con = False
-# momentum_con = True
 
 class Controller(object):
     def __init__(self, skel, h, cur_state):
@@ -41,8 +39,8 @@ class Controller(object):
         self.K_tr = 1000.0
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
-        self.K_lm = 100.0
-        self.K_am = 100.0
+        self.K_lm = 10.0
+        self.K_am = 10.0
 
         self.preoffset = 0.0
         self.preoffset_pelvis = np.zeros(2)
@@ -222,99 +220,116 @@ class Controller(object):
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
-        # get desired linear momentum (des_L_dot)
+        if self.cur_state == "state1" or self.cur_state == "state2":
+            momentum_con = True
+        else:
+            momentum_con = False
 
-        k_l = 400
-        d_l = 10
-        # print("COM POSITION : ", skel.C, skel.m)
-        # print("com velocity : ", skel.com_velocity())
-        l_p = skel.m * k_l * (skel.body("h_blade_right").to_world([0., 0., 0.]) - skel.C)
-        # l_d = skel.m * d_l * (skel.com_velocity())
-        l_d = skel.m * d_l * (skel.com_velocity() - np.array([0.0, 0., 0.0]))
-        des_L_dot = l_p - l_d
-        # print("des_L_dot: ", des_L_dot)
+        if momentum_con:
+            # get desired linear momentum (des_L_dot)
 
-        #  get desired angular momentum (des_H_dot)
-        k_h = 400
-        d_h = 10
+            k_l = 400
+            d_l = 10
+            # print("COM POSITION : ", skel.C, skel.m)
+            # print("com velocity : ", skel.com_velocity())
 
-        pre_v = self.pre_v
-        pre_p = self.pre_p
+            c_r = np.array([0.0, 0.0, 0.0])
+            # if self.cur_state == "state1" or self.cur_state == "state2":
+            #     c_r = skel.body("h_blade_left").to_world([0., 0., 0.])
+            # else:
+            #     # c_r = skel.body("h_blade_left").to_world([0., 0., 0.]) + skel.body("h_blade_right").to_world([0., 0., 0.])
+            #     # c_r = c_r/2
+            #     c_r = skel.C
 
-        p_r_dot = np.zeros((1, 3))
-        # todo: calculate p_dot by finite difference
-        # p_dot = np.zeros((1, 3))
-        p_dot = (pre_p - skel.body("h_blade_right").to_world([0., 0., 0.]))/self.h
-        # print("pre_p: ", pre_p)
-        # print("body posi: ", skel.body("h_blade_right").to_world([0., 0., 0.]))
-        # print("p_dot: ", p_dot)
+            c_r = skel.body("h_blade_left").to_world([0., 0., 0.])
+            # print("center of support: ", skel.body("h_blade_left").to_world([0., 0., 0.]), skel.body("h_blade_right").to_world([0., 0., 0.]), c_r)
+            l_p = skel.m * k_l * (c_r - skel.C)
+            # l_d = skel.m * d_l * (skel.com_velocity())
+            l_d = skel.m * d_l * (skel.com_velocity() - np.array([0.0, 0., 0.0]))
+            des_L_dot = l_p - l_d
+            # print("des_L_dot: ", des_L_dot)
 
-        # print("skel.COP: ", world_cop())
-        d_des_two_dot = k_h * (world_cop() - skel.body("h_blade_right").to_world([0., 0., 0.])) + d_h * (p_r_dot - p_dot)
-        p_des = np.zeros((1, 3))
-        # integrate p_des
+            #  get desired angular momentum (des_H_dot)
+            k_h = 400
+            d_h = 10
 
-        p_v = pre_v + d_des_two_dot * self.h
-        p_des = pre_p + p_v * self.h
-        des_H_dot = np.cross(p_des - skel.C, des_L_dot - skel.m * np.array([0.0, -9.81, 0.0]))
+            pre_v = self.pre_v
+            pre_p = self.pre_p
 
-        self.pre_v = p_dot
-        self.pre_p = world_cop()
-        # self.pre_p = skel.body("h_blade_right").to_world([0., 0., 0.])
-        # calculate momentum derivative matrices : R, S, r_bias, s_bias
-        # [R S]_transpose = PJ
+            p_r_dot = np.zeros((1, 3))
+            # todo: calculate p_dot by finite difference
+            # p_dot = np.zeros((1, 3))
+            p_dot = (pre_p - skel.body("h_blade_right").to_world([0., 0., 0.]))/self.h
+            # print("pre_p: ", pre_p)
+            # print("body posi: ", skel.body("h_blade_right").to_world([0., 0., 0.]))
+            # print("p_dot: ", p_dot)
 
-        Pmat = np.zeros((6, 6*skel.num_bodynodes()))
-        J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
-        Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
-        J_dot = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
-        # print("mm", skel.M)
+            # print("skel.COP: ", world_cop())
+            d_des_two_dot = k_h * (world_cop() - skel.body("h_blade_right").to_world([0., 0., 0.])) + d_h * (p_r_dot - p_dot)
+            p_des = np.zeros((1, 3))
+            # integrate p_des
 
-        T = np.zeros((3, 3 * skel.num_bodynodes()))
-        U = np.zeros((3, 3 * skel.num_bodynodes()))
-        Udot = np.zeros((3, 3 * skel.num_bodynodes()))
-        V = np.zeros((3, 3 * skel.num_bodynodes()))
-        Vdot = np.zeros((3, 3 * skel.num_bodynodes()))
+            p_v = pre_v + d_des_two_dot * self.h
+            p_des = pre_p + p_v * self.h
+            des_H_dot = np.cross(p_des - skel.C, des_L_dot - skel.m * np.array([0.0, -9.81, 0.0]))
 
-        for bi in range(skel.num_bodynodes()):
-            r_v = skel.body(bi).to_world([0, 0, 0]) - skel.C
-            r_m = transformToSkewSymmetricMatrix(r_v)
-            T[:, 3*bi:3*(bi+1)] = skel.body(bi).mass() * np.identity(3)
-            U[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass()*r_m
-            v_v = skel.body(bi).dC - skel.dC
-            v_m = transformToSkewSymmetricMatrix(v_v)
-            Udot[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * v_m
-            V[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).inertia()
+            self.pre_v = p_dot
+            self.pre_p = world_cop()
+            # self.pre_p = skel.body("h_blade_right").to_world([0., 0., 0.])
+            # calculate momentum derivative matrices : R, S, r_bias, s_bias
+            # [R S]_transpose = PJ
 
-            body_w_v = skel.body(bi).world_angular_velocity()
-            body_w_m = transformToSkewSymmetricMatrix(body_w_v)
-            # print("w: ", skel.body(bi).world_angular_velocity())
-            Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
+            Pmat = np.zeros((6, 6*skel.num_bodynodes()))
+            J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+            Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
+            J_dot = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+            # print("mm", skel.M)
 
-            J[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
-            J[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian()
+            T = np.zeros((3, 3 * skel.num_bodynodes()))
+            U = np.zeros((3, 3 * skel.num_bodynodes()))
+            Udot = np.zeros((3, 3 * skel.num_bodynodes()))
+            V = np.zeros((3, 3 * skel.num_bodynodes()))
+            Vdot = np.zeros((3, 3 * skel.num_bodynodes()))
 
-            J_dot[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian_deriv([0, 0, 0])
-            J_dot[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian_deriv()
+            for bi in range(skel.num_bodynodes()):
+                r_v = skel.body(bi).to_world([0, 0, 0]) - skel.C
+                r_m = transformToSkewSymmetricMatrix(r_v)
+                T[:, 3*bi:3*(bi+1)] = skel.body(bi).mass() * np.identity(3)
+                U[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass()*r_m
+                v_v = skel.body(bi).dC - skel.dC
+                v_m = transformToSkewSymmetricMatrix(v_v)
+                Udot[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * v_m
+                V[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).inertia()
 
-        # print("r", r)
-        Pmat[0:3, 0: 3 * skel.num_bodynodes()] = T
-        Pmat[3:, 0:3 * skel.num_bodynodes()] = U
-        Pmat[3:, 3 * skel.num_bodynodes():] = V
+                body_w_v = skel.body(bi).world_angular_velocity()
+                body_w_m = transformToSkewSymmetricMatrix(body_w_v)
+                # print("w: ", skel.body(bi).world_angular_velocity())
+                Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
 
-        Pmat_dot[3:, 0:3 * skel.num_bodynodes()] = Udot
-        Pmat_dot[3:, 3 * skel.num_bodynodes():] = Vdot
+                J[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
+                J[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian()
 
-        PJ = np.dot(Pmat, J)
-        R = PJ[0:3, :]
-        S = PJ[3:, :]
+                J_dot[3*bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian_deriv([0, 0, 0])
+                J_dot[3 * skel.num_bodynodes() + 3*bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(bi).angular_jacobian_deriv()
 
-        pdotJ_pJdot = (np.dot(Pmat_dot, J) + np.dot(Pmat, J_dot))
-        bias = np.dot(pdotJ_pJdot, skel.dq)
-        # print("bias", bias)
+            # print("r", r)
+            Pmat[0:3, 0: 3 * skel.num_bodynodes()] = T
+            Pmat[3:, 0:3 * skel.num_bodynodes()] = U
+            Pmat[3:, 3 * skel.num_bodynodes():] = V
 
-        r_bias = bias[0:3]
-        s_bias = bias[3:]
+            Pmat_dot[3:, 0:3 * skel.num_bodynodes()] = Udot
+            Pmat_dot[3:, 3 * skel.num_bodynodes():] = Vdot
+
+            PJ = np.dot(Pmat, J)
+            R = PJ[0:3, :]
+            S = PJ[3:, :]
+
+            pdotJ_pJdot = (np.dot(Pmat_dot, J) + np.dot(Pmat, J_dot))
+            bias = np.dot(pdotJ_pJdot, skel.dq)
+            # print("bias", bias)
+
+            r_bias = bias[0:3]
+            s_bias = bias[3:]
 
         K_ef = self.K_ef
         K_tr = self.K_tr
@@ -325,12 +340,14 @@ class Controller(object):
         # ===========================
         # Objective function
         # ===========================
-        middle_p = np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num)
-        # + K_lm * np.dot(R.transpose(), R)
-        # print("P1: ")
-        # print(middle_p)
-        middle_p[ndofs:2*ndofs, ndofs:2*ndofs] = K_tr * np.identity(ndofs) + K_lm * np.dot(R.transpose(), R) + K_am * np.dot(S.transpose(), S)
         if momentum_con:
+            middle_p = np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num)
+            # + K_lm * np.dot(R.transpose(), R)
+            # print("P1: ")
+            # print(middle_p)
+            middle_p[ndofs:2 * ndofs, ndofs:2 * ndofs] = K_tr * np.identity(ndofs) + K_lm * np.dot(R.transpose(),
+                                                                                                   R) + K_am * np.dot(
+                S.transpose(), S)
             P = 2 * matrix(middle_p)
             qqv = np.append(np.zeros(ndofs),
                             -2 * K_tr * des_accel + 2 * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * (
@@ -515,7 +532,7 @@ class Controller(object):
             # print("hv2", hv2)
             # print("compensate_vel: \n", compensate_vel_vec)
 
-            compensate_gain = 80000.
+            compensate_gain = 90000.
             # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
             hv[4 * contact_num:2*4 * contact_num] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
@@ -665,7 +682,7 @@ class Controller(object):
             my_jaco_t = my_jaco.transpose()
             # print("jaco: ", my_jaco_t)
             # my_force = np.array([-5, 0, 0])
-            my_force = 5. * self.blade_direction_L
+            my_force = 12. * self.blade_direction_L
             my_tau = np.dot(my_jaco_t, my_force)
             # print("blade_direction: ", self.blade_direction_vec)
             # print("force: ", my_force)
@@ -673,11 +690,20 @@ class Controller(object):
 
             my_jaco2 = skel.body("h_blade_right").linear_jacobian()
             my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 0.5 * self.blade_direction_L
+            my_force2 = -1. * self.blade_direction_L
             my_tau2 = np.dot(my_jaco_t2, my_force2)
 
-            # return self.sol_tau + my_tau + my_tau2
-            return self.sol_tau + my_tau2
+            # my_jaco_spine = skel.body("h_spine").linear_jacobian()
+            # my_jaco_spine = skel.body("h_abdomen").linear_jacobian()
+            my_jaco_spine = skel.body("h_pelvis").linear_jacobian()
+            my_jaco_spine_t = my_jaco_spine.transpose()
+            my_force_spine = 30. * np.array([1.0, 0., 0.])
+            my_force_spine = 30. * self.blade_direction_L
+            my_tau_spine = np.dot(my_jaco_spine_t, my_force_spine)
+
+            # return self.sol_tau + my_tau2 + my_tau + my_tau_spine
+            return self.sol_tau + my_tau
+            # return self.sol_tau + my_tau2
             # return self.sol_tau + my_tau
         elif self.cur_state == "state11":
             my_jaco = skel.body("h_blade_left").linear_jacobian()
@@ -686,6 +712,20 @@ class Controller(object):
             my_tau = np.dot(my_jaco_t, my_force)
 
             return self.sol_tau + my_tau
+        elif self.cur_state == "state2":
+            print("state!!2")
+            my_jaco = skel.body("h_blade_left").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 20. * self.blade_direction_L
+            my_tau = np.dot(my_jaco_t, my_force)
+
+            my_jaco2 = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t2 = my_jaco2.transpose()
+            my_force2 = 10. * np.array([0., 1.0, 0.])
+            my_tau2 = np.dot(my_jaco_t2, my_force2)
+
+            return self.sol_tau + my_tau
+            # return self.sol_tau + my_tau2 + my_tau
         else:
             return self.sol_tau
 

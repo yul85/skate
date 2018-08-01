@@ -35,6 +35,8 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
 
+        skel.joint("j_heel_left").set_position_upper_limit(0, 0.0)
+        skel.joint("j_heel_left").set_position_lower_limit(0, -0.0)
         pelvis_x = skel.dof_indices((["j_pelvis_rot_x"]))
         pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
         upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
@@ -43,7 +45,7 @@ class MyWorld(pydart.World):
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
         foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
         leg_y = skel.dof_indices(["j_thigh_right_y", "j_thigh_left_y"])
-        blade = skel.dof_indices(["j_heel_right_2"])
+        # blade = skel.dof_indices(["j_heel_right_2"])
 
         #----------------------------------
         # one foot glide
@@ -148,19 +150,19 @@ class MyWorld(pydart.World):
         s0q = np.zeros(skel.ndofs)
         # s0q[pelvis] = 0., -0.
         # s0q[upper_body] = 0.0, -0.5
-        # s0q[right_leg] = -0., -0., 0., -0.5
-        # s0q[left_leg] = 0., 0., 0., -0.5
-        # # s0q[leg_y] = -0.785, 0.785
+        # s0q[right_leg] = -0., -0., -0.05, -0.05
+        # s0q[left_leg] = 0., 0., 0.05, -0.05
+        # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
         # s0q[foot] = 0.1, 0.0, 0.1, -0.0
         state0 = State("state0", 1.0, 0.0, 0.2, s0q)
 
         s01q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
-        s01q[upper_body] = 0.0, -0.4
-        s01q[left_leg] = 0., 0., 0., -0.4
+        # s01q[upper_body] = 0.0, -0.4
+        s01q[left_leg] = 0., 0., 0.4, -0.4
         # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s01q[right_leg] = -0., -0., 0., -0.4
+        s01q[right_leg] = -0., -0., 0.4, -0.4
         s01q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
         # s01q[foot] = -0.0, 0.0, 0.4,  0.0
@@ -169,13 +171,13 @@ class MyWorld(pydart.World):
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
         s1q[upper_body] = 0.0, -0.4
-        s1q[left_leg] = 0., 0.785, 0., -0.17
+        s1q[left_leg] = 0.3, 0.785, 0.3, -0.3
         # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
         s1q[right_leg] = -0.5, -0.785, -0., -0.17
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.0, 0.4,  0.0
-        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+        state1 = State("state1", 0.9, 2.2, 0.0, s1q)
 
         s11q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
@@ -196,15 +198,16 @@ class MyWorld(pydart.World):
         s2q[left_leg] = 0.0, 0.785, 0.0, -0.17
         s2q[arms] = 1.5, -1.5
         # s2q[foot] = 0.2, 0.0, -0.6, -0.0
-        state2 = State("state2", 1.0, 0.0, 0.2, s2q)
+        # state2 = State("state2", 1.0, 0.0, 0.2, s2q)
+        state2 = State("state2", 0.2, 2.2, 0.0, s1q)
 
         s3q = np.zeros(skel.ndofs)
         # s1q[pelvis] = -0.3, -0.0
         # s1q[upper_body] = 0.0, -0.2
-        s3q[right_leg] = 0.9, -0.785, 0.1, -0.17
+        s3q[right_leg] = -0.9, -0.785, 0.1, -0.17
         s3q[left_leg] = -0., 0.785, 0.1, -0.17
         s3q[arms] = 1.5, -1.5
-        s3q[foot] = 0.2, 0.0, 0.2, 0.0
+        # s3q[foot] = 0.2, 0.0, 0.2, 0.0
         state3 = State("state3", 3.0, 2.2, 0.0, s3q)
 
         # self.state_list = [state0, state2, state3]
@@ -408,10 +411,10 @@ class MyWorld(pydart.World):
         del blade_force_origin[:]
 
         if self.curr_state.name == "state1":
-            # blade_force.append(self.controller.blade_direction_L)
-            # blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
-            blade_force.append(-self.controller.blade_direction_L)
-            blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
+            blade_force.append(self.controller.blade_direction_L)
+            blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
+            # blade_force.append(-self.controller.blade_direction_L)
+            # blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
         if self.force is not None:
             push_force.append(self.force*0.05)
             push_force_origin.append(self.skeletons[2].body('h_spine').to_world())
