@@ -4,8 +4,11 @@ from cvxopt import matrix, solvers
 from pydart2.skeleton import Skeleton
 
 # is_non_holonomic = True
-# inequality_non_holonomic = False
 is_non_holonomic = False
+# only_left_foot_is_non_holonomic = True
+only_left_foot_is_non_holonomic = False
+# inequality_non_holonomic = False
+
 inequality_non_holonomic = True
 non_holonomic_epsilon = 0.5
 # non_holonomic_epsilon = 0.01
@@ -220,7 +223,9 @@ class Controller(object):
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
-        if self.cur_state == "state1" or self.cur_state == "state2":
+        if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
+        # if self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state2":
+        # if self.cur_state == "state2":
             momentum_con = True
         else:
             momentum_con = False
@@ -394,8 +399,14 @@ class Controller(object):
             # print("length o f J_c_t: ", len(J_c_t))
 
             # self.skeletons[0].body('ground').set_friction_coeff(0.02)
-            myu = 0.02
+
+            #todo: 왼발 오른 발 따로 V_c_1 calculate
+            # left foot myu = 0.02
+            # right foot myu = 1.0
+
             self.V_c = np.zeros((3 * self.contact_num, 4 * self.contact_num))
+
+            myu = 0.02
 
             v1 = np.array([myu, 1, 0])
             v1 = v1 / np.linalg.norm(v1)  # normalize
@@ -417,10 +428,34 @@ class Controller(object):
 
             V_c_1 = np.array([v1, v2, v3, v4])
 
+            V_c_left = np.array([v1, v2, v3, v4])
+
+            myu = 1.0
+
+            v1 = np.array([myu, 1, 0])
+            v1 = v1 / np.linalg.norm(v1)  # normalize
+            v2 = np.array([0, 1, myu])
+            v2 = v2 / np.linalg.norm(v2)  # normalize
+            v3 = np.array([-myu, 1, 0])
+            v3 = v3 / np.linalg.norm(v3)  # normalize
+            v4 = np.array([0, 1, -myu])
+            v4 = v4 / np.linalg.norm(v4)  # normalize
+
+            V_c_right = np.array([v1, v2, v3, v4])
+
             # print("V_c_1 :\n", np.transpose(V_c_1))
 
-            for n in range(self.contact_num):
-                self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
+            if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
+                for n in range(int(len(contact_list)/2)):
+                    contact_body_name = contact_list[2*n]
+                    # print("contact name? : ", contact_body_name)
+                    if contact_body_name == "h_blade_left":
+                        self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_left)
+                    elif contact_body_name == "h_blade_right":
+                        self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_right)
+            else:
+                for n in range(self.contact_num):
+                    self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
 
             # print("V_c :\n", self.V_c)
 
@@ -564,6 +599,13 @@ class Controller(object):
         # Low-stiffness
         k1, kd = 20.0, 10.0
 
+        # if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
+        #     is_non_holonomic = False
+        #     only_left_foot_is_non_holonomic = True
+        # else:
+        #     is_non_holonomic = True
+        #     only_left_foot_is_non_holonomic = False
+
         if is_non_holonomic:
             # print("NON-HOLONOMIC!!!")
             if contact_num != 0:
@@ -615,7 +657,6 @@ class Controller(object):
             #     # b_vec[ndofs + 6 + 3:ndofs + 6 + 4] = b_vec[ndofs + 6 + 3:ndofs + 6 + 4] - 1.0 * np.array([-10.0])
             #     print("Discrete B:", offset)
             # self.preoffset = offset
-
         else:
             # print("HOLONOMIC!!!")
             if contact_num != 0:
@@ -635,6 +676,31 @@ class Controller(object):
 
             b_vec = np.zeros(ndofs + 6)
             b_vec[0:ndofs] = -1 * skel.c
+
+        if only_left_foot_is_non_holonomic:
+            # print("NON-HOLONOMIC!!!")
+            if contact_num != 0:
+                Am = np.zeros((ndofs + 6 + 1, ndofs * 2 + 4 * contact_num))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                J_c_t_V_c = J_c_t.dot(V_c)
+                # print("J_c_t_V_c :\n", J_c_t_V_c)
+                # print("size of J_c_t_V_c :", len(J_c_t_V_c))
+                Am[0:ndofs, 2 * ndofs:] = -1 * J_c_t_V_c
+                Am[ndofs:ndofs + 6, 0:6] = np.eye(6)
+                Am[ndofs + 6:ndofs + 6 + 1, ndofs:2 * ndofs] = np.dot(self.h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+            else:
+                Am = np.zeros((ndofs + 6 + 1, ndofs * 2))
+                Am[0:ndofs, 0:ndofs] = -1 * np.identity(ndofs)
+                Am[0:ndofs, ndofs:2 * ndofs] = skel.M
+                Am[ndofs:ndofs + 6, 0:6] = np.eye(6)
+                Am[ndofs + 6:ndofs + 6 + 1, ndofs:] = np.dot(self.h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+
+            b_vec = np.zeros(ndofs + 6 + 1)
+            b_vec[0:ndofs] = -1 * skel.c
+            b_vec[ndofs + 6:ndofs + 6 + 1] = (np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[
+                                                 2] * ca_L - \
+                                             (np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[0] * sa_L
 
         A = matrix(Am)
         # print("A :\n", A)
@@ -677,55 +743,88 @@ class Controller(object):
         self.preoffset = offset
         # self.preoffset_pelvis = preoffset_pelvis
 
-        if self.cur_state == "state1":
+        #Jacobian transpose control
+
+        if self.cur_state == "state1" or self.cur_state == "state11":
             my_jaco = skel.body("h_blade_left").linear_jacobian()
             my_jaco_t = my_jaco.transpose()
-            # print("jaco: ", my_jaco_t)
-            # my_force = np.array([-5, 0, 0])
-            my_force = 12. * self.blade_direction_L
+            my_force = 1. * np.array([1.0, 0.0, 0.0])
             my_tau = np.dot(my_jaco_t, my_force)
-            # print("blade_direction: ", self.blade_direction_vec)
-            # print("force: ", my_force)
-            # print("MY tau: ", my_tau)
 
-            my_jaco2 = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = -1. * self.blade_direction_L
-            my_tau2 = np.dot(my_jaco_t2, my_force2)
+            return self.sol_tau + my_tau
+        elif self.cur_state == "state12":
+            my_jaco = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 10. * np.array([-7.0, 1.0, 0.0])
+            my_tau = np.dot(my_jaco_t, my_force)
 
-            # my_jaco_spine = skel.body("h_spine").linear_jacobian()
-            # my_jaco_spine = skel.body("h_abdomen").linear_jacobian()
-            my_jaco_spine = skel.body("h_pelvis").linear_jacobian()
-            my_jaco_spine_t = my_jaco_spine.transpose()
-            my_force_spine = 30. * np.array([1.0, 0., 0.])
-            my_force_spine = 30. * self.blade_direction_L
-            my_tau_spine = np.dot(my_jaco_spine_t, my_force_spine)
+            # my_jaco2 = skel.body("h_blade_left").linear_jacobian()
+            # my_jaco_t2 = my_jaco2.transpose()
+            # my_force2 = 20. * np.array([1.0, 0.0, 0.0])
+            # my_tau2 = np.dot(my_jaco_t2, my_force2)
+
+            return self.sol_tau + my_tau #+ my_tau2
+
+        elif self.cur_state == "state13":
+            my_jaco = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 10. * np.array([-1.0, 1.5, .0])
+            my_tau = np.dot(my_jaco_t, my_force)
+
+            # my_jaco2 = skel.body("h_blade_left").linear_jacobian()
+            # my_jaco_t2 = my_jaco2.transpose()
+            # my_force2 = 20. * np.array([1.0, 0.0, 0.0])
+            # my_tau2 = np.dot(my_jaco_t2, my_force2)
+
+            return self.sol_tau + my_tau #+ my_tau2
+            # my_jaco = skel.body("h_blade_left").linear_jacobian()
+            # my_jaco_t = my_jaco.transpose()
+            # # print("jaco: ", my_jaco_t)
+            # # my_force = np.array([-5, 0, 0])
+            # my_force = 12. * self.blade_direction_L
+            # my_tau = np.dot(my_jaco_t, my_force)
+            # # print("blade_direction: ", self.blade_direction_vec)
+            # # print("force: ", my_force)
+            # # print("MY tau: ", my_tau)
+            #
+            # my_jaco2 = skel.body("h_blade_right").linear_jacobian()
+            # my_jaco_t2 = my_jaco2.transpose()
+            # my_force2 = -1. * self.blade_direction_L
+            # my_tau2 = np.dot(my_jaco_t2, my_force2)
+            #
+            # # my_jaco_spine = skel.body("h_spine").linear_jacobian()
+            # # my_jaco_spine = skel.body("h_abdomen").linear_jacobian()
+            # my_jaco_spine = skel.body("h_pelvis").linear_jacobian()
+            # my_jaco_spine_t = my_jaco_spine.transpose()
+            # my_force_spine = 30. * np.array([1.0, 0., 0.])
+            # my_force_spine = 30. * self.blade_direction_L
+            # my_tau_spine = np.dot(my_jaco_spine_t, my_force_spine)
 
             # return self.sol_tau + my_tau2 + my_tau + my_tau_spine
-            return self.sol_tau + my_tau
+
             # return self.sol_tau + my_tau2
             # return self.sol_tau + my_tau
-        elif self.cur_state == "state11":
-            my_jaco = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 0.5 * self.blade_direction_L
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            return self.sol_tau + my_tau
-        elif self.cur_state == "state2":
-            print("state!!2")
-            my_jaco = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 20. * self.blade_direction_L
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            my_jaco2 = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 10. * np.array([0., 1.0, 0.])
-            my_tau2 = np.dot(my_jaco_t2, my_force2)
-
-            return self.sol_tau + my_tau
-            # return self.sol_tau + my_tau2 + my_tau
+        # elif self.cur_state == "state11":
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     my_force = 0.5 * self.blade_direction_L
+        #     my_tau = np.dot(my_jaco_t, my_force)
+        #
+        #     return self.sol_tau + my_tau
+        # elif self.cur_state == "state2":
+        #     print("state!!2")
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     my_force = 20. * self.blade_direction_L
+        #     my_tau = np.dot(my_jaco_t, my_force)
+        #
+        #     my_jaco2 = skel.body("h_blade_right").linear_jacobian()
+        #     my_jaco_t2 = my_jaco2.transpose()
+        #     my_force2 = 10. * np.array([0., 1.0, 0.])
+        #     my_tau2 = np.dot(my_jaco_t2, my_force2)
+        #
+        #     return self.sol_tau + my_tau
+        #     # return self.sol_tau + my_tau2 + my_tau
         else:
             return self.sol_tau
 
