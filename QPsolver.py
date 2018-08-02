@@ -3,14 +3,14 @@ import math
 from cvxopt import matrix, solvers
 from pydart2.skeleton import Skeleton
 
-# is_non_holonomic = True
-is_non_holonomic = False
+is_non_holonomic = True
+# is_non_holonomic = False
 # only_left_foot_is_non_holonomic = True
 only_left_foot_is_non_holonomic = False
-# inequality_non_holonomic = False
+inequality_non_holonomic = False
 
-inequality_non_holonomic = True
-non_holonomic_epsilon = 0.5
+# inequality_non_holonomic = True
+# non_holonomic_epsilon = 0.5
 # non_holonomic_epsilon = 0.01
 
 class Controller(object):
@@ -223,13 +223,13 @@ class Controller(object):
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
-        if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
+        # if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
         # if self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state2":
-        # if self.cur_state == "state2":
-            momentum_con = True
-        else:
-            momentum_con = False
-
+        # # if self.cur_state == "state2":
+        #     momentum_con = True
+        # else:
+        #     momentum_con = False
+        momentum_con = False
         if momentum_con:
             # get desired linear momentum (des_L_dot)
 
@@ -445,17 +445,19 @@ class Controller(object):
 
             # print("V_c_1 :\n", np.transpose(V_c_1))
 
-            if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
-                for n in range(int(len(contact_list)/2)):
-                    contact_body_name = contact_list[2*n]
-                    # print("contact name? : ", contact_body_name)
-                    if contact_body_name == "h_blade_left":
-                        self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_left)
-                    elif contact_body_name == "h_blade_right":
-                        self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_right)
-            else:
-                for n in range(self.contact_num):
-                    self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
+            # if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
+            #     for n in range(int(len(contact_list)/2)):
+            #         contact_body_name = contact_list[2*n]
+            #         # print("contact name? : ", contact_body_name)
+            #         if contact_body_name == "h_blade_left":
+            #             self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_left)
+            #         elif contact_body_name == "h_blade_right":
+            #             self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_right)
+            # else:
+            #     for n in range(self.contact_num):
+            #         self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
+            for n in range(self.contact_num):
+                self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
 
             # print("V_c :\n", self.V_c)
 

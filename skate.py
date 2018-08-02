@@ -184,10 +184,10 @@ class MyWorld(pydart.World):
         # s1q[upper_body] = 0.0, -0.
         s11q[left_leg] = 0., 0.0, 0.3, -0.3
         # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s11q[right_leg] = -0.0, -0.0, 0., -0.3
+        s11q[right_leg] = -0.0, -0.0, -0.2, -0.3
         s11q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
-        s11q[foot] = -0.0, 0.0, -0.1,  0.0
+        s11q[foot] = -0.0, 0.0, 0.1,  0.0
         state11 = State("state11", 0.1, 2.2, 0.0, s11q)
 
         s12q = np.zeros(skel.ndofs)
@@ -195,7 +195,7 @@ class MyWorld(pydart.World):
         # s12q[upper_body] = 0.0, -0.2
         s12q[left_leg] = 0., 0.0, 0.3, -0.2
         # s12q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s12q[right_leg] = -0.0, -0.0, -0.0, -0.3
+        s12q[right_leg] = -0.0, -0.0, -0.3, -0.3
         s12q[arms] = 1.5, -1.5
         # s12q[blade] = -0.3
         s12q[foot] = -0.0, 0.0, -0.3,  0.0
