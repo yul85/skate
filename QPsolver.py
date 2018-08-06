@@ -2,6 +2,7 @@ import numpy as np
 import math
 from cvxopt import matrix, solvers
 from pydart2.skeleton import Skeleton
+import momentum_con
 
 is_non_holonomic = True
 # is_non_holonomic = False
@@ -14,7 +15,7 @@ inequality_non_holonomic = False
 # non_holonomic_epsilon = 0.01
 
 class Controller(object):
-    def __init__(self, skel, h, cur_state):
+    def __init__(self, skel, ref_skel, h, cur_state):
         self.h = h
         self.skel = skel  # type: Skeleton
         self.cur_state = cur_state
@@ -42,8 +43,6 @@ class Controller(object):
         self.K_tr = 1000.0
         self.K_cf = 10000.0
         # self.K_cf = 5000.0
-        self.K_lm = 1000.0
-        self.K_am = 10.0
 
         self.preoffset = 0.0
         self.preoffset_pelvis = np.zeros(2)
@@ -54,6 +53,9 @@ class Controller(object):
         self.blade_direction_vec = np.array([0.0, 0.0, 0.0])
         self.blade_direction_L = np.array([0.0, 0.0, 0.0])
         self.blade_direction_R = np.array([0.0, 0.0, 0.0])
+
+        self.mo_con = momentum_con.momentum_control(skel, ref_skel, h)
+
 
     def check_contact(self):
         skel = self.skel
@@ -99,7 +101,8 @@ class Controller(object):
         #     blade_direction_vec = p2 - p1
         # else:
         #     blade_direction_vec = p1 - p2
-        blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+        if np.linalg.norm(blade_direction_vec) != 0:
+            blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
         blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
         self.blade_direction_vec = blade_direction_vec
@@ -115,28 +118,6 @@ class Controller(object):
         ca = math.cos(next_step_angle)
 
         return jaco, jaco_der, sa, ca, blade_direction_vec
-
-    def get_parallel_blade_info(self, body_name):
-        skel = self.skel
-        jaco = skel.body(body_name).linear_jacobian()
-        jaco_der = skel.body(body_name).linear_jacobian_deriv()
-
-        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
-
-        if body_name == "h_blade_right":
-            blade_direction_vec = p2 - p1
-        else:
-            blade_direction_vec = p1 - p2
-        blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-
-        theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-        next_step_angle = theta + skel.body(body_name).world_angular_velocity()[2] * self.h
-        # print("next_step_angle: ", next_step_angle)
-        sa = math.sin(next_step_angle)
-        ca = math.cos(next_step_angle)
-
-        return jaco, jaco_der, sa, ca, theta
 
     def compute(self):
         # goal : get acceleration and lambda to satisfy the objectives and constraints below
@@ -199,19 +180,28 @@ class Controller(object):
         #     qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         #     des_accel = p + d + qddot
 
+        # invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        # p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+        # d = -self.Kd.dot(skel.dq)
+        # qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+        # des_accel = p + d + qddot
+
         # get desired acceleration
-        invM = np.linalg.inv(skel.M + self.Kd * self.h)
-        # p = -self.Kp.dot(skel.q + skel.dq * self.h - self.qhat)
-        p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
-        d = -self.Kd.dot(skel.dq)
-        qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
-        des_accel = p + d + qddot
+        if contact_num == 0:
+            invM = np.linalg.inv(skel.M + self.Kd * self.h)
+            p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+            d = -self.Kd.dot(skel.dq)
+            qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+            # des_accel = p + d + qddot
+            des_accel = p + d
+        else:
+            # print("contact!")
+            self.mo_con.target = self.target
+            des_accel = self.mo_con.compute(contact_list)
 
         K_ef = self.K_ef
         K_tr = self.K_tr
         K_cf = self.K_cf
-        K_lm = self.K_lm
-        K_am = self.K_am
 
         # ===========================
         # Objective function
@@ -231,9 +221,6 @@ class Controller(object):
         jaco_R, jaco_der_R, sa_R, ca_R, blade_direction_R = self.get_foot_info("h_blade_right")
         self.blade_direction_L = blade_direction_L
         self.blade_direction_R = blade_direction_R
-        # parallel term
-        pa_jaco_L, pa_jaco_der_L, pa_sa_L, pa_ca_L, pa_theta_L = self.get_parallel_blade_info("h_blade_left")
-        pa_jaco_R, pa_jaco_der_R, pa_sa_R, pa_ca_R, pa_theta_R = self.get_parallel_blade_info("h_blade_right")
 
         # ===========================
         # inequality constraint
@@ -254,10 +241,6 @@ class Controller(object):
             # print("length o f J_c_t: ", len(J_c_t))
 
             # self.skeletons[0].body('ground').set_friction_coeff(0.02)
-
-            #todo: 왼발 오른 발 따로 V_c_1 calculate
-            # left foot myu = 0.02
-            # right foot myu = 1.0
 
             self.V_c = np.zeros((3 * self.contact_num, 4 * self.contact_num))
 
@@ -282,85 +265,19 @@ class Controller(object):
             # v4 = v4 / np.linalg.norm(v4)
 
             V_c_1 = np.array([v1, v2, v3, v4])
-
-            V_c_left = np.array([v1, v2, v3, v4])
-
-            myu = 1.0
-
-            v1 = np.array([myu, 1, 0])
-            v1 = v1 / np.linalg.norm(v1)  # normalize
-            v2 = np.array([0, 1, myu])
-            v2 = v2 / np.linalg.norm(v2)  # normalize
-            v3 = np.array([-myu, 1, 0])
-            v3 = v3 / np.linalg.norm(v3)  # normalize
-            v4 = np.array([0, 1, -myu])
-            v4 = v4 / np.linalg.norm(v4)  # normalize
-
-            V_c_right = np.array([v1, v2, v3, v4])
-
             # print("V_c_1 :\n", np.transpose(V_c_1))
 
-            # if self.cur_state == "state1" or self.cur_state == "state11" or self.cur_state == "state12" or self.cur_state == "state13" or self.cur_state == "state14":
-            #     for n in range(int(len(contact_list)/2)):
-            #         contact_body_name = contact_list[2*n]
-            #         # print("contact name? : ", contact_body_name)
-            #         if contact_body_name == "h_blade_left":
-            #             self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_left)
-            #         elif contact_body_name == "h_blade_right":
-            #             self.V_c[n * 3:(n + 1) * 3, n * 4:(n + 1) * 4] = np.transpose(V_c_right)
-            # else:
-            #     for n in range(self.contact_num):
-            #         self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
             for n in range(self.contact_num):
                 self.V_c[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_1)
 
             # print("V_c :\n", self.V_c)
-
             V_c = self.V_c
 
-            if inequality_non_holonomic:
-                Gm = np.zeros((2*4*contact_num+4, 2*ndofs + 4*contact_num))
-                Gm[0:4*contact_num, 2*ndofs:] = -1 * np.identity(4*contact_num)
-                Gm[4*contact_num:2*4*contact_num, ndofs:2*ndofs] = -1 * np.transpose(V_c).dot(np.transpose(J_c_t))
-
-                Gm[2*4*contact_num:2*4*contact_num+ 1, ndofs:2*ndofs] = np.dot(self.h*np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-                Gm[2*4*contact_num+ 1:2*4*contact_num+ 2, ndofs:2 * ndofs] = np.dot(self.h*np.array([sa_R, 0., -1 * ca_R]), jaco_R)
-
-                Gm[2 * 4 * contact_num+2:2 * 4 * contact_num + 3, ndofs:2 * ndofs] = -1 * np.dot(
-                    self.h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-                Gm[2 * 4 * contact_num + 3:2 * 4 * contact_num + 4, ndofs:2 * ndofs] = -1 * np.dot(
-                    self.h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
-
-                G = matrix(Gm)
-
-                # print("G :\n", G)
-                hv = np.zeros(2 * 4 * contact_num + 4)
-
-                hv[2 * 4 * contact_num:2 * 4 * contact_num + 1] = (np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[
-                                                     2] * ca_L - \
-                                                 (np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[
-                                                     0] * sa_L + non_holonomic_epsilon
-                hv[2 * 4 * contact_num + 1:2 * 4 * contact_num + 2] = (np.dot(jaco_R, skel.dq) + self.h * np.dot(jaco_der_R, skel.dq))[
-                                                         2] * ca_R - \
-                                                     (np.dot(jaco_R, skel.dq) + self.h * np.dot(jaco_der_R, skel.dq))[
-                                                         0] * sa_R + non_holonomic_epsilon
-                hv[2 * 4 * contact_num + 2:2 * 4 * contact_num + 3] = \
-                -1*(np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[
-                    2] * ca_L + \
-                (np.dot(jaco_L, skel.dq) + self.h * np.dot(jaco_der_L, skel.dq))[
-                    0] * sa_L + non_holonomic_epsilon
-                hv[2 * 4 * contact_num + 3:2 * 4 * contact_num + 4] = \
-                    -1 *(np.dot(jaco_R, skel.dq) + self.h * np.dot(jaco_der_R, skel.dq))[
-                    2] * ca_R + \
-                (np.dot(jaco_R, skel.dq) + self.h * np.dot(jaco_der_R, skel.dq))[
-                    0] * sa_R + non_holonomic_epsilon
-            else:
-                Gm = np.zeros((2*4*contact_num, 2*ndofs + 4*contact_num))
-                Gm[0:4*contact_num, 2*ndofs:] = -1 * np.identity(4*contact_num)
-                Gm[4*contact_num:, ndofs:2*ndofs] = -1 * np.transpose(V_c).dot(np.transpose(J_c_t))
-                G = matrix(Gm)
-                # print("G :\n", G)
-                hv = np.zeros(2*4*contact_num)
+            Gm = np.zeros((2*4*contact_num, 2*ndofs + 4*contact_num))
+            Gm[0:4*contact_num, 2*ndofs:] = -1 * np.identity(4*contact_num)
+            Gm[4*contact_num:, ndofs:2*ndofs] = -1 * np.transpose(V_c).dot(np.transpose(J_c_t))
+            G = matrix(Gm)
+            hv = np.zeros(2*4*contact_num)
 
             V_c_t_J_c_dot = np.transpose(V_c).dot(np.transpose(J_c_t_der))
             hv1 = V_c_t_J_c_dot.dot(skel.dq)
@@ -369,64 +286,69 @@ class Controller(object):
 
             # compensate the velocity at the moment colliding the ground
 
-            omega = []
-            V_c_dot_stack = []
-            compensate_depth = []
-            compensate_vel = []
-
-            for ii in range(self.contact_num):
-                contact_body_name = contact_list[2*ii]
-                contact_offset = contact_list[2 * ii + 1]
-                angular_vel = skel.body(contact_body_name).world_angular_velocity()
-                omega.append(angular_vel)
-
-                v1_dot = np.cross(v1, omega[ii])
-                if np.linalg.norm(v1_dot) != 0:
-                    v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
-                v2_dot = np.cross(v2, omega[ii])
-                if np.linalg.norm(v2_dot) != 0:
-                    v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
-                v3_dot = np.cross(v3, omega[ii])
-                if np.linalg.norm(v3_dot) != 0:
-                    v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
-                v4_dot = np.cross(v4, omega[ii])
-                if np.linalg.norm(v4_dot) != 0:
-                    v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
-
-                V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
-
-                #calculate the penetraction depth : compensate depth instead of velocity
-                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.99)
-                # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
-
-                compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
-
-            # print("depth: ", compensate_depth)
-            # print("velocity: ", compensate_vel)
-            # print("omega: \n", omega)
-            # print("V_c_dot :\n", V_c_dot_stack)
-
-            compensate_depth_vec = np.zeros(4 * contact_num)
-            compensate_vel_vec = np.zeros(4 * contact_num)
-
-            for n in range(self.contact_num):
-                self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
-                compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
-                compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
-
-            # print("compensate_depth_vec: \n", compensate_depth_vec)
-
+            # omega = []
+            # V_c_dot_stack = []
+            # compensate_depth = []
+            # compensate_vel = []
+            #
+            # for ii in range(self.contact_num):
+            #     contact_body_name = contact_list[2*ii]
+            #     contact_offset = contact_list[2 * ii + 1]
+            #     angular_vel = skel.body(contact_body_name).world_angular_velocity()
+            #     omega.append(angular_vel)
+            #
+            #     v1_dot = np.cross(v1, omega[ii])
+            #     if np.linalg.norm(v1_dot) != 0:
+            #         v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
+            #     v2_dot = np.cross(v2, omega[ii])
+            #     if np.linalg.norm(v2_dot) != 0:
+            #         v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
+            #     v3_dot = np.cross(v3, omega[ii])
+            #     if np.linalg.norm(v3_dot) != 0:
+            #         v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
+            #     v4_dot = np.cross(v4, omega[ii])
+            #     if np.linalg.norm(v4_dot) != 0:
+            #         v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
+            #
+            #     V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
+            #
+            #     #calculate the penetraction depth : compensate depth instead of velocity
+            #     compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.99)
+            #     # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
+            #
+            #     compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
+            #
+            # # print("depth: ", compensate_depth)
+            # # print("velocity: ", compensate_vel)
+            # # print("omega: \n", omega)
+            # # print("V_c_dot :\n", V_c_dot_stack)
+            #
+            # compensate_depth_vec = np.zeros(4 * contact_num)
+            # compensate_vel_vec = np.zeros(4 * contact_num)
+            #
+            # for n in range(self.contact_num):
+            #     self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
+            #     compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
+            #     compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
+            #
+            # # print("compensate_depth_vec: \n", compensate_depth_vec)
+            #
             V_c_dot = self.V_c_dot
             V_c_t_dot_J_c = np.transpose(V_c_dot).dot(np.transpose(J_c_t))
             hv2 = V_c_t_dot_J_c.dot(skel.dq)
+            #
+            # # print("hv1", hv1)
+            # # print("hv2", hv2)
+            # # print("compensate_vel: \n", compensate_vel_vec)
+            #
+            # compensate_gain = 90000.
+            # # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
 
-            # print("hv1", hv1)
-            # print("hv2", hv2)
-            # print("compensate_vel: \n", compensate_vel_vec)
+            V_c_t_J_c = np.transpose(V_c).dot(np.transpose(J_c_t))
+            compensate_vel = 1/self.h * V_c_t_J_c.dot(skel.dq)
 
-            compensate_gain = 90000.
-            # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
-            hv[4 * contact_num:2*4 * contact_num] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
+            hv[4 * contact_num:2*4 * contact_num] = hv1 + hv2 + compensate_vel
+            # hv[4 * contact_num:2 * 4 * contact_num] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
             # print("h :\n", h)
 
@@ -580,6 +502,12 @@ class Controller(object):
         if contact_num == 0:
             sol = solvers.qp(P, qq, None, None, A, b)
         else:
+            # print("P: ", P)
+            # print("qq: ", qq)
+            # print("G: ", G)
+            # print("h: ", h)
+            # print("A: ", A)
+            # print("b: ", b)
             sol = solvers.qp(P, qq, G, h, A, b)
 
         #print(sol['x'])

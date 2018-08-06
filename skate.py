@@ -2,7 +2,7 @@ import numpy as np
 import pydart2 as pydart
 import QPsolver
 import IKsolve_one
-import momentum_con
+
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
@@ -152,8 +152,8 @@ class MyWorld(pydart.World):
         s0q = np.zeros(skel.ndofs)
         # s0q[pelvis] = 0., -0.
         # s0q[upper_body] = 0.3, -0.
-        s0q[right_leg] = -0., -0., 0.5, -0.9
-        # s0q[left_leg] = 0., 0., 0.05, -0.05
+        s0q[right_leg] = -0., -0., 0.9, -1.5
+        # s0q[left_leg] = 0., 0., 0.0, -0.1
         # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
         # s0q[foot] = 0.1, 0.0, 0.1, -0.0
@@ -172,80 +172,80 @@ class MyWorld(pydart.World):
         # s0q[arms] = 1.5, -1.5
         # # s0q[foot] = 0.1, 0.0, 0.1, -0.0
         # state0 = State("state0", 1.0, 0.0, 0.2, s0q)
-        #
-        # s01q = np.zeros(skel.ndofs)
-        # # s01q[pelvis] = 0., -0.3
-        # # s01q[upper_body] = 0.0, -0.4
-        # s01q[left_leg] = 0., 0., 0.4, -0.4
-        # # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        # # s01q[right_leg] = -0., -0., 0.4, -0.4
-        # s01q[arms] = 1.5, -1.5
-        # # s01q[blade] = -0.3
-        # # s01q[foot] = -0.0, 0.0, 0.4,  0.0
-        # state01 = State("state01", 0.2, 2.2, 0.0, s01q)
-        #
-        # s1q = np.zeros(skel.ndofs)
-        # # s1q[pelvis] = 0., -0.1
-        # # s1q[upper_body] = 0.0, 0.2
-        # s1q[left_leg] = 0., 0.0, 0.4, -0.4
-        # # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        # s1q[right_leg] = -0.0, -0.0, 0.2, -0.3
-        # s1q[arms] = 1.5, -1.5
-        # # s1q[blade] = -0.3
-        # # s1q[foot] = -0.0, 0.0, -0.4,  0.0
-        # state1 = State("state1", 0.1, 2.2, 0.0, s1q)
-        #
-        # s11q = np.zeros(skel.ndofs)
-        # # s1q[pelvis] = 0., -0.1
-        # # s1q[upper_body] = 0.0, -0.
-        # s11q[left_leg] = 0., 0.0, 0.3, -0.3
-        # # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        # s11q[right_leg] = -0.0, -0.0, -0.2, -0.3
-        # s11q[arms] = 1.5, -1.5
-        # # s1q[blade] = -0.3
-        # s11q[foot] = -0.0, 0.0, 0.1,  0.0
-        # state11 = State("state11", 0.1, 2.2, 0.0, s11q)
-        #
-        # s12q = np.zeros(skel.ndofs)
-        # # s12q[pelvis] = 0., -0.1
-        # # s12q[upper_body] = 0.0, -0.2
-        # s12q[left_leg] = 0., 0.0, 0.3, -0.2
-        # # s12q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        # s12q[right_leg] = -0.0, -0.0, -0.3, -0.3
-        # s12q[arms] = 1.5, -1.5
-        # # s12q[blade] = -0.3
-        # s12q[foot] = -0.0, 0.0, -0.3,  0.0
-        # state12 = State("state12", 0.1, 2.2, 0.0, s12q)
-        #
-        # s13q = np.zeros(skel.ndofs)
-        # # s13q[pelvis] = 0., -0.1
-        # # s13q[upper_body] = -0., -0.2
-        # s13q[left_leg] = 0., 0.0, 0.3, -0.17
-        # # s13q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        # s13q[right_leg] = -0., -0.0, -0.3, -0.1
-        # s13q[arms] = 1.5, -1.5
-        # # s1q[blade] = -0.3
-        # # s13q[foot] = -0.0, 0.0, -0.6,  0.0
-        # state13 = State("state13", 0.3, 2.2, 0.0, s13q)
-        #
-        # s2q = np.zeros(skel.ndofs)
-        # # s2q[pelvis] = -0.3, -0.0
-        # # s2q[upper_body] = -0., -0.
-        # s2q[left_leg] = -0., -0., 0., -0.17
-        # # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
-        # s2q[right_leg] = 0.0, 0., -0.3, -0.5
-        # s2q[arms] = 1.5, -1.5
-        # # s2q[foot] = 0.2, 0.0, -0.6, -0.0
-        # state2 = State("state2", 0.5, 0.0, 0.2, s2q)
-        #
-        # s3q = np.zeros(skel.ndofs)
-        # # s1q[pelvis] = -0.3, -0.0
-        # # s1q[upper_body] = 0.0, -0.2
-        # s3q[left_leg] = -0., -0., 0., -0.17
-        # s3q[right_leg] = 0.0, 0., 0.5, -0.9
-        # s3q[arms] = 1.5, -1.5
-        # # s3q[foot] = 0.2, 0.0, 0.2, 0.0
-        # state3 = State("state3", 2.0, 2.2, 0.0, s3q)
+
+        s01q = np.zeros(skel.ndofs)
+        # s01q[pelvis] = 0., -0.3
+        # s01q[upper_body] = 0.0, -0.4
+        s01q[left_leg] = 0., 0., 0.4, -0.4
+        # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        # s01q[right_leg] = -0., -0., 0.4, -0.4
+        s01q[arms] = 1.5, -1.5
+        # s01q[blade] = -0.3
+        # s01q[foot] = -0.0, 0.0, 0.4,  0.0
+        state01 = State("state01", 0.2, 2.2, 0.0, s01q)
+
+        s1q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = 0., -0.1
+        # s1q[upper_body] = 0.0, 0.2
+        s1q[left_leg] = 0., 0.0, 0.4, -0.4
+        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s1q[right_leg] = -0.0, -0.0, 0.2, -0.3
+        s1q[arms] = 1.5, -1.5
+        # s1q[blade] = -0.3
+        # s1q[foot] = -0.0, 0.0, -0.4,  0.0
+        state1 = State("state1", 0.1, 2.2, 0.0, s1q)
+
+        s11q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = 0., -0.1
+        # s1q[upper_body] = 0.0, -0.
+        s11q[left_leg] = 0., 0.0, 0.3, -0.3
+        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s11q[right_leg] = -0.0, -0.0, -0.2, -0.3
+        s11q[arms] = 1.5, -1.5
+        # s1q[blade] = -0.3
+        s11q[foot] = -0.0, 0.0, 0.1,  0.0
+        state11 = State("state11", 0.1, 2.2, 0.0, s11q)
+
+        s12q = np.zeros(skel.ndofs)
+        # s12q[pelvis] = 0., -0.1
+        # s12q[upper_body] = 0.0, -0.2
+        s12q[left_leg] = 0., 0.0, 0.3, -0.2
+        # s12q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s12q[right_leg] = -0.0, -0.0, -0.3, -0.3
+        s12q[arms] = 1.5, -1.5
+        # s12q[blade] = -0.3
+        s12q[foot] = -0.0, 0.0, -0.3,  0.0
+        state12 = State("state12", 0.1, 2.2, 0.0, s12q)
+
+        s13q = np.zeros(skel.ndofs)
+        # s13q[pelvis] = 0., -0.1
+        # s13q[upper_body] = -0., -0.2
+        s13q[left_leg] = 0., 0.0, 0.3, -0.17
+        # s13q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s13q[right_leg] = -0., -0.0, -0.3, -0.1
+        s13q[arms] = 1.5, -1.5
+        # s1q[blade] = -0.3
+        # s13q[foot] = -0.0, 0.0, -0.6,  0.0
+        state13 = State("state13", 0.3, 2.2, 0.0, s13q)
+
+        s2q = np.zeros(skel.ndofs)
+        # s2q[pelvis] = -0.3, -0.0
+        # s2q[upper_body] = -0., -0.
+        s2q[left_leg] = -0., -0., 0., -0.17
+        # s2q[left_leg] = 0.0, -0.0, -0.2, -0.17
+        s2q[right_leg] = 0.0, 0., -0.3, -0.5
+        s2q[arms] = 1.5, -1.5
+        # s2q[foot] = 0.2, 0.0, -0.6, -0.0
+        state2 = State("state2", 0.5, 0.0, 0.2, s2q)
+
+        s3q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = -0.3, -0.0
+        # s1q[upper_body] = 0.0, -0.2
+        s3q[left_leg] = -0., -0., 0., -0.17
+        s3q[right_leg] = 0.0, 0., 0.5, -0.9
+        s3q[arms] = 1.5, -1.5
+        # s3q[foot] = 0.2, 0.0, 0.2, 0.0
+        state3 = State("state3", 2.0, 2.2, 0.0, s3q)
 
         # s14q = np.zeros(skel.ndofs)
         # # s14q[pelvis] = 0., -0.1
@@ -320,25 +320,22 @@ class MyWorld(pydart.World):
         self.curr_state_index = 0
         # print("backup angle: ", backup_q)
         # print("cur angle: ", self.curr_state.angles)
-        self.controller = QPsolver.Controller(skel, self.dt, self.curr_state.name)
+        self.controller = QPsolver.Controller(skel, self.skeletons[3], self.dt, self.curr_state.name)
 
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
 
-        self.ik = IKsolve_one.IKsolver(self.skeletons[2], self.dt)
-
-        self.mo_con = momentum_con.momentum_control(skel, self.dt)
+        # self.ik = IKsolve_one.IKsolver(self.skeletons[2], self.dt)
 
         # merged_target = self.curr_state.angles
-        self.ik.update_target(self.curr_state.name)
-        merged_target = np.zeros(skel.ndofs)
-        merged_target[:6] = self.curr_state.angles[:6]
-        merged_target[6:18] = self.ik.solve()
-        merged_target[18:] = self.curr_state.angles[18:]
+        # self.ik.update_target(self.curr_state.name)
+        # merged_target = np.zeros(skel.ndofs)
+        # merged_target[:6] = self.curr_state.angles[:6]
+        # merged_target[6:18] = self.ik.solve()
+        # merged_target[18:] = self.curr_state.angles[18:]
         # print("ik res: ", self.ik.solve())
         # print("merged_target: ", merged_target)
         # self.controller.target = merged_target
-        self.mo_con.target = self.curr_state.angles
         self.controller.target = self.curr_state.angles
         # self.controller.target = skel.q
         skel.set_controller(self.controller)
@@ -356,6 +353,9 @@ class MyWorld(pydart.World):
         # else:
         #     self.force = None
 
+        # print("left foot pos:",  self.skeletons[2].body('h_blade_left').to_world([0.0, 0.0, 0.0]))
+        # self.force = np.array([20.0, 0.0, 0.0])
+        # self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
 
         self.controller.cur_state = self.curr_state.name
         if self.force is not None:
@@ -418,9 +418,8 @@ class MyWorld(pydart.World):
         #     # self.controller.target = merged_target
         #     self.controller.target = self.curr_state.angles
 
-        self.mo_con.target = self.curr_state.angles
-        self.controller.target = self.mo_con.compute()
-        # print(self.mo_con.compute())
+        self.controller.target = self.curr_state.angles
+
         # self.controller.target = self.curr_state.angles
         # print(self.curr_state.angles)
 
@@ -496,7 +495,7 @@ class MyWorld(pydart.World):
         # ri.set_color(0, 0, 1)
         # ri.render_sphere(COP, 0.05)
 
-        # todo : ground rendering
+        # ground rendering
         # ri.render_chessboard(5)
         # render axes
         ri.render_axes(np.array([0, 0, 0]), 0.5)
