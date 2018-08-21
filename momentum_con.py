@@ -9,27 +9,39 @@ class momentum_control(object):
         self.ndofs = self.skel.ndofs
         self.h = h
 
-        self.Kp = np.diagflat([0.0] * 6 + [4000.0] * (self.ndofs - 6))
+        # self.Kp = np.diagflat([0.0] * 6 + [400.0] * (self.ndofs - 6))
+        self.Kp = np.diagflat([0.0] * 6 + [25.0] * (self.ndofs - 6))
         # kp = 4000
         # kd <= 2 * math.sqrt(kp)
-        self.Kd = np.diagflat([0.0] * 6 + [100.0] * (self.ndofs - 6))
+        # self.Kd = np.diagflat([0.0] * 6 + [10.0] * (self.ndofs - 6))
+
+        self.Kd = np.diagflat([0.0] * 6 + [2 * np.sqrt(25.0)] * (self.ndofs - 6))
 
         self.pre_v = np.array([0.0, 0.0, 0.0])
         self.pre_p = np.array([0.0, 0.0, 0.0])
 
-        # coefficient of each term
-        self.K_tr = 10000.0
-        self.K_lm = 40.0
-        self.K_am = 40.0
-
-        # self.K_tr = 10.0
+        # weight of each objective term
+        # self.K_tr = 1000.0
         # self.K_lm = 400.0
         # self.K_am = 400.0
 
-        # self.K_tr = 10000.0
-        # self.K_lm = 400.0
-        # self.K_am = 400.0
+        self.K_tr = 1.0
+        self.K_lm = 0.1
+        self.K_am = 0.03
 
+        #tracking weight map vector
+
+        # self.weight_map_vec = np.diagflat([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
+
+        self.weight_map_vec = np.diagflat(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.1, 0.1, 0.1, 0.25, 0.2, 0.2, 0.6, 0.6, 0.6,
+             0.6, 0.6, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
+
+        #config['weightMap'] = {'j_scapula_left': .2, 'j_bicep_left': .2, 'j_forearm_left': .2, 'j_hand_left': .2,
+                           # 'j_scapula_right': .2, 'j_bicep_right': .2, 'j_forearm_right': .2, 'j_hand_right': .2,
+                           # 'j_abdomen': .6, 'j_spine': .6, 'j_head': .6, 'j_heel_right': .2, 'j_heel_left': .2,
+                           # 'j_pelvis': 0.5,
+                           # 'j_thigh_left': 5., 'j_shin_left': .5, 'j_thigh_right': 5., 'j_shin_right': .5}
 
     def compute(self, contact_list):
         skel = self.skel
@@ -57,7 +69,8 @@ class momentum_control(object):
 
         # get desired linear momentum (des_L_dot)
 
-        k_l = 400
+        # k_l = 400
+        k_l = 100
         d_l = 2*np.sqrt(k_l)
 
         c_r = np.array([-0.057, -0.9, -0.09])
@@ -94,7 +107,8 @@ class momentum_control(object):
             return avg
 
         #  get desired angular momentum (des_H_dot)
-        k_h = 400
+        # k_h = 400
+        k_h = 100
         d_h = 2*np.sqrt(k_h)
 
         # print("self.pre_v: ", self.pre_v)
@@ -121,7 +135,7 @@ class momentum_control(object):
         # p_des = pre_p + p_v * self.h
         p_des = 1/2*d_des_two_dot*self.h*self.h + pre_v*self.h + pre_p
         des_H_dot = np.cross(p_des - skel.C, des_L_dot - skel.m * np.array([0.0, -9.81, 0.0]))
-        # des_H_dot[1] = 0.
+        des_H_dot[1] = 0.
         self.pre_p = world_cop()
         self.pre_v = p_dot
 
@@ -176,7 +190,6 @@ class momentum_control(object):
         R = PJ[0:3, :]
         S = PJ[3:6, :]
 
-
         pdotJ_pJdot = (np.dot(Pmat_dot, J) + np.dot(Pmat, J_dot))
         bias = np.dot(pdotJ_pJdot, skel.dq)
         # print("bias", bias)
@@ -184,14 +197,12 @@ class momentum_control(object):
         r_bias = bias[0:3]
         s_bias = bias[3:6]
 
-
         # get desired acceleration
         invM = np.linalg.inv(skel.M + self.Kd * self.h)
         p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
         d = -self.Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
-        # des_accel = p + d
 
         K_tr = self.K_tr
         K_lm = self.K_lm
@@ -203,10 +214,10 @@ class momentum_control(object):
 
         A = np.zeros((2*ndofs+6, 2*ndofs))
         middle_p = np.zeros((ndofs, ndofs))
-        middle_p[0:ndofs, 0:ndofs] = K_tr * np.identity(ndofs) + K_lm * np.dot(R.transpose(), R) + K_am * np.dot(S.transpose(), S)
+        middle_p[0:ndofs, 0:ndofs] = K_tr * self.weight_map_vec + K_lm * np.dot(R.transpose(), R) + K_am * np.dot(S.transpose(), S)
         P = 2 * middle_p
         q = np.zeros(ndofs)
-        q = -2 * K_tr * des_accel + 2 * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * (np.dot(s_bias, S) - np.dot(des_H_dot, S))
+        q = -2 * K_tr * self.weight_map_vec.dot(des_accel) + 2 * K_lm * (np.dot(r_bias, R) - np.dot(des_L_dot, R)) + 2 * K_am * (np.dot(s_bias, S) - np.dot(des_H_dot, S))
         # print("P size: ", P.size)
         # print("q size: ", q.size)
 
@@ -255,10 +266,8 @@ class momentum_control(object):
         A = np.zeros((n, n))
         b = np.zeros(n)
 
-        Am = np.zeros((6, ndofs))
         Am = skel.body("h_blade_left").world_jacobian()
 
-        b_vec = np.zeros(6)
         b_vec = a_sup - np.dot(skel.body("h_blade_left").world_jacobian_classic_deriv(), skel.dq)
 
         # print("a_sup:", a_sup)

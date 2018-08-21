@@ -4,15 +4,8 @@ from cvxopt import matrix, solvers
 from pydart2.skeleton import Skeleton
 import momentum_con
 
-is_non_holonomic = True
-# is_non_holonomic = False
-# only_left_foot_is_non_holonomic = True
-only_left_foot_is_non_holonomic = False
-inequality_non_holonomic = False
-
-# inequality_non_holonomic = True
-# non_holonomic_epsilon = 0.5
-# non_holonomic_epsilon = 0.01
+# is_non_holonomic = True
+is_non_holonomic = False
 
 class Controller(object):
     def __init__(self, skel, ref_skel, h, cur_state):
@@ -187,15 +180,21 @@ class Controller(object):
         # des_accel = p + d + qddot
 
         # get desired acceleration
+        # invM = np.linalg.inv(skel.M + self.Kd * self.h)
+        # p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
+        # d = -self.Kd.dot(skel.dq)
+        # qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+        # des_accel = p + d + qddot
+        # if self.cur_state == "state2":
+        #     self.mo_con.target = self.target
+        #     des_accel = self.mo_con.compute(contact_list)
         if contact_num == 0:
             invM = np.linalg.inv(skel.M + self.Kd * self.h)
             p = -self.Kp.dot(skel.q - self.target + skel.dq * self.h)
             d = -self.Kd.dot(skel.dq)
             qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
-            # des_accel = p + d + qddot
-            des_accel = p + d
+            des_accel = p + d + qddot
         else:
-            # print("contact!")
             self.mo_con.target = self.target
             des_accel = self.mo_con.compute(contact_list)
 
@@ -206,7 +205,11 @@ class Controller(object):
         # ===========================
         # Objective function
         # ===========================
-        P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num))
+
+        if contact_num == 0:
+            P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr] * ndofs))
+        else:
+            P = 2 * matrix(np.diagflat([K_ef] * ndofs + [K_tr] * ndofs + [K_cf] * 4 * contact_num))
         qqv = np.append(np.zeros(ndofs), -2 * K_tr * des_accel)
         # print("P: ")
         # print(P)
@@ -245,6 +248,7 @@ class Controller(object):
             self.V_c = np.zeros((3 * self.contact_num, 4 * self.contact_num))
 
             myu = 0.02
+            # myu = 1.
 
             v1 = np.array([myu, 1, 0])
             v1 = v1 / np.linalg.norm(v1)  # normalize
@@ -286,52 +290,52 @@ class Controller(object):
 
             # compensate the velocity at the moment colliding the ground
 
-            # omega = []
-            # V_c_dot_stack = []
-            # compensate_depth = []
-            # compensate_vel = []
-            #
-            # for ii in range(self.contact_num):
-            #     contact_body_name = contact_list[2*ii]
-            #     contact_offset = contact_list[2 * ii + 1]
-            #     angular_vel = skel.body(contact_body_name).world_angular_velocity()
-            #     omega.append(angular_vel)
-            #
-            #     v1_dot = np.cross(v1, omega[ii])
-            #     if np.linalg.norm(v1_dot) != 0:
-            #         v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
-            #     v2_dot = np.cross(v2, omega[ii])
-            #     if np.linalg.norm(v2_dot) != 0:
-            #         v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
-            #     v3_dot = np.cross(v3, omega[ii])
-            #     if np.linalg.norm(v3_dot) != 0:
-            #         v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
-            #     v4_dot = np.cross(v4, omega[ii])
-            #     if np.linalg.norm(v4_dot) != 0:
-            #         v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
-            #
-            #     V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
-            #
-            #     #calculate the penetraction depth : compensate depth instead of velocity
-            #     compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.99)
-            #     # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
-            #
-            #     compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
-            #
-            # # print("depth: ", compensate_depth)
-            # # print("velocity: ", compensate_vel)
-            # # print("omega: \n", omega)
-            # # print("V_c_dot :\n", V_c_dot_stack)
-            #
-            # compensate_depth_vec = np.zeros(4 * contact_num)
-            # compensate_vel_vec = np.zeros(4 * contact_num)
-            #
-            # for n in range(self.contact_num):
-            #     self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
-            #     compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
-            #     compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
-            #
-            # # print("compensate_depth_vec: \n", compensate_depth_vec)
+            omega = []
+            V_c_dot_stack = []
+            compensate_depth = []
+            compensate_vel = []
+
+            for ii in range(self.contact_num):
+                contact_body_name = contact_list[2*ii]
+                contact_offset = contact_list[2 * ii + 1]
+                angular_vel = skel.body(contact_body_name).world_angular_velocity()
+                omega.append(angular_vel)
+
+                v1_dot = np.cross(v1, omega[ii])
+                if np.linalg.norm(v1_dot) != 0:
+                    v1_dot = v1_dot / np.linalg.norm(v1_dot)  # normalize
+                v2_dot = np.cross(v2, omega[ii])
+                if np.linalg.norm(v2_dot) != 0:
+                    v2_dot = v2_dot / np.linalg.norm(v2_dot)  # normalize
+                v3_dot = np.cross(v3, omega[ii])
+                if np.linalg.norm(v3_dot) != 0:
+                    v3_dot = v3_dot / np.linalg.norm(v3_dot)  # normalize
+                v4_dot = np.cross(v4, omega[ii])
+                if np.linalg.norm(v4_dot) != 0:
+                    v4_dot = v4_dot / np.linalg.norm(v4_dot)  # normalize
+
+                V_c_dot_stack.append(np.array([v1_dot, v2_dot, v3_dot, v4_dot]))
+
+                #calculate the penetraction depth : compensate depth instead of velocity
+                compensate_depth.append(skel.body(contact_body_name).to_world(contact_offset)[1]+0.99)
+                # print("depth: ", skel.body(contact_body_name).to_world(contact_offset)[1]+0.92-0.03)
+
+                compensate_vel.append(skel.body(contact_body_name).world_linear_velocity()[1] * self.h)
+
+            # print("depth: ", compensate_depth)
+            # print("velocity: ", compensate_vel)
+            # print("omega: \n", omega)
+            # print("V_c_dot :\n", V_c_dot_stack)
+
+            compensate_depth_vec = np.zeros(4 * contact_num)
+            compensate_vel_vec = np.zeros(4 * contact_num)
+
+            for n in range(self.contact_num):
+                self.V_c_dot[n*3:(n+1)*3, n*4:(n+1)*4] = np.transpose(V_c_dot_stack[n])
+                compensate_vel_vec[n*4:(n+1)*4] = compensate_vel[n]
+                compensate_depth_vec[n*4:(n+1)*4] = compensate_depth[n]
+
+            # print("compensate_depth_vec: \n", compensate_depth_vec)
             #
             V_c_dot = self.V_c_dot
             V_c_t_dot_J_c = np.transpose(V_c_dot).dot(np.transpose(J_c_t))
@@ -341,14 +345,14 @@ class Controller(object):
             # # print("hv2", hv2)
             # # print("compensate_vel: \n", compensate_vel_vec)
             #
-            # compensate_gain = 90000.
+            compensate_gain = 90000.
             # # hv[4*contact_num:] = hv1 + hv2 + compensate_vel_vec
 
             V_c_t_J_c = np.transpose(V_c).dot(np.transpose(J_c_t))
             compensate_vel = 1/self.h * V_c_t_J_c.dot(skel.dq)
 
-            hv[4 * contact_num:2*4 * contact_num] = hv1 + hv2 + compensate_vel
-            # hv[4 * contact_num:2 * 4 * contact_num] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
+            # hv[4 * contact_num:2*4 * contact_num] = hv1 + hv2 + compensate_vel
+            hv[4 * contact_num:2 * 4 * contact_num] = hv1 + hv2 + compensate_gain*compensate_depth_vec #+ compensate_vel_vec
             h = matrix(hv)
             # print("h :\n", h)
 
