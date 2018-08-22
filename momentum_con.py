@@ -9,6 +9,8 @@ class momentum_control(object):
         self.ndofs = self.skel.ndofs
         self.h = h
 
+        self.contact_num = 0
+
         # self.Kp = np.diagflat([0.0] * 6 + [400.0] * (self.ndofs - 6))
         self.Kp = np.diagflat([0.0] * 6 + [25.0] * (self.ndofs - 6))
         # kp = 4000
@@ -25,9 +27,13 @@ class momentum_control(object):
         # self.K_lm = 400.0
         # self.K_am = 400.0
 
-        self.K_tr = 1.0
+        self.K_tr = 1.
         self.K_lm = 0.1
-        self.K_am = 0.03
+        self.K_am = 0.13
+
+        # self.K_tr = 100.
+        # self.K_lm = 10
+        # self.K_am = 1.
 
         #tracking weight map vector
 
@@ -37,11 +43,44 @@ class momentum_control(object):
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.1, 0.1, 0.1, 0.25, 0.2, 0.2, 0.6, 0.6, 0.6,
              0.6, 0.6, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
 
+        self.weight_map_vec = np.diagflat(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.1, 0.25, 0.2, 0.2, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+             0.8, 0.8, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
+
         #config['weightMap'] = {'j_scapula_left': .2, 'j_bicep_left': .2, 'j_forearm_left': .2, 'j_hand_left': .2,
                            # 'j_scapula_right': .2, 'j_bicep_right': .2, 'j_forearm_right': .2, 'j_hand_right': .2,
                            # 'j_abdomen': .6, 'j_spine': .6, 'j_head': .6, 'j_heel_right': .2, 'j_heel_left': .2,
                            # 'j_pelvis': 0.5,
                            # 'j_thigh_left': 5., 'j_shin_left': .5, 'j_thigh_right': 5., 'j_shin_right': .5}
+
+
+    def check_contact(self):
+        skel = self.skel
+
+        contact_name_list = ['h_blade_left', 'h_blade_left', 'h_blade_right', 'h_blade_right']
+        offset_list = [[-0.1040+0.0216, +0.80354016-0.85354016, 0.0],
+                       [0.1040+0.0216, +0.80354016-0.85354016, 0.0],
+                       [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
+                       [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]]
+
+        contact_candi_list = [skel.body(contact_name_list[0]).to_world(offset_list[0]),
+                        skel.body(contact_name_list[1]).to_world(offset_list[1]),
+                        skel.body(contact_name_list[2]).to_world(offset_list[2]),
+                        skel.body(contact_name_list[3]).to_world(offset_list[3])]
+        contact_list = []
+        # print("contact_list", contact_candi_list)
+        cn = 0      # the number of contact point
+        # print("len(contact_list): ", len(contact_list))
+        for ii in range(len(contact_candi_list)):
+            # print(ii, contact_candi_list[ii][1])
+            if -0.98+0.05/2 + 0.07/2 > contact_candi_list[ii][1]:
+            # if -0.99 > contact_candi_list[ii][1]:
+                contact_list.append(contact_name_list[ii])
+                contact_list.append(offset_list[ii])
+                cn = cn + 1
+
+        self.contact_num = cn
+        return contact_list
 
     def compute(self, contact_list):
         skel = self.skel
@@ -227,7 +266,7 @@ class momentum_control(object):
         # np.dot(jaco_L, skel.ddq) + np.dot(jaco_der_L, skel.dq) = a_sup
         a_sup = np.zeros(6)
         a_sup_k = 40.
-        a_sup_d = 10.
+        a_sup_d = 2.*(a_sup_k**.5)
         # print(a_sup_k, a_sup_d)
         # print("1: ",np.array([0.0, 0.0, 0.0]) - skel.body('h_blade_left').to_world([0.0, 0, 0]))
         # print("2: ",skel.body('h_blade_left').world_linear_velocity())
@@ -256,8 +295,13 @@ class momentum_control(object):
 
         a_sup[0:3] = a_sup_k * r_diff - a_sup_d * skel.body('h_blade_left').world_angular_velocity()
 
+        # ref_pos = self.ref_skel.body('h_blade_left').to_world([0.0, 0.0, 1.8])
+        # print("ref foot pos: ", ref_pos)
+        # ref_pos = np.array([0.01649408,-0.98 + 0.025, -0.09072832])
+        ref_pos = np.array([-0., -0.98, -0.1])
+
         a_sup[3:6] = a_sup_k * (
-                np.array([-0.1, -0.9, 0.0]) - skel.body('h_blade_left').to_world([0.0, 0, 0])) - a_sup_d * skel.body(
+                ref_pos - skel.body('h_blade_left').to_world([0.0, 0, 0])) - a_sup_d * skel.body(
             'h_blade_left').world_linear_velocity()
 
         #solve linear equations

@@ -12,7 +12,7 @@
             <mobile>false</mobile>
             <body name="ground">
                 <!-- <transformation>0 -0.92 0 0 0 0</transformation> -->
-                <transformation>0 -0.99 0 0 0 0</transformation>
+                <transformation>0 -0.98 0 0 0 0</transformation>
                 <!-- <transformation>0 -1.0 0 0 0 0</transformation> -->
                 <visualization_shape>
                     <transformation>0 0 0 0 0 0</transformation>

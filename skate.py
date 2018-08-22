@@ -2,12 +2,12 @@ import numpy as np
 import pydart2 as pydart
 import QPsolver
 import IKsolve_one
-
+import momentum_con
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
-
+from PyCommon.modules.Simulator import hpDartQpSimulator as hqp
 
 render_vector = []
 render_vector_origin = []
@@ -153,10 +153,10 @@ class MyWorld(pydart.World):
         # s0q[pelvis] = 0., -0.
         # s0q[upper_body] = 0.3, -0.
         s0q[right_leg] = -0., -0., 0.9, -1.5
-        # s0q[left_leg] = 0., 0., 0.0, -0.1
+        s0q[left_leg] = -0.1, 0., 0.0, -0.0
         # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
-        # s0q[foot] = 0.1, 0.0, 0.1, -0.0
+        s0q[foot] = 0., 0.1, 0., -0.0
         state0 = State("state0", 10.0, 0.0, 0.2, s0q)
 
         # #----------------------------------
@@ -320,7 +320,11 @@ class MyWorld(pydart.World):
         self.curr_state_index = 0
         # print("backup angle: ", backup_q)
         # print("cur angle: ", self.curr_state.angles)
+
         self.controller = QPsolver.Controller(skel, self.skeletons[3], self.dt, self.curr_state.name)
+
+        self.mo_con = momentum_con.momentum_control(self.skeletons[2], self.skeletons[3], self.time_step())
+
 
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
@@ -338,7 +342,7 @@ class MyWorld(pydart.World):
         # self.controller.target = merged_target
         self.controller.target = self.curr_state.angles
         # self.controller.target = skel.q
-        skel.set_controller(self.controller)
+        # skel.set_controller(self.controller)
         print('create controller OK')
 
         self.contact_force = []
@@ -423,7 +427,34 @@ class MyWorld(pydart.World):
         # self.controller.target = self.curr_state.angles
         # print(self.curr_state.angles)
 
+        contact_list = self.mo_con.check_contact()
+
+        if self.mo_con.contact_num == 0:
+            print("--------------")
+            ndofs = skel.num_dofs()
+            h = self.time_step()
+            Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
+            Kd = np.diagflat([0.0] * 6 + [2.*(25.0**.5)] * (ndofs - 6))
+            invM = np.linalg.inv(skel.M + Kd * h)
+            p = -Kp.dot(skel.q - self.curr_state.angles + skel.dq * h)
+            d = -Kd.dot(skel.dq)
+            qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+            des_accel = p + d + qddot
+        else:
+            print("contact num: ", self.mo_con.contact_num )
+            self.mo_con.target = self.curr_state.angles
+            des_accel = self.mo_con.compute(contact_list)
+
+        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
+            skel, des_accel, 1./self.time_step())
+
+        for i in range(len(_bodyIDs)):
+            skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
+        # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
+        skel.set_forces(_tau)
+
         del self.contact_force[:]
+        '''
         if len(self.controller.sol_lambda) != 0:
             f_vec = self.controller.V_c.dot(self.controller.sol_lambda)
             # print("f", f_vec)
@@ -439,6 +470,7 @@ class MyWorld(pydart.World):
             for ii in range(self.controller.contact_num):
                 self.skeletons[2].body(self.controller.contact_list[2 * ii])\
                     .add_ext_force(self.contact_force[ii], self.controller.contact_list[2 * ii+1])
+        '''
 
         super(MyWorld, self).step()
 
@@ -557,6 +589,9 @@ if __name__ == '__main__':
     # q["j_abdomen_1"] = -0.2
     # q["j_abdomen_2"] = -0.2
 
+    q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"] = -0., -0., 0.9, -1.5
+    q["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"] = 0., 0.1, 0., 0.
+
     # q["j_thigh_right_y", "j_thigh_left_y"] = -0.785, 0.785
     # q["j_shin_right", "j_shin_left"] = 0., 0.
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.1, -0.5, 0.2
@@ -592,7 +627,7 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
 
     def simulateCallback(frame):
-        for i in range(40):
+        for i in range(10):
             world.step()
         world.render_with_ys()
 
