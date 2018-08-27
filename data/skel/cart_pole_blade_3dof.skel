@@ -650,38 +650,22 @@
             </joint>
 
             <!-- JOINT: Left Leg -->
-            <joint type="euler" name="j_thigh_left">
+            <joint type="ball" name="j_thigh_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_thigh_left</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_shin_left">
+            <joint type="ball" name="j_shin_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_thigh_left</parent>
                 <child>h_shin_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>-0.17</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_heel_left">
+            <joint type="ball" name="j_heel_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_shin_left</parent>
                 <child>h_heel_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <joint type="weld" name="j_blade_left">
@@ -691,38 +675,22 @@
             </joint>
 
             <!-- JOINT: Right Leg -->
-            <joint type="euler" name="j_thigh_right">
+            <joint type="ball" name="j_thigh_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_thigh_right</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_shin_right">
+            <joint type="ball" name="j_shin_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_thigh_right</parent>
                 <child>h_shin_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>-0.17</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_heel_right">
+            <joint type="ball" name="j_heel_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_shin_right</parent>
                 <child>h_heel_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <joint type="weld" name="j_blade_right">
@@ -732,129 +700,72 @@
             </joint>
 
             <!-- -->
-            <joint type="universal" name="j_abdomen">
+            <joint type="ball" name="j_abdomen">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_abdomen</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_spine">
+            <joint type="ball" name="j_spine">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_abdomen</parent>
                 <child>h_spine</child>
-                <axis>
-                    <xyz>0.0 1.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_head">
+            <joint type="ball" name="j_head">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_head</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <!-- JOINT: Left Arm -->
-            <joint type="revolute" name="j_scapula_left">
+            <joint type="ball" name="j_scapula_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_scapula_left</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0.0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="euler" name="j_bicep_left">
+            <joint type="ball" name="j_bicep_left">
                 <transformation>0.0 0.0 0.0 -1.2423 0.0 0.0</transformation>
                 <parent>h_scapula_left</parent>
                 <child>h_bicep_left</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_forearm_left">
+            <joint type="ball" name="j_forearm_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_bicep_left</parent>
                 <child>h_forearm_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_hand_left">
+            <joint type="ball" name="j_hand_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_forearm_left</parent>
                 <child>h_hand_left</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
             <!-- JOINT: Right Arm -->
-            <joint type="revolute" name="j_scapula_right">
+            <joint type="ball" name="j_scapula_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_scapula_right</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="euler" name="j_bicep_right">
+            <joint type="ball" name="j_bicep_right">
                 <transformation>0.0 0.0 0.0 1.2423 0.0 0.0</transformation>
                 <parent>h_scapula_right</parent>
                 <child>h_bicep_right</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_forearm_right">
+            <joint type="ball" name="j_forearm_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_bicep_right</parent>
                 <child>h_forearm_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_hand_right">
+            <joint type="ball" name="j_hand_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_forearm_right</parent>
                 <child>h_hand_right</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
         </skeleton>
@@ -1403,7 +1314,7 @@
                 </collision_shape>                                
             </body>
 
-            <!-- JOINT: Pelvis -->
+             <!-- JOINT: Pelvis -->
             <joint type="free" name="j_pelvis">
                 <parent>world</parent>
                 <child>h_pelvis</child>
@@ -1412,38 +1323,22 @@
             </joint>
 
             <!-- JOINT: Left Leg -->
-            <joint type="euler" name="j_thigh_left">
+            <joint type="ball" name="j_thigh_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_thigh_left</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_shin_left">
+            <joint type="ball" name="j_shin_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_thigh_left</parent>
                 <child>h_shin_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>-0.17</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_heel_left">
+            <joint type="ball" name="j_heel_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_shin_left</parent>
                 <child>h_heel_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <joint type="weld" name="j_blade_left">
@@ -1453,38 +1348,22 @@
             </joint>
 
             <!-- JOINT: Right Leg -->
-            <joint type="euler" name="j_thigh_right">
+            <joint type="ball" name="j_thigh_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_thigh_right</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_shin_right">
+            <joint type="ball" name="j_shin_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_thigh_right</parent>
                 <child>h_shin_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>-0.17</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_heel_right">
+            <joint type="ball" name="j_heel_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_shin_right</parent>
                 <child>h_heel_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <joint type="weld" name="j_blade_right">
@@ -1494,129 +1373,72 @@
             </joint>
 
             <!-- -->
-            <joint type="universal" name="j_abdomen">
+            <joint type="ball" name="j_abdomen">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_pelvis</parent>
                 <child>h_abdomen</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_spine">
+            <joint type="ball" name="j_spine">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_abdomen</parent>
                 <child>h_spine</child>
-                <axis>
-                    <xyz>0.0 1.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="universal" name="j_head">
+            <joint type="ball" name="j_head">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_head</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <axis2>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis2>
-                <init_pos>0 0</init_pos>
-                <init_vel>0 0</init_vel>
             </joint>
 
             <!-- JOINT: Left Arm -->
-            <joint type="revolute" name="j_scapula_left">
+            <joint type="ball" name="j_scapula_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_scapula_left</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0.0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="euler" name="j_bicep_left">
+            <joint type="ball" name="j_bicep_left">
                 <transformation>0.0 0.0 0.0 -1.2423 0.0 0.0</transformation>
                 <parent>h_scapula_left</parent>
                 <child>h_bicep_left</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_forearm_left">
+            <joint type="ball" name="j_forearm_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_bicep_left</parent>
                 <child>h_forearm_left</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_hand_left">
+            <joint type="ball" name="j_hand_left">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_forearm_left</parent>
                 <child>h_hand_left</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
             <!-- JOINT: Right Arm -->
-            <joint type="revolute" name="j_scapula_right">
+            <joint type="ball" name="j_scapula_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_spine</parent>
                 <child>h_scapula_right</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="euler" name="j_bicep_right">
+            <joint type="ball" name="j_bicep_right">
                 <transformation>0.0 0.0 0.0 1.2423 0.0 0.0</transformation>
                 <parent>h_scapula_right</parent>
                 <child>h_bicep_right</child>
-                <axis_order>zyx</axis_order>
-                <init_pos>0 0 0</init_pos>
-                <init_vel>0 0 0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_forearm_right">
+            <joint type="ball" name="j_forearm_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_bicep_right</parent>
                 <child>h_forearm_right</child>
-                <axis>
-                    <xyz>0.0 0.0 1.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
-            <joint type="revolute" name="j_hand_right">
+            <joint type="ball" name="j_hand_right">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>h_forearm_right</parent>
                 <child>h_hand_right</child>
-                <axis>
-                    <xyz>1.0 0.0 0.0</xyz>
-                </axis>
-                <init_pos>0</init_pos>
-                <init_vel>0</init_vel>
             </joint>
 
         </skeleton>

@@ -16,6 +16,8 @@ push_force_origin = []
 blade_force = []
 blade_force_origin = []
 
+rd_footCenter = []
+
 
 class State(object):
     def __init__(self, name, dt, c_d, c_v, angles):
@@ -27,7 +29,8 @@ class State(object):
 
 class MyWorld(pydart.World):
     def __init__(self, ):
-        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade.skel')
+        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade_3dof.skel')
+        # pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/cart_pole_blade.skel')
         # pydart.World.__init__(self, 1.0 / 2000.0, './data/skel/cart_pole.skel')
         self.force = None
         self.duration = 0
@@ -36,15 +39,24 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
 
-        skel.joint("j_heel_left").set_position_upper_limit(0, 0.0)
-        skel.joint("j_heel_left").set_position_lower_limit(0, -0.0)
+        # print('[Joint]')
+        # for joint in skel.joints:
+        #     print("\t" + str(joint))
+        #     print("\t\tparent = " + str(joint.parent_bodynode))
+        #     print("\t\tchild = " + str(joint.child_bodynode))
+        #     print("\t\tdofs = " + str(joint.dofs))
+
+        # skel.joint("j_abdomen").set_position_upper_limit(10, 0.0)
+
+        # skel.joint("j_heel_left").set_position_upper_limit(0, 0.0)
+        # skel.joint("j_heel_left").set_position_lower_limit(0, -0.0)
         pelvis_x = skel.dof_indices((["j_pelvis_rot_x"]))
         pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
-        upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
-        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"])
-        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left"])
+        # upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
+        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"])
+        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left_z"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
+        # foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
         leg_y = skel.dof_indices(["j_thigh_right_y", "j_thigh_left_y"])
         # blade = skel.dof_indices(["j_heel_right_2"])
 
@@ -156,7 +168,7 @@ class MyWorld(pydart.World):
         s0q[left_leg] = -0.1, 0., 0.0, -0.0
         # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
-        s0q[foot] = 0., 0.1, 0., -0.0
+        # s0q[foot] = 0., 0.1, 0., -0.0
         state0 = State("state0", 10.0, 0.0, 0.2, s0q)
 
         # #----------------------------------
@@ -203,7 +215,7 @@ class MyWorld(pydart.World):
         s11q[right_leg] = -0.0, -0.0, -0.2, -0.3
         s11q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
-        s11q[foot] = -0.0, 0.0, 0.1,  0.0
+        # s11q[foot] = -0.0, 0.0, 0.1,  0.0
         state11 = State("state11", 0.1, 2.2, 0.0, s11q)
 
         s12q = np.zeros(skel.ndofs)
@@ -214,7 +226,7 @@ class MyWorld(pydart.World):
         s12q[right_leg] = -0.0, -0.0, -0.3, -0.3
         s12q[arms] = 1.5, -1.5
         # s12q[blade] = -0.3
-        s12q[foot] = -0.0, 0.0, -0.3,  0.0
+        # s12q[foot] = -0.0, 0.0, -0.3,  0.0
         state12 = State("state12", 0.1, 2.2, 0.0, s12q)
 
         s13q = np.zeros(skel.ndofs)
@@ -441,7 +453,7 @@ class MyWorld(pydart.World):
             qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
             des_accel = p + d + qddot
         else:
-            print("contact num: ", self.mo_con.contact_num )
+            # print("contact num: ", self.mo_con.contact_num )
             self.mo_con.target = self.curr_state.angles
             des_accel = self.mo_con.compute(contact_list)
 
@@ -544,6 +556,13 @@ class MyWorld(pydart.World):
         del push_force_origin[:]
         del blade_force[:]
         del blade_force_origin[:]
+        del rd_footCenter[:]
+
+        com = self.skeletons[2].C
+        com[1] = -0.99 +0.05
+
+        # com = self.skeletons[2].body('h_blade_left').to_world(np.array([0.1040 + 0.0216, +0.80354016 - 0.85354016, -0.054]))
+        rd_footCenter.append(com)
 
         # if self.curr_state.name == "state1" or self.curr_state.name == "state11" :
         #     blade_force.append(np.array([1.0, 0.0, 0.0]))
@@ -589,8 +608,8 @@ if __name__ == '__main__':
     # q["j_abdomen_1"] = -0.2
     # q["j_abdomen_2"] = -0.2
 
-    q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right"] = -0., -0., 0.9, -1.5
-    q["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"] = 0., 0.1, 0., 0.
+    q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"] = -0., -0., 0.9, -1.5
+    # q["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"] = 0., 0.1, 0., 0.
 
     # q["j_thigh_right_y", "j_thigh_left_y"] = -0.785, 0.785
     # q["j_shin_right", "j_shin_left"] = 0., 0.
@@ -621,6 +640,8 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
+    viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))
+
     viewer.startTimer(1/25.)
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99+0.0251, 0.)
 

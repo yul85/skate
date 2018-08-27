@@ -54,7 +54,7 @@ def calc_QP(skel, ddq_des, inv_h):
                     # print(position_local)
                     position_global = body.to_world(position_local)
 
-                    if position_global[1] < -0.98 + 0.025:
+                    if position_global[1] < -0.98 + 0.05:
                         bodies.append(body)
                         position_locals.append(position_local)
                         position_globals.append(position_global)
