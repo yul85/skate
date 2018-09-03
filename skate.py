@@ -3,6 +3,8 @@ import pydart2 as pydart
 import QPsolver
 import IKsolve_one
 import momentum_con
+import motionPlan
+from scipy import optimize
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
@@ -459,6 +461,14 @@ class MyWorld(pydart.World):
 
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
             skel, des_accel, 1./self.time_step())
+
+        #todo: Trajectory optimization
+
+        T = 10      # motion_length
+        optimizer = motionPlan.motionPlan(skel, T, self.time_step())
+
+        res_motion = optimizer.solve_trajectory_optimization()
+
 
         for i in range(len(_bodyIDs)):
             skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
