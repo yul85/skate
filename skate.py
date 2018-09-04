@@ -5,6 +5,7 @@ import IKsolve_one
 import momentum_con
 import motionPlan
 from scipy import optimize
+import yulTrajectoryOpt
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
@@ -339,7 +340,6 @@ class MyWorld(pydart.World):
 
         self.mo_con = momentum_con.momentum_control(self.skeletons[2], self.skeletons[3], self.time_step())
 
-
         self.skeletons[3].set_positions(self.curr_state.angles)
         # self.skeletons[3].set_positions(np.zeros(skel.ndofs))
 
@@ -358,6 +358,15 @@ class MyWorld(pydart.World):
         # self.controller.target = skel.q
         # skel.set_controller(self.controller)
         print('create controller OK')
+
+        #yul Trajectory optimization
+
+        T = 10      # motion_length
+
+        res_motion = yulTrajectoryOpt.solve_trajectory_optimization(skel, T, self.time_step())
+
+        print("trajectory optimization finished!!")
+
 
         self.contact_force = []
         # print("dof: ", skel.ndofs)
@@ -459,16 +468,12 @@ class MyWorld(pydart.World):
             self.mo_con.target = self.curr_state.angles
             des_accel = self.mo_con.compute(contact_list)
 
+        # HP QP solve
+
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
             skel, des_accel, 1./self.time_step())
 
-        #todo: Trajectory optimization
-
-        T = 10      # motion_length
-        optimizer = motionPlan.motionPlan(skel, T, self.time_step())
-
-        res_motion = optimizer.solve_trajectory_optimization()
-
+        #todo: play the trajectory
 
         for i in range(len(_bodyIDs)):
             skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
