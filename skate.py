@@ -359,15 +359,6 @@ class MyWorld(pydart.World):
         # skel.set_controller(self.controller)
         print('create controller OK')
 
-        #yul Trajectory optimization
-
-        T = 10      # motion_length
-
-        res_motion = yulTrajectoryOpt.solve_trajectory_optimization(skel, T, self.time_step())
-
-        print("trajectory optimization finished!!")
-
-
         self.contact_force = []
         # print("dof: ", skel.ndofs)
 
@@ -472,8 +463,6 @@ class MyWorld(pydart.World):
 
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
             skel, des_accel, 1./self.time_step())
-
-        #todo: play the trajectory
 
         for i in range(len(_bodyIDs)):
             skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])

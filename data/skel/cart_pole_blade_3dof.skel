@@ -224,8 +224,8 @@
                     <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
-                            <!-- <size>0.2080 0.07 0.005</size> -->
-                            <size>0.2080 0.07 0.1080</size>
+                            <size>0.2080 0.07 0.005</size>
+                            <!-- <size>0.2080 0.07 0.1080</size> -->
                         </box>
                     </geometry>
                     <color>1.0 0.0 0.5</color>
@@ -234,8 +234,8 @@
                     <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
-                            <!-- <size>0.2080 0.07 0.005</size> -->
-                            <size>0.2080 0.07 0.1080</size>
+                            <size>0.2080 0.07 0.005</size>
+                            <!-- <size>0.2080 0.07 0.1080</size> -->
                         </box>
                     </geometry>
                 </collision_shape>                                
@@ -332,8 +332,8 @@
                     <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
-                            <!-- <size>0.2080 0.07 0.005</size> -->
-                            <size>0.2080 0.07 0.1080</size>
+                            <size>0.2080 0.07 0.005</size>
+                            <!-- <size>0.2080 0.07 0.1080</size> -->
                         </box>
                     </geometry>
                     <color>1.0 0.0 0.5</color>
@@ -342,8 +342,8 @@
                     <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
-                            <!-- <size>0.2080 0.07 0.005</size> -->
-                            <size>0.2080 0.07 0.1080</size>
+                            <size>0.2080 0.07 0.005</size>
+                            <!-- <size>0.2080 0.07 0.1080</size> -->
                         </box>
                     </geometry>
                 </collision_shape>                                
