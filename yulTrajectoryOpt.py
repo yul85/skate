@@ -3,7 +3,7 @@ import math
 from scipy import optimize
 from motionPlan import motionPlan
 import pydart2 as pydart
-
+import time
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
@@ -18,7 +18,28 @@ offset_list = [[-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
                [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]]
 
 
+def TicTocGenerator():
+    ti = 0              # initial time
+    tf = time.time()    # final time
+    while True:
+        ti = tftf = time.time()
+        yield tf-ti     # returns the time difference
+
+TicToc = TicTocGenerator()      #create an instance of the TicToc generator
+
+def toc(tempBool = True):
+    #Prints the time difference yielded by generator instance TicToc
+    tempTimeInterval = next(TicToc)
+    if tempBool:
+        print("Elapsed time: %f seconds.\n" %tempTimeInterval)
+
+def tic():
+    #Records a time in TicToc, marks the beginning
+    toc(False)
+
 def solve_trajectory_optimization(skel, T, h):
+
+    tic()
     ndofs = skel.num_dofs()
 
     # print(skel.body('h_blade_right').to_world([-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]))
@@ -181,11 +202,7 @@ def solve_trajectory_optimization(skel, T, h):
 
             acc = (1/(h*h)) * skel.velocity_differences(vel1, vel2)
 
-            skel.set_accelerations(acc)
-            # com_acc = mp.get_pose(i+1) - 2 * mp.get_pose(i) + mp.get_pose(i-1)
-            # print(J_c_t.dot(contact_forces) + mp.get_tau(i) - skel.c - skel.M.dot(com_acc))
-
-            cons_value[ndofs*i:ndofs*(i+1)] = (skel.M).dot(acc) + skel.c - J_c_t.dot(contacts) - mp.get_tau(i)
+            cons_value[ndofs * (i-1):ndofs * i] = (skel.M).dot(acc) + skel.c - J_c_t.dot(contacts) - mp.get_tau(i)
 
         return cons_value
 
@@ -197,12 +214,43 @@ def solve_trajectory_optimization(skel, T, h):
             cons_value[6*i:6*(i+1)] = mp.get_tau(i)[0:6]
         return cons_value
 
+    def test_con(x):
+        mp = motionPlan(skel, T, x)
+        cons_value = [0.]*(T-1)
+        for i in range(T-1):
+            skel.set_positions(mp.get_pose(i))
+            p1 = skel.body('h_blade_right').to_world([-0.1040 + 0.0216, 0.0, 0.0])
+
+            # if i == 0:
+            #     vel_r = np.zeros(3)
+            # else:
+            #     vel_r = (skel.body('h_blade_right').to_world([0.0, 0.0, 0.0]) - pre_pos_r) / h
+            vel1 = (1 / h) * skel.position_differences(mp.get_pose(i), mp.get_pose(i+1))
+            skel.set_velocities(vel1)
+            vel_r = skel.body('h_blade_right').com_linear_velocity()
+
+
+            # print(vel_r)
+            pre_pos_r = skel.body('h_blade_right').to_world([0.0, 0.0, 0.0])
+            # cons_value[i] = math.sin(i)*vel_r[0] - math.cos(i)*vel_r[2]
+            cons_value[i] = vel_r[0]
+            # cons_value[i] = p1[1] + 0.7
+        return cons_value
+
     # non_holonomic constraint
     def non_holonomic(x):
         mp = motionPlan(skel, T, x)
-        cons_value = [0] * (2 * T)
-        for i in range(T):
+        cons_value = [0] * (2 * (T-1))
+
+        skel.set_positions(mp.get_pose(0))
+        pre_pos_l = skel.body('h_blade_left').to_world([0.0, 0.0, 0.0])
+        pre_pos_r = skel.body('h_blade_right').to_world([0.0, 0.0, 0.0])
+
+        for i in range(1, T):
             skel.set_positions(mp.get_pose(i))
+            vel = (1 / h) * skel.position_differences(mp.get_pose(i-1), mp.get_pose(i))
+            skel.set_velocities(vel)
+
             p1 = skel.body('h_blade_left').to_world([-0.1040 + 0.0216, 0.0, 0.0])
             p2 = skel.body('h_blade_left').to_world([0.1040 + 0.0216, 0.0, 0.0])
 
@@ -222,19 +270,16 @@ def solve_trajectory_optimization(skel, T, h):
             sa_r = math.sin(next_step_angle_r)
             ca_r = math.cos(next_step_angle_r)
 
-            if i == 0:
-                vel_l = np.zeros(3)
-                vel_r = np.zeros(3)
-            else:
-                vel_l = (skel.body('h_blade_left').to_world([0.0, 0.0, 0.0]) - pre_pos_l) / h
-                vel_r = (skel.body('h_blade_right').to_world([0.0, 0.0, 0.0]) - pre_pos_r) / h
+            vel_l = (skel.body('h_blade_left').to_world([0.0, 0.0, 0.0]) - pre_pos_l) / h
+            vel_r = (skel.body('h_blade_right').to_world([0.0, 0.0, 0.0]) - pre_pos_r) / h
 
-            cons_value[2 * i + 0] = vel_l[0] * sa_l - vel_l[2] * ca_l
-            cons_value[2 * i + 1] = vel_r[0] * sa_r - vel_r[2] * ca_r
+            cons_value[2 * (i-1) + 0] = vel_l[0] * sa_l - vel_l[2] * ca_l
+            cons_value[2 * (i-1) + 1] = vel_r[0] * sa_r - vel_r[2] * ca_r
 
             pre_pos_l = skel.body('h_blade_left').to_world([0.0, 0.0, 0.0])
             pre_pos_r = skel.body('h_blade_right').to_world([0.0, 0.0, 0.0])
 
+        # print(cons_value)
         return cons_value
 
     # Contact_flag [ 0 or 1 ]
@@ -417,19 +462,21 @@ def solve_trajectory_optimization(skel, T, h):
         return cons_value
 
     cons_list.append({'type': 'eq', 'fun': eom_i})
-    # cons_list.append({'type': 'eq', 'fun': non_holonomic})
-    # cons_list.append({'type': 'eq', 'fun': eq_tau})
-    # cons_list.append({'type': 'eq', 'fun': is_contact})
-    # cons_list.append({'type': 'ineq', 'fun': friction_normal})
-    # cons_list.append({'type': 'ineq', 'fun': friction_tangent})
-    # cons_list.append({'type': 'ineq', 'fun': tangential_vel})
-    # cons_list.append({'type': 'ineq', 'fun': swing})
-    # cons_list.append({'type': 'ineq', 'fun': stance})
+    cons_list.append({'type': 'eq', 'fun': non_holonomic})
+    cons_list.append({'type': 'eq', 'fun': eq_tau})
+    cons_list.append({'type': 'eq', 'fun': is_contact})
+    cons_list.append({'type': 'ineq', 'fun': friction_normal})
+    cons_list.append({'type': 'ineq', 'fun': friction_tangent})
+    cons_list.append({'type': 'ineq', 'fun': tangential_vel})
+    cons_list.append({'type': 'ineq', 'fun': swing})
+    cons_list.append({'type': 'ineq', 'fun': stance})
 
+    toc()
     #####################################################
     # solve
     #####################################################
 
+    tic()
     # bnds = ()
     x0 = [0.] * ((ndofs * 2 + 3 * 4) * T)  #  initial guess
 
@@ -449,6 +496,7 @@ def solve_trajectory_optimization(skel, T, h):
     # res = optimize.minimize(func, x0, method='SLSQP', bounds=None, constraints=cons)
     # res = optimize.minimize(func, x0, method='SLSQP', bounds=None)
     res = optimize.minimize(func, x0, method='SLSQP', bounds=None, constraints=cons_list)
+    toc()
     return res
 
 if __name__ == '__main__':
@@ -459,10 +507,8 @@ if __name__ == '__main__':
 
     # print(solve_trajectory_optimization(skel, 10, world.time_step())['x'])
     # print(solve_trajectory_optimization(skel, 10, world.time_step()))
-    # mp = motionPlan
 
     frame_num = 10
-    # frame_num = 10
 
     opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
     print(opt_res)
@@ -474,22 +520,12 @@ if __name__ == '__main__':
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL))
-    # viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
-    # viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255, 0)))
-    # viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))
 
     viewer.startTimer(1 / 25.)
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99 + 0.0251, 0.)
 
-    # viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
-
     def simulateCallback(frame):
         skel.set_positions(mp.get_pose(frame))
-
-        # skel.body('h_blade_left').add_ext_force(mp.get_contact_force(frame)[0:3], offset_list[0])
-        # skel.body('h_blade_left').add_ext_force(mp.get_contact_force(frame)[3:6], offset_list[1])
-        # skel.body('h_blade_right').add_ext_force(mp.get_contact_force(frame)[6:9], offset_list[2])
-        # skel.body('h_blade_right').add_ext_force(mp.get_contact_force(frame)[9:12], offset_list[3])
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()
