@@ -5,6 +5,9 @@ from motionPlan import motionPlan
 import pydart2 as pydart
 import time
 
+import os
+from datetime import datetime
+
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
@@ -22,8 +25,9 @@ def TicTocGenerator():
     ti = 0              # initial time
     tf = time.time()    # final time
     while True:
-        ti = tftf = time.time()
-        yield tf-ti     # returns the time difference
+        ti = tf
+        ti = time.time()
+        yield ti - tf    # returns the time difference
 
 TicToc = TicTocGenerator()      #create an instance of the TicToc generator
 
@@ -514,8 +518,35 @@ if __name__ == '__main__':
     print(opt_res)
     print("trajectory optimization finished!!")
     mp = motionPlan(skel, frame_num, opt_res['x'])
-    # for i in range(10):
-    #     skel.set_positions(mp.get_pose(i))
+
+    #store q value(results of trajectory optimization) to the text file
+    newpath = 'OptRes'
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+    q_box = []
+    tau_box = []
+    f_box = []
+
+    for i in range(frame_num):
+        q_box.append(mp.get_pose(i))
+        f_box.append(mp.get_contact_force(i))
+        tau_box.append(mp.get_tau(i))
+
+    day = datetime.today().strftime("%Y%m%d%H%M")
+
+    with open('OptRes/pose_' + day + '.txt', 'w') as f:
+        for item in q_box:
+            f.write("%s\n" % item)
+
+    with open('OptRes/tau_' + day + '.txt', 'w') as f:
+        for item in tau_box:
+            f.write("%s\n" % item)
+
+    with open('OptRes/force_' + day + '.txt', 'w') as f:
+        for item in f_box:
+            f.write("%s\n" % item)
+
+    # TODO :  Read the file and store the result
 
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
