@@ -1,5 +1,3 @@
-import numpy as np
-
 class motionPlan(object):
     def __init__(self, skel, T, x):
         self.skel = skel
