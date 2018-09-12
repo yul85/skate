@@ -20,8 +20,9 @@ offset_list = [[-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
                [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
                [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]]
 
-
-rd_footCenter = []
+com_pos = []
+l_footCenter = []
+r_footCenter = []
 
 def TicTocGenerator():
     ti = 0              # initial time
@@ -54,7 +55,7 @@ def solve_trajectory_optimization(skel, T, h):
     target_l_foot = [0] * (3 * T)
     target_r_foot = [0] * (3 * T)
     for i in range(T):
-        target_COM[3 * i] = 0.01*i
+        target_COM[3 * i] = 0.1*i
         target_COM[3 * i+1] = 0.
         target_COM[3 * i+2] = 0.
 
@@ -71,7 +72,7 @@ def solve_trajectory_optimization(skel, T, h):
 
     contact_flag = [0] * (4 * T)
     for i in range(T):
-        # if i > 2 and i < 7:
+        # if i > 5 and i < 15:
         #     contact_flag[4 * i] = 1
         #     contact_flag[4 * i + 1] = 1
         #     contact_flag[4 * i + 2] = 0
@@ -81,10 +82,17 @@ def solve_trajectory_optimization(skel, T, h):
         #     contact_flag[4 * i + 1] = 1
         #     contact_flag[4 * i + 2] = 1
         #     contact_flag[4 * i + 3] = 1
-        contact_flag[4 * i] = 1
-        contact_flag[4 * i + 1] = 1
-        contact_flag[4 * i + 2] = 1
-        contact_flag[4 * i + 3] = 1
+        if i < 10:
+            contact_flag[4 * i] = 1
+            contact_flag[4 * i + 1] = 1
+            contact_flag[4 * i + 2] = 0
+            contact_flag[4 * i + 3] = 0
+        else:
+            contact_flag[4 * i] = 0
+            contact_flag[4 * i + 1] = 0
+            contact_flag[4 * i + 2] = 1
+            contact_flag[4 * i + 3] = 1
+
 
     # print(contact_flag)
 
@@ -125,15 +133,22 @@ def solve_trajectory_optimization(skel, T, h):
     # The objective function to be minimized.
     # walking speed + turning rate + regularizing term + target position of end-effoctor + target position of COM trajectory
 
-    w_effort = 50
-    w_speed = 50
-    w_turn = 50
-    w_end = 50
-    w_com = 50
+    w_effort = 50.
+    w_speed = 50.
+    w_turn = 50.
+    w_end = 50.
+    w_com = 50.
+    w_dis = 50.
     w_regul = 0.1
 
     def func(x):
         mp = motionPlan(skel, T, x)
+
+        # minimize force
+        # effort_objective = 0.
+        # for i in range(T):
+        #     forces = mp.get_contact_force(i)
+        #     effort_objective = effort_objective + np.linalg.norm(cf) ** 2
 
         # target position for end_effectors
         end_effector_objective = 0.
@@ -144,15 +159,29 @@ def solve_trajectory_optimization(skel, T, h):
 
         # target position for COM
         com_objective = 0.
+
         for i in range(T):
-            com_objective = com_objective + np.linalg.norm(mp.get_com_position(i) - target_COM[3*i:3*(i+1)])**2
+            com_objective = com_objective + np.linalg.norm(mp.get_com_position(i) - target_COM[3 * i:3 * (i + 1)]) ** 2
         # speed
         # speed_objective = np.linalg.norm((mp.get_COM_position(T-1) - mp.get_COM_position(0)) - t)**2
         # turning rate
         # + w_turn*((mp[T] - mp[0]) - t)*((mp[T] - mp[0]) - t)
         # balance
 
-        return w_com * com_objective
+        #effort
+
+        #distance btw COM and a foot
+        distance_objective = 0.
+        for i in range(T):
+            d_l = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - mp.get_end_effector_l_position(i)))
+            d_r = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - mp.get_end_effector_r_position(i)))
+            ref_l_dis = np.linalg.norm(
+                skel.body('h_pelvis').to_world([0., 0., 0.]) - skel.body('h_blade_left').to_world([0., 0., 0.]))
+            ref_r_dis = np.linalg.norm(
+                skel.body('h_pelvis').to_world([0., 0., 0.]) - skel.body('h_blade_right').to_world([0., 0., 0.]))
+            distance_objective = distance_objective + (d_l - ref_l_dis) ** 2 + (d_r - ref_r_dis) ** 2
+
+        return w_com * com_objective + w_dis * distance_objective #+ w_effort * effort_objective
 
     #####################################################
     # equality constraints
@@ -192,14 +221,13 @@ def solve_trajectory_optimization(skel, T, h):
         mp = motionPlan(skel, T, x)
         cons_value = [0] * (2 * (T-1))
 
-        pre_pos_l = skel.body('h_blade_left').to_world([0.0, 0.0, 0.0])
-        pre_pos_r = skel.body('h_blade_right').to_world([0.0, 0.0, 0.0])
+        pre_pos_l = mp.get_end_effector_l_position(0)
+        pre_pos_r = mp.get_end_effector_r_position(0)
 
         for i in range(1, T):
 
-            p1 = skel.body('h_blade_left').to_world([-0.1040 + 0.0216, 0.0, 0.0])
-            p2 = skel.body('h_blade_left').to_world([0.1040 + 0.0216, 0.0, 0.0])
-
+            p1 = mp.get_end_effector_l_position(i) + np.array(offset_list[0])
+            p2 = mp.get_end_effector_l_position(i) + np.array(offset_list[1])
             blade_direction_vec = p2 - p1
 
             theta_l = math.acos(np.dot(np.array([-1., 0., 0.]), blade_direction_vec))
@@ -216,24 +244,16 @@ def solve_trajectory_optimization(skel, T, h):
             sa_r = math.sin(next_step_angle_r)
             ca_r = math.cos(next_step_angle_r)
 
-            vel_l = (skel.body('h_blade_left').to_world([0.0, 0.0, 0.0]) - pre_pos_l) / h
-            vel_r = (skel.body('h_blade_right').to_world([0.0, 0.0, 0.0]) - pre_pos_r) / h
+            vel_l = (mp.get_end_effector_l_position(i) - pre_pos_l) / h
+            vel_r = (mp.get_end_effector_r_position(i) - pre_pos_r) / h
 
             cons_value[2 * (i-1) + 0] = vel_l[0] * sa_l - vel_l[2] * ca_l
             cons_value[2 * (i-1) + 1] = vel_r[0] * sa_r - vel_r[2] * ca_r
 
-            pre_pos_l = skel.body('h_blade_left').to_world([0.0, 0.0, 0.0])
-            pre_pos_r = skel.body('h_blade_right').to_world([0.0, 0.0, 0.0])
+            pre_pos_l = mp.get_end_effector_l_position(i)
+            pre_pos_r = mp.get_end_effector_r_position(i)
 
         # print(cons_value)
-        return cons_value
-
-    def com_consistancy(x):
-        mp = motionPlan(skel, T, x)
-
-        cons_value = [0] * (T * 3)
-        for i in range(T):
-            cons_value[i*3:(i+1)*3] = mp.get_com_position(i) - skel.com()
         return cons_value
 
     # Contact_flag [ 0 or 1 ]
@@ -365,16 +385,16 @@ def solve_trajectory_optimization(skel, T, h):
         for i in range(T):
             k = 0
             if contact_flag[4 * i + 0] == 0:
-                cons_value[cn_till+k] = skel.body('h_blade_left').to_world(offset_list[0])[1] + 0.98
+                cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
                 k = k+1
             if contact_flag[4 * i + 1] == 0:
-                cons_value[cn_till+k] = skel.body('h_blade_left').to_world(offset_list[1])[1] + 0.98
+                cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
                 k = k + 1
             if contact_flag[4 * i + 2] == 0:
-                cons_value[cn_till+k] = skel.body('h_blade_right').to_world(offset_list[2])[1] + 0.98
+                cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
                 k = k + 1
             if contact_flag[4 * i + 3] == 0:
-                cons_value[cn_till+k] = skel.body('h_blade_right').to_world(offset_list[3])[1] + 0.98
+                cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
                 k = k + 1
             cn_till = cn_till + cn[i]
         return cons_value
@@ -388,22 +408,22 @@ def solve_trajectory_optimization(skel, T, h):
         for i in range(T):
             k = 0
             if contact_flag[4 * i + 0] == 1:
-                y_pos = skel.body('h_blade_left').to_world(offset_list[0])[1]
+                y_pos = mp.get_end_effector_l_position(i)[1]
                 cons_value[cn_till + k] = y_pos + 0.98 - threshold
                 cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
                 k = k + 2
             if contact_flag[4 * i + 1] == 1:
-                y_pos = skel.body('h_blade_left').to_world(offset_list[1])[1]
+                y_pos = mp.get_end_effector_l_position(i)[1]
                 cons_value[cn_till + k] = y_pos + 0.98 - threshold
                 cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
                 k = k + 2
             if contact_flag[4 * i + 2] == 1:
-                y_pos = skel.body('h_blade_right').to_world(offset_list[2])[1]
+                y_pos = mp.get_end_effector_r_position(i)[1]
                 cons_value[cn_till + k] = y_pos + 0.98 - threshold
                 cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
                 k = k + 2
             if contact_flag[4 * i + 3] == 1:
-                y_pos = skel.body('h_blade_right').to_world(offset_list[3])[1]
+                y_pos = mp.get_end_effector_r_position(i)[1]
                 cons_value[cn_till + k] = y_pos + 0.98 - threshold
                 cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
                 k = k + 2
@@ -411,14 +431,13 @@ def solve_trajectory_optimization(skel, T, h):
         return cons_value
 
     cons_list.append({'type': 'eq', 'fun': eom_i})
-    cons_list.append({'type': 'eq', 'fun': com_consistancy})
-    # cons_list.append({'type': 'eq', 'fun': non_holonomic})
-    # cons_list.append({'type': 'eq', 'fun': is_contact})
+    cons_list.append({'type': 'eq', 'fun': non_holonomic})
+    cons_list.append({'type': 'eq', 'fun': is_contact})
     cons_list.append({'type': 'ineq', 'fun': friction_normal})
     cons_list.append({'type': 'ineq', 'fun': friction_tangent})
-    # cons_list.append({'type': 'ineq', 'fun': tangential_vel})
-    # cons_list.append({'type': 'ineq', 'fun': swing})
-    # cons_list.append({'type': 'ineq', 'fun': stance})
+    cons_list.append({'type': 'ineq', 'fun': tangential_vel})
+    cons_list.append({'type': 'ineq', 'fun': swing})
+    cons_list.append({'type': 'ineq', 'fun': stance})
 
     # toc()
     #####################################################
@@ -451,60 +470,69 @@ class MyWorld(pydart.World):
 
 
     def step(self, i):
-        print("step")
-        cf = mp.get_contact_force(i)
-        # print(cf)
+        # print("step")
+        # cf = mp.get_contact_force(i)
+        # # print(cf)
+        #
+        # tau = np.zeros(skel.num_dofs())
+        #
+        # if np.linalg.norm(cf[0:3]) > 0.001:
+        #     print("foot1 contact", np.linalg.norm(cf[0:3]), cf[0:3])
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[0])
+        #     my_jaco_t = my_jaco.transpose()
+        #     tau = tau + np.dot(my_jaco_t, cf[0:3])
+        #     skel.body("h_blade_left").add_ext_force(cf[0:3], offset_list[0])
+        #
+        # if np.linalg.norm(cf[3:6]) > 0.001:
+        #     print("foot2 contact", np.linalg.norm(cf[3:6]), cf[3:6])
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[1])
+        #     my_jaco_t = my_jaco.transpose()
+        #     tau = tau + np.dot(my_jaco_t, cf[3:6])
+        #
+        #     skel.body("h_blade_left").add_ext_force(cf[3:6], offset_list[1])
+        # if np.linalg.norm(cf[6:9]) > 0.001:
+        #     print("foot3 contact", np.linalg.norm(cf[6:9]), cf[6:9])
+        #     my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[2])
+        #     my_jaco_t = my_jaco.transpose()
+        #     tau = tau + np.dot(my_jaco_t, cf[6:9])
+        #     skel.body("h_blade_right").add_ext_force(cf[6:9], offset_list[2])
+        #
+        # if np.linalg.norm(cf[9:12]) > 0.001:
+        #     print("foot4 contact", np.linalg.norm(cf[9:12]), cf[9:12])
+        #     my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[3])
+        #     my_jaco_t = my_jaco.transpose()
+        #     tau = tau + np.dot(my_jaco_t, cf[9:12])
+        #     skel.body("h_blade_right").add_ext_force(cf[9:12], offset_list[3])
+        #
+        # tau[0:6] = np.zeros(6)
+        # print("torque: ", tau)
 
-        my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[0])
-        my_jaco_t = my_jaco.transpose()
-        my_tau1 = np.dot(my_jaco_t, cf[0:3])
+        # print("contact_force: \n", cf)
 
-        my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[1])
-        my_jaco_t = my_jaco.transpose()
-        my_tau2 = np.dot(my_jaco_t, cf[3:6])
-
-        my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[2])
-        my_jaco_t = my_jaco.transpose()
-        my_tau3 = np.dot(my_jaco_t, cf[6:9])
-
-        my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[3])
-        my_jaco_t = my_jaco.transpose()
-        my_tau4 = np.dot(my_jaco_t, cf[9:12])
-
-        tau = my_tau1 + my_tau2 + my_tau3 + my_tau4
-        tau[0:6] = np.zeros(6)
-        print("torque: ", tau)
-
-        f_s = 1
-        skel.body("h_blade_left").add_ext_force(f_s*cf[0:3], offset_list[0])
-        skel.body("h_blade_left").add_ext_force(f_s*cf[3:6], offset_list[1])
-        skel.body("h_blade_right").add_ext_force(f_s*cf[6:9], offset_list[2])
-        skel.body("h_blade_right").add_ext_force(f_s*cf[9:12], offset_list[3])
-
-        # skel.body("h_blade_left").add_ext_force(np.array([0., 50, 0.]), offset_list[0])
-        # skel.body("h_blade_left").add_ext_force(np.array([0., 50, 0.]), offset_list[1])
-        # skel.body("h_blade_right").add_ext_force(np.array([0., 50, 0.]), offset_list[2])
-        # skel.body("h_blade_right").add_ext_force(np.array([0., 50, 0.]), offset_list[3])
-        print("contact_force: \n", cf)
-
-        skel.set_forces(f_s*tau)
+        # skel.set_forces(tau)
 
         super(MyWorld, self).step()
 
     def render_with_ys(self, i):
-        del rd_footCenter[:]
+        del com_pos[:]
+        del l_footCenter[:]
+        del r_footCenter[:]
 
-        rd_footCenter.append(mp.get_com_position(i))
+        com_pos.append(mp.get_com_position(i))
+        l_footCenter.append(mp.get_end_effector_l_position(i))
+        r_footCenter.append(mp.get_end_effector_r_position(i))
 
 if __name__ == '__main__':
     pydart.init()
     world = MyWorld()
     skel = world.skeletons[2]
 
+    ground = pydart.World(1. / 50., './data/skel/ground.skel')
+
     # print(solve_trajectory_optimization(skel, 10, world.time_step())['x'])
     # print(solve_trajectory_optimization(skel, 10, world.time_step()))
 
-    frame_num = 20
+    frame_num = 21
 
     opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
     print(opt_res)
@@ -534,14 +562,16 @@ if __name__ == '__main__':
 
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
-    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL), visible=False)
+    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
 
     viewer.startTimer(1 / 25.)
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99 + 0.0251, 0.)
-    viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))
+    viewer.doc.addRenderer('com_pos', yr.PointsRenderer(com_pos))
+    viewer.doc.addRenderer('l_footCenter', yr.PointsRenderer(l_footCenter, (0, 255, 0)))
+    viewer.doc.addRenderer('r_footCenter', yr.PointsRenderer(r_footCenter, (0, 0, 255)))
 
     def simulateCallback(frame):
-
         world.step(frame)
         world.render_with_ys(frame)
 
@@ -549,4 +579,3 @@ if __name__ == '__main__':
     viewer.show()
 
     Fl.run()
-

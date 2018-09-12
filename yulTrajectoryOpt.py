@@ -136,7 +136,7 @@ def solve_trajectory_optimization(skel, T, h):
         # minimize joint torque
         effort_objective = 0.
         for i in range(T):
-            effort_objective = effort_objective + np.linalg.norm(mp.get_tau(i-1))**2
+            effort_objective = effort_objective + np.linalg.norm(mp.get_contact_force(i))**2
 
         # regularizing term
         regularize_objective = 0.
