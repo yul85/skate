@@ -487,7 +487,7 @@ class GlWindow(Fl_Gl_Window):
         glLightfv(GL_LIGHT0, GL_POSITION, (.5,1.,.5,0))
                 
         glLineWidth(1.)
-        # self.drawGround()
+        self.drawGround()
         # self.drawAxis()
         # self.drawCoordinate((0, 0, 0))
         # self.drawGround_color()

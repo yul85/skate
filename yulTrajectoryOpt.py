@@ -259,9 +259,10 @@ def solve_trajectory_optimization(skel, T, h):
             p2 = skel.body('h_blade_left').to_world([0.1040 + 0.0216, 0.0, 0.0])
 
             blade_direction_vec = p2 - p1
+            norm_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-            theta_l = math.acos(np.dot(np.array([-1., 0., 0.]), blade_direction_vec))
-            theta_r = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+            theta_l = math.acos(np.dot(np.array([-1., 0., 0.]), norm_vec))
+            theta_r = math.acos(np.dot(np.array([1., 0., 0.]), norm_vec))
             # print("theta: ", body_name, ", ", theta)
             # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
 

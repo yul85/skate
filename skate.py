@@ -42,12 +42,12 @@ class MyWorld(pydart.World):
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
 
-        # print('[Joint]')
-        # for joint in skel.joints:
-        #     print("\t" + str(joint))
-        #     print("\t\tparent = " + str(joint.parent_bodynode))
-        #     print("\t\tchild = " + str(joint.child_bodynode))
-        #     print("\t\tdofs = " + str(joint.dofs))
+        print('[Joint]')
+        for joint in skel.joints:
+            print("\t" + str(joint))
+            print("\t\tparent = " + str(joint.parent_bodynode))
+            print("\t\tchild = " + str(joint.child_bodynode))
+            print("\t\tdofs = " + str(joint.dofs))
 
         # skel.joint("j_abdomen").set_position_upper_limit(10, 0.0)
 

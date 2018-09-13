@@ -4,6 +4,7 @@ from scipy import optimize
 from motionPlan_simple import motionPlan
 import pydart2 as pydart
 import time
+import yulQP
 
 import os
 from datetime import datetime
@@ -55,7 +56,7 @@ def solve_trajectory_optimization(skel, T, h):
     target_l_foot = [0] * (3 * T)
     target_r_foot = [0] * (3 * T)
     for i in range(T):
-        target_COM[3 * i] = 0.1*i
+        target_COM[3 * i] = 0.05*i
         target_COM[3 * i+1] = 0.
         target_COM[3 * i+2] = 0.
 
@@ -228,16 +229,23 @@ def solve_trajectory_optimization(skel, T, h):
 
             p1 = mp.get_end_effector_l_position(i) + np.array(offset_list[0])
             p2 = mp.get_end_effector_l_position(i) + np.array(offset_list[1])
+
             blade_direction_vec = p2 - p1
+            norm_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+            # print("norm: ", norm_vec)
+            # print('point: ', p1, p2, blade_direction_vec)
+            # print('point: ', p1, p2, norm_vec)
+            # print("dot product:", np.array([1., 0., 0.]).dot(norm_vec))
+            theta_l = math.acos(np.array([-1., 0., 0.]).dot(norm_vec))
+            theta_r = math.acos(np.array([1., 0., 0.]).dot(norm_vec))
 
-            theta_l = math.acos(np.dot(np.array([-1., 0., 0.]), blade_direction_vec))
-            theta_r = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-            # print("theta: ", body_name, ", ", theta)
-            # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
-
+            # print("theta_l:", theta_l, theta_r)
+            #todo : angular velocity
             next_step_angle_l = theta_l + skel.body('h_blade_left').world_angular_velocity()[1] * h
             next_step_angle_r = theta_r + skel.body('h_blade_right').world_angular_velocity()[1] * h
-            # print("next_step_angle: ", next_step_angle)
+
+            # print("angular_vel: ", skel.body('h_blade_left').world_angular_velocity()[1] * h, skel.body('h_blade_right').world_angular_velocity()[1] * h)
+            # print("next_step_angle: ", next_step_angle_l, next_step_angle_r)
             sa_l = math.sin(next_step_angle_l)
             ca_l = math.cos(next_step_angle_l)
 
@@ -468,48 +476,68 @@ class MyWorld(pydart.World):
 
         skel = self.skeletons[2]
 
+        pelvis_x = skel.dof_indices((["j_pelvis_rot_x"]))
+        pelvis = skel.dof_indices((["j_pelvis_rot_y", "j_pelvis_rot_z"]))
+        # upper_body = skel.dof_indices(["j_abdomen_1", "j_abdomen_2"])
+        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"])
+        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left_z"])
+        arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
+        # foot = skel.dof_indices(["j_heel_left_1", "j_heel_left_2", "j_heel_right_1", "j_heel_right_2"])
+        leg_y = skel.dof_indices(["j_thigh_right_y", "j_thigh_left_y"])
+        # blade = skel.dof_indices(["j_heel_right_2"])
+
+        s0q = np.zeros(skel.ndofs)
+        # s0q[pelvis] = 0., -0.
+        # s0q[upper_body] = 0.3, -0.
+        s0q[right_leg] = -0., -0., 0.9, -1.5
+        s0q[left_leg] = -0.1, 0., 0.0, -0.0
+        # s0q[leg_y] = -0.785, 0.785
+        s0q[arms] = 1.5, -1.5
+        # s0q[foot] = 0., 0.1, 0., -0.0
+
+        self.s0q = s0q
 
     def step(self, i):
         # print("step")
+        h = self.time_step()
+        # ======================================================
+        #   todo : Full body Motion Synthesis
+        #   Prioritized optimization scheme(Lasa et al.(2010))
+        #      or JUST QP  ....
+        # ======================================================
+
+        # self.s0q[0:3] = mp.get_com_position(i)
+        self.s0q[3:6] = mp.get_com_position(i)
+        self.s0q[12:15] = mp.get_end_effector_l_position(i)
+        self.s0q[21:24] = mp.get_end_effector_r_position(i)
+
+        ndofs = skel.num_dofs()
+        Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
+        Kd = np.diagflat([0.0] * 6 + [2. * (25.0 ** .5)] * (ndofs - 6))
+        invM = np.linalg.inv(skel.M + Kd * h)
+        p = -Kp.dot(skel.q - self.s0q + skel.dq * h)
+        d = -Kd.dot(skel.dq)
+        qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
+        des_accel = p + d + qddot
+
+        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, mp.get_end_effector_l_position(i), mp.get_end_effector_r_position(i), 1. / self.time_step())
+
+        # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
+        #     skel, des_accel, 1. / self.time_step())
+
+        for i in range(len(_bodyIDs)):
+            skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
+        # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
+        skel.set_forces(_tau)
+
         # cf = mp.get_contact_force(i)
         # # print(cf)
-        #
-        # tau = np.zeros(skel.num_dofs())
-        #
-        # if np.linalg.norm(cf[0:3]) > 0.001:
-        #     print("foot1 contact", np.linalg.norm(cf[0:3]), cf[0:3])
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[0])
-        #     my_jaco_t = my_jaco.transpose()
-        #     tau = tau + np.dot(my_jaco_t, cf[0:3])
-        #     skel.body("h_blade_left").add_ext_force(cf[0:3], offset_list[0])
-        #
-        # if np.linalg.norm(cf[3:6]) > 0.001:
-        #     print("foot2 contact", np.linalg.norm(cf[3:6]), cf[3:6])
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian(offset_list[1])
-        #     my_jaco_t = my_jaco.transpose()
-        #     tau = tau + np.dot(my_jaco_t, cf[3:6])
-        #
-        #     skel.body("h_blade_left").add_ext_force(cf[3:6], offset_list[1])
-        # if np.linalg.norm(cf[6:9]) > 0.001:
-        #     print("foot3 contact", np.linalg.norm(cf[6:9]), cf[6:9])
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[2])
-        #     my_jaco_t = my_jaco.transpose()
-        #     tau = tau + np.dot(my_jaco_t, cf[6:9])
-        #     skel.body("h_blade_right").add_ext_force(cf[6:9], offset_list[2])
-        #
-        # if np.linalg.norm(cf[9:12]) > 0.001:
-        #     print("foot4 contact", np.linalg.norm(cf[9:12]), cf[9:12])
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian(offset_list[3])
-        #     my_jaco_t = my_jaco.transpose()
-        #     tau = tau + np.dot(my_jaco_t, cf[9:12])
-        #     skel.body("h_blade_right").add_ext_force(cf[9:12], offset_list[3])
-        #
-        # tau[0:6] = np.zeros(6)
-        # print("torque: ", tau)
+        # skel.body('h_blade_left').add_ext_force(cf[0:3], offset_list[0])
+        # skel.body('h_blade_left').add_ext_force(cf[3:6], offset_list[1])
+        # skel.body('h_blade_right').add_ext_force(cf[6:9], offset_list[2])
+        # skel.body('h_blade_right').add_ext_force(cf[9:12], offset_list[3])
 
-        # print("contact_force: \n", cf)
-
-        # skel.set_forces(tau)
+        skel.set_forces(_tau)
 
         super(MyWorld, self).step()
 
@@ -534,10 +562,10 @@ if __name__ == '__main__':
 
     frame_num = 21
 
-    opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
-    print(opt_res)
-    # print("trajectory optimization finished!!")
-    mp = motionPlan(skel, frame_num, opt_res['x'])
+    # opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
+    # print(opt_res)
+    # # print("trajectory optimization finished!!")
+    # mp = motionPlan(skel, frame_num, opt_res['x'])
 
     #store q value(results of trajectory optimization) to the text file
     # newpath = 'OptRes'
@@ -560,6 +588,22 @@ if __name__ == '__main__':
     #     for item in f_box:
     #         f.write("%s\n" % item)
 
+
+    # todo: read file
+    fr = open("OptRes/com_pos_201809131746.txt", "r")
+
+    file_res = []
+    for line in fr:
+        print(line)
+        value = line.split(" ")
+        print(value)
+        print(value[0], value[1], value[2])
+        print(np.array(value[1], value[2], value[3]))
+        file_res.append(line)
+    fr.close()
+
+    print(file_res)
+
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL), visible=False)
@@ -570,9 +614,11 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('com_pos', yr.PointsRenderer(com_pos))
     viewer.doc.addRenderer('l_footCenter', yr.PointsRenderer(l_footCenter, (0, 255, 0)))
     viewer.doc.addRenderer('r_footCenter', yr.PointsRenderer(r_footCenter, (0, 0, 255)))
-
+    viewer.motionViewWnd.glWindow.planeHeight = -0.98+0.0251
+    # yr.drawCross(np.array([0., 0., 0.]))
     def simulateCallback(frame):
-        world.step(frame)
+        for i in range(20):
+            world.step(frame)
         world.render_with_ys(frame)
 
     viewer.setSimulateCallback(simulateCallback)
