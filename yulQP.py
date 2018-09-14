@@ -20,7 +20,7 @@ NON_HOLONOMIC = False
 QPOASES = False
 
 
-def calc_QP(skel, ddq_des, eel_des, eer_des, inv_h):
+def calc_QP(skel, ddq_des, ddc, inv_h):
     """
     :param skel:
     :type skel: pydart.Skeleton
@@ -68,13 +68,80 @@ def calc_QP(skel, ddq_des, eel_des, eer_des, inv_h):
     num_tau = num_dof
     num_variable = num_dof + num_tau + num_lambda
 
+    #--------------------------yul------------------------------------
+    # todo : tracking COM
+    Pmat = np.zeros((6, 6 * skel.num_bodynodes()))
+    J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+    Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
+    J_dot = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+    # print("mm", skel.M)
+
+    T = np.zeros((3, 3 * skel.num_bodynodes()))
+    U = np.zeros((3, 3 * skel.num_bodynodes()))
+    Udot = np.zeros((3, 3 * skel.num_bodynodes()))
+    V = np.zeros((3, 3 * skel.num_bodynodes()))
+    Vdot = np.zeros((3, 3 * skel.num_bodynodes()))
+
+    def transformToSkewSymmetricMatrix(v):
+
+        x = v[0]
+        y = v[1]
+        z = v[2]
+
+        mat = np.zeros((3, 3))
+        mat[0, 1] = -z
+        mat[0, 2] = y
+        mat[1, 2] = -x
+
+        mat[1, 0] = z
+        mat[2, 0] = -y
+        mat[2, 1] = x
+
+        return mat
+
+    # todo: replace jacobian
+    for bi in range(skel.num_bodynodes()):
+        r_v = skel.body(bi).to_world([0, 0, 0]) - skel.C
+        r_m = transformToSkewSymmetricMatrix(r_v)
+        T[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * np.identity(3)
+        U[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * r_m
+        v_v = skel.body(bi).dC - skel.dC
+        v_m = transformToSkewSymmetricMatrix(v_v)
+        Udot[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * v_m
+        V[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).inertia()
+
+        body_w_v = skel.body(bi).world_angular_velocity()
+        body_w_m = transformToSkewSymmetricMatrix(body_w_v)
+        # print("w: ", skel.body(bi).world_angular_velocity())
+        Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
+
+        J[3 * bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
+        J[3 * skel.num_bodynodes() + 3 * bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(
+            bi).angular_jacobian()
+
+        J_dot[3 * bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian_deriv([0, 0, 0])
+        J_dot[3 * skel.num_bodynodes() + 3 * bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(
+            bi).angular_jacobian_deriv()
+
+    # print("r", r)
+    Pmat[0:3, 0: 3 * skel.num_bodynodes()] = T
+    Pmat[3:, 0:3 * skel.num_bodynodes()] = U
+    Pmat[3:, 3 * skel.num_bodynodes():] = V
+
+    Pmat_dot[3:, 0:3 * skel.num_bodynodes()] = Udot
+    Pmat_dot[3:, 3 * skel.num_bodynodes():] = Vdot
+
+    PJ = np.dot(Pmat, J)
+    PdotJ_PJdot = Pmat_dot.dot(J) + Pmat.dot(J_dot)
+
+    print(ddc)
     #####################################################
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100.
+    P[:num_dof, :num_dof] *= 100. + PJ.transpose().dot(PJ)
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des
+    q[:num_dof] = -100.*ddq_des - 100.*(ddc-PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
     #####################################################
     # equality

@@ -497,6 +497,10 @@ class MyWorld(pydart.World):
 
         self.s0q = s0q
 
+        self.res_com_ff = []
+        self.res_fl_ff = []
+        self.res_fr_ff = []
+
     def step(self, i):
         # print("step")
         h = self.time_step()
@@ -506,12 +510,8 @@ class MyWorld(pydart.World):
         #      or JUST QP  ....
         # ======================================================
 
-        # self.s0q[0:3] = mp.get_com_position(i)
-        self.s0q[3:6] = mp.get_com_position(i)
-        self.s0q[12:15] = mp.get_end_effector_l_position(i)
-        self.s0q[21:24] = mp.get_end_effector_r_position(i)
-
         ndofs = skel.num_dofs()
+        h = self.time_step()
         Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
         Kd = np.diagflat([0.0] * 6 + [2. * (25.0 ** .5)] * (ndofs - 6))
         invM = np.linalg.inv(skel.M + Kd * h)
@@ -519,8 +519,13 @@ class MyWorld(pydart.World):
         d = -Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
+        # print("ddq: ", des_accel)
 
-        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, mp.get_end_effector_l_position(i), mp.get_end_effector_r_position(i), 1. / self.time_step())
+        ddc = np.zeros(6)
+        if i >= 1:
+            ddc[0:3] = 1/h*1/h*(1/h*(np.array(world.res_com_ff[i+1]) - np.array(world.res_com_ff[i])) - 1/h*(np.array(world.res_com_ff[i]) - np.array(world.res_com_ff[i-1])))
+
+        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, ddc, 1. / h)
 
         # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
         #     skel, des_accel, 1. / self.time_step())
@@ -546,9 +551,12 @@ class MyWorld(pydart.World):
         del l_footCenter[:]
         del r_footCenter[:]
 
-        com_pos.append(mp.get_com_position(i))
-        l_footCenter.append(mp.get_end_effector_l_position(i))
-        r_footCenter.append(mp.get_end_effector_r_position(i))
+        # com_pos.append(mp.get_com_position(i))
+        # l_footCenter.append(mp.get_end_effector_l_position(i))
+        # r_footCenter.append(mp.get_end_effector_r_position(i))
+        com_pos.append(world.res_com_ff[i])
+        l_footCenter.append(world.res_fl_ff[i])
+        r_footCenter.append(world.res_fr_ff[i])
 
 if __name__ == '__main__':
     pydart.init()
@@ -572,41 +580,72 @@ if __name__ == '__main__':
     # if not os.path.exists(newpath):
     #     os.makedirs(newpath)
     # com_box = []
-    # f_box = []
+    # fl_box = []
+    # fr_box = []
     #
     # for i in range(frame_num):
     #     com_box.append(mp.get_com_position(i))
-    #     f_box.append(mp.get_contact_force(i))
+    #     fl_box.append(mp.get_end_effector_l_position(i))
+    #     fr_box.append(mp.get_end_effector_r_position(i))
     #
     # day = datetime.today().strftime("%Y%m%d%H%M")
     #
     # with open('OptRes/com_pos_' + day + '.txt', 'w') as f:
     #     for item in com_box:
-    #         f.write("%s\n" % item)
-    #
-    # with open('OptRes/force_' + day + '.txt', 'w') as f:
-    #     for item in f_box:
-    #         f.write("%s\n" % item)
+    #         # print("item: ", item[0], item[1], item[2])
+    #         f.write("%s " % item[0])
+    #         f.write("%s " % item[1])
+    #         f.write("%s\n" % item[2])
+    # with open('OptRes/fl_' + day + '.txt', 'w') as f:
+    #     for item in fl_box:
+    #         f.write("%s " % item[0])
+    #         f.write("%s " % item[1])
+    #         f.write("%s\n" % item[2])
+    # with open('OptRes/fr_' + day + '.txt', 'w') as f:
+    #     for item in fr_box:
+    #         f.write("%s " % item[0])
+    #         f.write("%s " % item[1])
+    #         f.write("%s\n" % item[2])
 
+    # # todo: read file
+    f_com = open("OptRes/com_pos_201809141443.txt", "r")
+    f_fl = open("OptRes/fl_201809141443.txt", "r")
+    f_fr = open("OptRes/fr_201809141443.txt", "r")
 
-    # todo: read file
-    fr = open("OptRes/com_pos_201809131746.txt", "r")
+    res_com_ff = []
+    res_fl_ff = []
+    res_fr_ff = []
 
-    file_res = []
-    for line in fr:
-        print(line)
+    for line in f_com:
+        # print(line)
         value = line.split(" ")
-        print(value)
-        print(value[0], value[1], value[2])
-        print(np.array(value[1], value[2], value[3]))
-        file_res.append(line)
-    fr.close()
+        # print(value)
+        # print("??: ", value[0], value[1], value[2], type(value[2]))
+        vec = [float(value[0]), float(value[1]), float(value[2])]
+        # print(vec)
+        res_com_ff.append(vec)
+    f_com.close()
 
-    print(file_res)
+    for line in f_fl:
+        value = line.split(" ")
+        vec = [float(value[0]), float(value[1]), float(value[2])]
+        res_fl_ff.append(vec)
+    f_fl.close()
+
+    for line in f_fr:
+        value = line.split(" ")
+        vec = [float(value[0]), float(value[1]), float(value[2])]
+        res_fr_ff.append(vec)
+    f_fr.close()
+
+    world.res_com_ff = res_com_ff
+    world.res_fl_ff = res_fl_ff
+    world.res_fr_ff = res_fr_ff
 
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
-    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL), visible=False)
+    # viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL), visible=False)
+    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL))
     viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
 
     viewer.startTimer(1 / 25.)
@@ -617,8 +656,7 @@ if __name__ == '__main__':
     viewer.motionViewWnd.glWindow.planeHeight = -0.98+0.0251
     # yr.drawCross(np.array([0., 0., 0.]))
     def simulateCallback(frame):
-        for i in range(20):
-            world.step(frame)
+        world.step(frame)
         world.render_with_ys(frame)
 
     viewer.setSimulateCallback(simulateCallback)
