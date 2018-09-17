@@ -3,10 +3,10 @@ class motionPlan(object):
         self.skel = skel
         self.mp = []
         self.T = T
-        m_length = 3 * 3 + 3 * 4
+        self.m_length = 3 * 3 + 3 * 4 + 3
         # m = np.zeros(m_length)
         for ii in range(0, T):
-            self.mp.append(x[ii * m_length:(ii+1)*m_length])
+            self.mp.append(x[ii * self.m_length:(ii+1)*self.m_length])
 
     def get_com_position(self, i):
         return self.mp[i][0:3]
@@ -21,5 +21,8 @@ class motionPlan(object):
         return self.mp[i][3*2:3*3]
 
     def get_contact_force(self, i):
-        return self.mp[i][3*3:]
+        return self.mp[i][3*3:3*7]
+
+    def get_angular_momentum(self, i):
+        return self.mp[i][3*7:]
 

@@ -14,6 +14,9 @@ from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 from PyCommon.modules.Simulator import hpDartQpSimulator as hqp
 
+# readMode = True
+readMode = False
+
 np.set_printoptions(threshold=np.nan)
 
 offset_list = [[-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
@@ -140,6 +143,7 @@ def solve_trajectory_optimization(skel, T, h):
     w_end = 50.
     w_com = 50.
     w_dis = 50.
+    w_smooth = 0.1
     w_regul = 0.1
 
     def func(x):
@@ -182,7 +186,16 @@ def solve_trajectory_optimization(skel, T, h):
                 skel.body('h_pelvis').to_world([0., 0., 0.]) - skel.body('h_blade_right').to_world([0., 0., 0.]))
             distance_objective = distance_objective + (d_l - ref_l_dis) ** 2 + (d_r - ref_r_dis) ** 2
 
-        return w_com * com_objective + w_dis * distance_objective #+ w_effort * effort_objective
+        # smooth term
+        smooth_objective = 0.
+        for i in range(1, T-1):
+            com_vel1 = (mp.get_com_position(i) - mp.get_com_position(i - 1)) * (1 / h)
+            com_vel2 = (mp.get_com_position(i + 1) - mp.get_com_position(i)) * (1 / h)
+            com_acc = (1 / (h * h)) * (com_vel2 - com_vel1)
+            am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i - 1)) * (1 / h)
+            smooth_objective = smooth_objective + np.linalg.norm(np.vstack([com_acc, am_val_der]))**2
+
+        return w_com * com_objective + w_dis * distance_objective + w_smooth * smooth_objective #+ w_effort * effort_objective
 
     #####################################################
     # equality constraints
@@ -193,7 +206,10 @@ def solve_trajectory_optimization(skel, T, h):
         mp = motionPlan(skel, T, x)
         cons_value = [0] * (3 * (T-2))
         for i in range(1, T-1):
+            # print(i)
+            # print(mp.get_com_position(i+1))
             com_vel1 = (mp.get_com_position(i) - mp.get_com_position(i-1))*(1/h)
+
             com_vel2 = (mp.get_com_position(i+1) - mp.get_com_position(i)) * (1 / h)
 
             com_acc = (1 / (h * h)) * (com_vel2 - com_vel1)
@@ -212,8 +228,31 @@ def solve_trajectory_optimization(skel, T, h):
 
             # cons_value[ndofs * (i - 1):ndofs * i] = skel.mass() * skel.com_acceleration() - skel.mass() * np.array(
             #     [0., -9.8, 0.]) - contact_sum
+            cons_value[3 * (i - 1):3 * i] = skel.mass() * com_acc - skel.mass() * np.array([0., -9.8, 0.]) - contact_sum
+            # print(cons_value[3 * (i - 1):3 * i])
+            # cons_value[ndofs * (i-1):ndofs * i] = skel.mass() * com_acc - skel.mass()*np.array([0., -9.8, 0.]) - contact_sum
 
-            cons_value[ndofs * (i-1):ndofs * i] = skel.mass() * com_acc - skel.mass()*np.array([0., -9.8, 0.]) - contact_sum
+        return cons_value
+
+    def am(x):
+        mp = motionPlan(skel, T, x)
+        cons_value = [0] * (3 * (T - 1))
+        for i in range(1, T):
+            contact_forces = mp.get_contact_force(i)
+            # am_val = mp.get_angular_momentum(i)
+            am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i-1))*(1/h)
+            sum_diff_cop_com = 0
+
+            if contact_flag[4 * i + 0] == 1:
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_l_position(i) - mp.get_com_position(i), contact_forces[0:3])
+            if contact_flag[4 * i + 1] == 1:
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_l_position(i) - mp.get_com_position(i), contact_forces[3:6])
+            if contact_flag[4 * i + 2] == 1:
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_r_position(i) - mp.get_com_position(i), contact_forces[6:9])
+            if contact_flag[4 * i + 3] == 1:
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_r_position(i) - mp.get_com_position(i), contact_forces[9:12])
+
+            cons_value[3 * (i - 1):3 * i] = am_val_der - sum_diff_cop_com
 
         return cons_value
 
@@ -226,7 +265,6 @@ def solve_trajectory_optimization(skel, T, h):
         pre_pos_r = mp.get_end_effector_r_position(0)
 
         for i in range(1, T):
-
             p1 = mp.get_end_effector_l_position(i) + np.array(offset_list[0])
             p2 = mp.get_end_effector_l_position(i) + np.array(offset_list[1])
 
@@ -439,6 +477,7 @@ def solve_trajectory_optimization(skel, T, h):
         return cons_value
 
     cons_list.append({'type': 'eq', 'fun': eom_i})
+    cons_list.append({'type': 'eq', 'fun': am})
     cons_list.append({'type': 'eq', 'fun': non_holonomic})
     cons_list.append({'type': 'eq', 'fun': is_contact})
     cons_list.append({'type': 'ineq', 'fun': friction_normal})
@@ -454,7 +493,8 @@ def solve_trajectory_optimization(skel, T, h):
 
     tic()
     # bnds = ()
-    x0 = [0.] * ((3 * 3 + 3 * 4) * T)  #  initial guess
+
+    x0 = [0.] * ((3 * 3 + 3 * 4 + 3) * T)  #  initial guess
 
     # x0 = None  # initial guess
 
@@ -492,7 +532,7 @@ class MyWorld(pydart.World):
         s0q[right_leg] = -0., -0., 0.9, -1.5
         s0q[left_leg] = -0.1, 0., 0.0, -0.0
         # s0q[leg_y] = -0.785, 0.785
-        s0q[arms] = 1.5, -1.5
+        # s0q[arms] = 1.5, -1.5
         # s0q[foot] = 0., 0.1, 0., -0.0
 
         self.s0q = s0q
@@ -521,11 +561,29 @@ class MyWorld(pydart.World):
         des_accel = p + d + qddot
         # print("ddq: ", des_accel)
 
-        ddc = np.zeros(6)
-        if i >= 1:
-            ddc[0:3] = 1/h*1/h*(1/h*(np.array(world.res_com_ff[i+1]) - np.array(world.res_com_ff[i])) - 1/h*(np.array(world.res_com_ff[i]) - np.array(world.res_com_ff[i-1])))
+        # skel.set_positions(self.s0q)
+        # print(skel.body('h_blade_left').to_world([0., 0., 0]), skel.body('h_blade_left').com())
+        # print(skel.body('h_blade_right').to_world([0., 0., 0]), skel.body('h_blade_right').com())
 
-        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, ddc, 1. / h)
+        ddc = np.zeros(6)
+        ddf_l = np.zeros(3)
+        ddf_r = np.zeros(3)
+        if i >= 1:
+            if readMode == True:
+                ddc[0:3] = 400. * (np.array(world.res_com_ff[i]) - skel.com()) - 10. * skel.dC
+                ddf_l = 400. * (np.array(world.res_fl_ff[i]) - skel.body('h_blade_left').com()) - 10. * skel.body('h_blade_left').com_linear_velocity()
+                ddf_r = 400. * (np.array(world.res_fr_ff[i]) - skel.body('h_blade_right').com()) - 10. * skel.body('h_blade_right').com_linear_velocity()
+            else:
+                ddc[0:3] = 400. * (mp.get_com_position(i) - skel.com()) - 10. * skel.dC
+                ddf_l = 400. * (mp.get_end_effector_l_position(i) - skel.body('h_blade_left').com()) - 10. * skel.body(
+                    'h_blade_left').com_linear_velocity()
+                ddf_r = 400. * (mp.get_end_effector_r_position(i) - skel.body('h_blade_right').com()) - 10. * skel.body(
+                    'h_blade_right').com_linear_velocity()
+
+        ddf_l[1] = -0.87
+        ddf_r[1] = -0.66
+
+        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, ddc, ddf_l, ddf_r, 1. / h)
 
         # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
         #     skel, des_accel, 1. / self.time_step())
@@ -551,12 +609,14 @@ class MyWorld(pydart.World):
         del l_footCenter[:]
         del r_footCenter[:]
 
-        # com_pos.append(mp.get_com_position(i))
-        # l_footCenter.append(mp.get_end_effector_l_position(i))
-        # r_footCenter.append(mp.get_end_effector_r_position(i))
-        com_pos.append(world.res_com_ff[i])
-        l_footCenter.append(world.res_fl_ff[i])
-        r_footCenter.append(world.res_fr_ff[i])
+        if readMode == True:
+            com_pos.append(world.res_com_ff[i])
+            l_footCenter.append(world.res_fl_ff[i])
+            r_footCenter.append(world.res_fr_ff[i])
+        else:
+            com_pos.append(mp.get_com_position(i))
+            l_footCenter.append(mp.get_end_effector_l_position(i))
+            r_footCenter.append(mp.get_end_effector_r_position(i))
 
 if __name__ == '__main__':
     pydart.init()
@@ -570,77 +630,84 @@ if __name__ == '__main__':
 
     frame_num = 21
 
-    # opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
-    # print(opt_res)
-    # # print("trajectory optimization finished!!")
-    # mp = motionPlan(skel, frame_num, opt_res['x'])
+    opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
+    print(opt_res)
+    # print("trajectory optimization finished!!")
+    mp = motionPlan(skel, frame_num, opt_res['x'])
 
-    #store q value(results of trajectory optimization) to the text file
-    # newpath = 'OptRes'
-    # if not os.path.exists(newpath):
-    #     os.makedirs(newpath)
-    # com_box = []
-    # fl_box = []
-    # fr_box = []
-    #
-    # for i in range(frame_num):
-    #     com_box.append(mp.get_com_position(i))
-    #     fl_box.append(mp.get_end_effector_l_position(i))
-    #     fr_box.append(mp.get_end_effector_r_position(i))
-    #
-    # day = datetime.today().strftime("%Y%m%d%H%M")
-    #
-    # with open('OptRes/com_pos_' + day + '.txt', 'w') as f:
-    #     for item in com_box:
-    #         # print("item: ", item[0], item[1], item[2])
-    #         f.write("%s " % item[0])
-    #         f.write("%s " % item[1])
-    #         f.write("%s\n" % item[2])
-    # with open('OptRes/fl_' + day + '.txt', 'w') as f:
-    #     for item in fl_box:
-    #         f.write("%s " % item[0])
-    #         f.write("%s " % item[1])
-    #         f.write("%s\n" % item[2])
-    # with open('OptRes/fr_' + day + '.txt', 'w') as f:
-    #     for item in fr_box:
-    #         f.write("%s " % item[0])
-    #         f.write("%s " % item[1])
-    #         f.write("%s\n" % item[2])
+    # store q value(results of trajectory optimization) to the text file
+    newpath = 'OptRes'
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+    com_box = []
+    fl_box = []
+    fr_box = []
 
-    # # todo: read file
-    f_com = open("OptRes/com_pos_201809141443.txt", "r")
-    f_fl = open("OptRes/fl_201809141443.txt", "r")
-    f_fr = open("OptRes/fr_201809141443.txt", "r")
+    for i in range(frame_num):
+        com_box.append(mp.get_com_position(i))
+        fl_box.append(mp.get_end_effector_l_position(i))
+        fr_box.append(mp.get_end_effector_r_position(i))
 
-    res_com_ff = []
-    res_fl_ff = []
-    res_fr_ff = []
+    day = datetime.today().strftime("%Y%m%d%H%M")
 
-    for line in f_com:
-        # print(line)
-        value = line.split(" ")
-        # print(value)
-        # print("??: ", value[0], value[1], value[2], type(value[2]))
-        vec = [float(value[0]), float(value[1]), float(value[2])]
-        # print(vec)
-        res_com_ff.append(vec)
-    f_com.close()
+    with open('OptRes/com_pos_' + day + '.txt', 'w') as f:
+        for item in com_box:
+            # print("item: ", item[0], item[1], item[2])
+            f.write("%s " % item[0])
+            f.write("%s " % item[1])
+            f.write("%s\n" % item[2])
+    with open('OptRes/fl_' + day + '.txt', 'w') as f:
+        for item in fl_box:
+            f.write("%s " % item[0])
+            f.write("%s " % item[1])
+            f.write("%s\n" % item[2])
+    with open('OptRes/fr_' + day + '.txt', 'w') as f:
+        for item in fr_box:
+            f.write("%s " % item[0])
+            f.write("%s " % item[1])
+            f.write("%s\n" % item[2])
 
-    for line in f_fl:
-        value = line.split(" ")
-        vec = [float(value[0]), float(value[1]), float(value[2])]
-        res_fl_ff.append(vec)
-    f_fl.close()
 
-    for line in f_fr:
-        value = line.split(" ")
-        vec = [float(value[0]), float(value[1]), float(value[2])]
-        res_fr_ff.append(vec)
-    f_fr.close()
+    if readMode == True:
+        # read file
+        # f_com = open("OptRes/com_pos_201809141443.txt", "r")
+        # f_fl = open("OptRes/fl_201809141443.txt", "r")
+        # f_fr = open("OptRes/fr_201809141443.txt", "r")
 
-    world.res_com_ff = res_com_ff
-    world.res_fl_ff = res_fl_ff
-    world.res_fr_ff = res_fr_ff
+        f_com = open("OptRes/com_pos_01809172007.txt", "r")
+        f_fl = open("OptRes/fl_01809172007.txt", "r")
+        f_fr = open("OptRes/fr_01809172007.txt", "r")
+
+        res_com_ff = []
+        res_fl_ff = []
+        res_fr_ff = []
+
+        for line in f_com:
+            # print(line)
+            value = line.split(" ")
+            # print(value)
+            # print("??: ", value[0], value[1], value[2], type(value[2]))
+            vec = [float(value[0]), float(value[1]), float(value[2])]
+            # print(vec)
+            res_com_ff.append(vec)
+        f_com.close()
+
+        for line in f_fl:
+            value = line.split(" ")
+            vec = [float(value[0]), float(value[1]), float(value[2])]
+            res_fl_ff.append(vec)
+        f_fl.close()
+
+        for line in f_fr:
+            value = line.split(" ")
+            vec = [float(value[0]), float(value[1]), float(value[2])]
+            res_fr_ff.append(vec)
+        f_fr.close()
+
+        world.res_com_ff = res_com_ff
+        world.res_fl_ff = res_fl_ff
+        world.res_fr_ff = res_fr_ff
+
 
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)

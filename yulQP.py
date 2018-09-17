@@ -20,7 +20,7 @@ NON_HOLONOMIC = False
 QPOASES = False
 
 
-def calc_QP(skel, ddq_des, ddc, inv_h):
+def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
     """
     :param skel:
     :type skel: pydart.Skeleton
@@ -69,7 +69,7 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
     num_variable = num_dof + num_tau + num_lambda
 
     #--------------------------yul------------------------------------
-    # todo : tracking COM
+    # tracking COM
     Pmat = np.zeros((6, 6 * skel.num_bodynodes()))
     J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
     Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
@@ -134,14 +134,34 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
     PJ = np.dot(Pmat, J)
     PdotJ_PJdot = Pmat_dot.dot(J) + Pmat.dot(J_dot)
 
-    print(ddc)
+
+    # tracking foot motions
+
+    l_foot = skel.body('h_blade_left')
+    foot_l_J = l_foot.linear_jacobian([0., 0., 0.])
+    foot_l_J_der = l_foot.linear_jacobian_deriv([0., 0., 0.])
+
+    l_term = (ddf_l_des - foot_l_J_der.dot(skel.dq).transpose()).dot(foot_l_J)
+
+    r_foot = skel.body('h_blade_right')
+    foot_r_J = r_foot.linear_jacobian([0., 0., 0.])
+    foot_r_J_der = r_foot.linear_jacobian_deriv([0., 0., 0.])
+
+    r_term = (ddf_r_des - foot_r_J_der.dot(skel.dq).transpose()).dot(foot_r_J)
+
     #####################################################
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100. + PJ.transpose().dot(PJ)
+    P[:num_dof, :num_dof] *= 100. + 1/skel.m * PJ.transpose().dot(PJ) + foot_l_J.transpose().dot(foot_l_J) + foot_r_J.transpose().dot(foot_r_J)
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des - 100.*(ddc-PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
+    q[:num_dof] = -100.*ddq_des - 100. *(ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ) - 200. * l_term - 200. * r_term
+
+    # P = np.eye(num_variable)
+    # P[:num_dof, :num_dof] *= 100. + 1 / skel.m * PJ.transpose().dot(PJ)
+    # q = np.zeros(num_variable)
+    # q[:num_dof] = -100. * ddq_des - 100. * (ddc - 1 / skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(
+    #     PJ)
 
     #####################################################
     # equality
