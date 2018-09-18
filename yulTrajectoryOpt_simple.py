@@ -64,12 +64,16 @@ def solve_trajectory_optimization(skel, T, h):
         target_COM[3 * i+2] = 0.
 
         target_l_foot[3 * i] = 0.05 * i
-        target_l_foot[3 * i + 1] = -0.98
-        target_l_foot[3 * i + 2] = -0.2
-
+        target_l_foot[3 * i + 2] = -0.09
         target_r_foot[3 * i] = 0.05 * i
-        target_r_foot[3 * i + 1] = -0.98
-        target_r_foot[3 * i + 2] = 0.2
+        target_r_foot[3 * i + 2] = 0.09
+
+        if i < int(T / 2):
+            target_l_foot[3 * i + 1] = -0.87 - 0.02
+            target_r_foot[3 * i + 1] = -0.66 - 0.02
+        else:
+            target_l_foot[3 * i + 1] = -0.66 - 0.02
+            target_r_foot[3 * i + 1] = -0.87 - 0.02
 
     # target_l_foot = np.array([0., -0.98, -0.2])
     # target_r_foot = np.array([0., -0.98, 0.2])
@@ -86,7 +90,7 @@ def solve_trajectory_optimization(skel, T, h):
         #     contact_flag[4 * i + 1] = 1
         #     contact_flag[4 * i + 2] = 1
         #     contact_flag[4 * i + 3] = 1
-        if i < 10:
+        if i < int(T/2):
             contact_flag[4 * i] = 1
             contact_flag[4 * i + 1] = 1
             contact_flag[4 * i + 2] = 0
@@ -141,7 +145,7 @@ def solve_trajectory_optimization(skel, T, h):
     w_speed = 50.
     w_turn = 50.
     w_end = 50.
-    w_com = 50.
+    w_track = 50.
     w_dis = 50.
     w_smooth = 0.1
     w_regul = 0.1
@@ -162,11 +166,23 @@ def solve_trajectory_optimization(skel, T, h):
                 skel.body('h_blade_left').to_world([0.0, 0.0, 0.0]) - target_l_foot[3*i:3*(i+1)]) ** 2 + np.linalg.norm(
                 skel.body('h_blade_right').to_world([0.0, 0.0, 0.0]) - target_r_foot[3*i:3*(i+1)]) ** 2
 
-        # target position for COM
-        com_objective = 0.
+        # tracking
+        tracking_objective = 0.
 
         for i in range(T):
-            com_objective = com_objective + np.linalg.norm(mp.get_com_position(i) - target_COM[3 * i:3 * (i + 1)]) ** 2
+            x_ref = np.zeros(7)
+            x_state = np.zeros(7)
+            x_ref[0:3] = target_COM[3 * i:3 * (i + 1)]
+            x_ref[3] = target_l_foot[3 * i]
+            x_ref[4] = target_l_foot[3 * i + 2]
+            x_ref[5] = target_r_foot[3 * i]
+            x_ref[6] = target_r_foot[3 * i + 2]
+            x_state[0:3] = mp.get_com_position(i)
+            x_state[3] = mp.get_end_effector_l_position(i)[0]
+            x_state[4] = mp.get_end_effector_l_position(i)[2]
+            x_state[5] = mp.get_end_effector_r_position(i)[0]
+            x_state[6] = mp.get_end_effector_r_position(i)[2]
+            tracking_objective = tracking_objective + np.linalg.norm(x_ref - x_state) ** 2
         # speed
         # speed_objective = np.linalg.norm((mp.get_COM_position(T-1) - mp.get_COM_position(0)) - t)**2
         # turning rate
@@ -178,12 +194,14 @@ def solve_trajectory_optimization(skel, T, h):
         #distance btw COM and a foot
         distance_objective = 0.
         for i in range(T):
-            d_l = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - mp.get_end_effector_l_position(i)))
-            d_r = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - mp.get_end_effector_r_position(i)))
-            ref_l_dis = np.linalg.norm(
-                skel.body('h_pelvis').to_world([0., 0., 0.]) - skel.body('h_blade_left').to_world([0., 0., 0.]))
-            ref_r_dis = np.linalg.norm(
-                skel.body('h_pelvis').to_world([0., 0., 0.]) - skel.body('h_blade_right').to_world([0., 0., 0.]))
+            l_f = mp.get_end_effector_l_position(i)
+            l_f[1] = target_l_foot[3 * i + 1]
+            r_f = mp.get_end_effector_r_position(i)
+            r_f[1] = target_r_foot[3 * i + 1]
+            d_l = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - l_f))
+            d_r = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - r_f))
+            ref_l_dis = np.linalg.norm(np.array(target_COM[3 * i: 3 * (i + 1)]) - np.array(target_l_foot[3 * i: 3 * (i + 1)]))
+            ref_r_dis = np.linalg.norm(np.array(target_COM[3 * i: 3 * (i + 1)]) - np.array(target_r_foot[3 * i: 3 * (i + 1)]))
             distance_objective = distance_objective + (d_l - ref_l_dis) ** 2 + (d_r - ref_r_dis) ** 2
 
         # smooth term
@@ -195,7 +213,7 @@ def solve_trajectory_optimization(skel, T, h):
             am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i - 1)) * (1 / h)
             smooth_objective = smooth_objective + np.linalg.norm(np.vstack([com_acc, am_val_der]))**2
 
-        return w_com * com_objective + w_dis * distance_objective + w_smooth * smooth_objective #+ w_effort * effort_objective
+        return w_track * tracking_objective + w_dis * distance_objective + w_smooth * smooth_objective #+ w_effort * effort_objective
 
     #####################################################
     # equality constraints
@@ -479,12 +497,12 @@ def solve_trajectory_optimization(skel, T, h):
     cons_list.append({'type': 'eq', 'fun': eom_i})
     cons_list.append({'type': 'eq', 'fun': am})
     cons_list.append({'type': 'eq', 'fun': non_holonomic})
-    cons_list.append({'type': 'eq', 'fun': is_contact})
+    # cons_list.append({'type': 'eq', 'fun': is_contact})
     cons_list.append({'type': 'ineq', 'fun': friction_normal})
     cons_list.append({'type': 'ineq', 'fun': friction_tangent})
     cons_list.append({'type': 'ineq', 'fun': tangential_vel})
-    cons_list.append({'type': 'ineq', 'fun': swing})
-    cons_list.append({'type': 'ineq', 'fun': stance})
+    # cons_list.append({'type': 'ineq', 'fun': swing})
+    # cons_list.append({'type': 'ineq', 'fun': stance})
 
     # toc()
     #####################################################
@@ -537,9 +555,24 @@ class MyWorld(pydart.World):
 
         self.s0q = s0q
 
+        s1q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = 0., -0.
+        # s1q[upper_body] = 0.3, -0.
+        s1q[right_leg] = -0.1, 0., 0.0, -0.0
+        s1q[left_leg] = -0., -0., 0.9, -1.5
+        # s1q[leg_y] = -0.785, 0.785
+        # s1q[arms] = 1.5, -1.5
+        # s1q[foot] = 0., 0.1, 0., -0.0
+
+        self.s1q = s1q
+
+        self.skeletons[3].set_positions(s0q)
+
         self.res_com_ff = []
         self.res_fl_ff = []
         self.res_fr_ff = []
+
+        self.frame_num = 0
 
     def step(self, i):
         # print("step")
@@ -549,13 +582,17 @@ class MyWorld(pydart.World):
         #   Prioritized optimization scheme(Lasa et al.(2010))
         #      or JUST QP  ....
         # ======================================================
-
+        if i < int(self.frame_num/2):
+            state_q = self.s0q
+        else:
+            state_q = self.s1q
+            self.skeletons[3].set_positions(state_q)
         ndofs = skel.num_dofs()
         h = self.time_step()
         Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
         Kd = np.diagflat([0.0] * 6 + [2. * (25.0 ** .5)] * (ndofs - 6))
         invM = np.linalg.inv(skel.M + Kd * h)
-        p = -Kp.dot(skel.q - self.s0q + skel.dq * h)
+        p = -Kp.dot(skel.q - state_q + skel.dq * h)
         d = -Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
@@ -629,6 +666,8 @@ if __name__ == '__main__':
     # print(solve_trajectory_optimization(skel, 10, world.time_step()))
 
     frame_num = 21
+    # frame_num = 10
+    world.frame_num = frame_num
 
     opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
     print(opt_res)
