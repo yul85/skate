@@ -69,11 +69,11 @@ def solve_trajectory_optimization(skel, T, h):
         target_r_foot[3 * i + 2] = 0.09
 
         if i < int(T / 2):
-            target_l_foot[3 * i + 1] = -0.87 - 0.02
-            target_r_foot[3 * i + 1] = -0.66 - 0.02
+            target_l_foot[3 * i + 1] = -0.87 - 0.07
+            target_r_foot[3 * i + 1] = -0.66 - 0.07
         else:
-            target_l_foot[3 * i + 1] = -0.66 - 0.02
-            target_r_foot[3 * i + 1] = -0.87 - 0.02
+            target_l_foot[3 * i + 1] = -0.66 - 0.07
+            target_r_foot[3 * i + 1] = -0.87 - 0.07
 
     # target_l_foot = np.array([0., -0.98, -0.2])
     # target_r_foot = np.array([0., -0.98, 0.2])
@@ -468,7 +468,7 @@ def solve_trajectory_optimization(skel, T, h):
         cons_value = [0] *(2 * total_cn)
         cn_till = 0
 
-        threshold = 0.02
+        threshold = 0.035
         for i in range(T):
             k = 0
             if contact_flag[4 * i + 0] == 1:
@@ -497,12 +497,12 @@ def solve_trajectory_optimization(skel, T, h):
     cons_list.append({'type': 'eq', 'fun': eom_i})
     cons_list.append({'type': 'eq', 'fun': am})
     cons_list.append({'type': 'eq', 'fun': non_holonomic})
-    # cons_list.append({'type': 'eq', 'fun': is_contact})
+    cons_list.append({'type': 'eq', 'fun': is_contact})
     cons_list.append({'type': 'ineq', 'fun': friction_normal})
     cons_list.append({'type': 'ineq', 'fun': friction_tangent})
     cons_list.append({'type': 'ineq', 'fun': tangential_vel})
-    # cons_list.append({'type': 'ineq', 'fun': swing})
-    # cons_list.append({'type': 'ineq', 'fun': stance})
+    cons_list.append({'type': 'ineq', 'fun': swing})
+    cons_list.append({'type': 'ineq', 'fun': stance})
 
     # toc()
     #####################################################
@@ -605,26 +605,30 @@ class MyWorld(pydart.World):
         ddc = np.zeros(6)
         ddf_l = np.zeros(3)
         ddf_r = np.zeros(3)
+        #todo: add angular momentum
         if i >= 1:
             if readMode == True:
                 ddc[0:3] = 400. * (np.array(world.res_com_ff[i]) - skel.com()) - 10. * skel.dC
+                ddc[3:6] = 400. * 1/h * (np.array(world.res_com_ff[i]) - np.array(world.res_com_ff[i-1]))
                 ddf_l = 400. * (np.array(world.res_fl_ff[i]) - skel.body('h_blade_left').com()) - 10. * skel.body('h_blade_left').com_linear_velocity()
                 ddf_r = 400. * (np.array(world.res_fr_ff[i]) - skel.body('h_blade_right').com()) - 10. * skel.body('h_blade_right').com_linear_velocity()
             else:
                 ddc[0:3] = 400. * (mp.get_com_position(i) - skel.com()) - 10. * skel.dC
+                ddc[3:6] = 400. * 1/h * (mp.get_angular_momentum(i) - mp.get_angular_momentum(i-1))
                 ddf_l = 400. * (mp.get_end_effector_l_position(i) - skel.body('h_blade_left').com()) - 10. * skel.body(
                     'h_blade_left').com_linear_velocity()
                 ddf_r = 400. * (mp.get_end_effector_r_position(i) - skel.body('h_blade_right').com()) - 10. * skel.body(
                     'h_blade_right').com_linear_velocity()
 
-        ddf_l[1] = -0.87
-        ddf_r[1] = -0.66
+        # ddf_l[1] = -0.87
+        # ddf_r[1] = -0.66
 
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulQP.calc_QP(skel, des_accel, ddc, ddf_l, ddf_r, 1. / h)
 
         # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
         #     skel, des_accel, 1. / self.time_step())
 
+        # print(_contactForces)
         for i in range(len(_bodyIDs)):
             skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
         # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
@@ -669,53 +673,58 @@ if __name__ == '__main__':
     # frame_num = 10
     world.frame_num = frame_num
 
-    opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
-    print(opt_res)
-    # print("trajectory optimization finished!!")
-    mp = motionPlan(skel, frame_num, opt_res['x'])
+    if readMode == False:
+        opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
+        print(opt_res)
+        # print("trajectory optimization finished!!")
+        mp = motionPlan(skel, frame_num, opt_res['x'])
 
-    # store q value(results of trajectory optimization) to the text file
-    newpath = 'OptRes'
-    if not os.path.exists(newpath):
-        os.makedirs(newpath)
-    com_box = []
-    fl_box = []
-    fr_box = []
+        # store q value(results of trajectory optimization) to the text file
+        newpath = 'OptRes'
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        com_box = []
+        fl_box = []
+        fr_box = []
 
-    for i in range(frame_num):
-        com_box.append(mp.get_com_position(i))
-        fl_box.append(mp.get_end_effector_l_position(i))
-        fr_box.append(mp.get_end_effector_r_position(i))
+        for i in range(frame_num):
+            com_box.append(mp.get_com_position(i))
+            fl_box.append(mp.get_end_effector_l_position(i))
+            fr_box.append(mp.get_end_effector_r_position(i))
 
-    day = datetime.today().strftime("%Y%m%d%H%M")
+        day = datetime.today().strftime("%Y%m%d%H%M")
 
-    with open('OptRes/com_pos_' + day + '.txt', 'w') as f:
-        for item in com_box:
-            # print("item: ", item[0], item[1], item[2])
-            f.write("%s " % item[0])
-            f.write("%s " % item[1])
-            f.write("%s\n" % item[2])
-    with open('OptRes/fl_' + day + '.txt', 'w') as f:
-        for item in fl_box:
-            f.write("%s " % item[0])
-            f.write("%s " % item[1])
-            f.write("%s\n" % item[2])
-    with open('OptRes/fr_' + day + '.txt', 'w') as f:
-        for item in fr_box:
-            f.write("%s " % item[0])
-            f.write("%s " % item[1])
-            f.write("%s\n" % item[2])
+        with open('OptRes/com_pos_' + day + '.txt', 'w') as f:
+            for item in com_box:
+                # print("item: ", item[0], item[1], item[2])
+                f.write("%s " % item[0])
+                f.write("%s " % item[1])
+                f.write("%s\n" % item[2])
+        with open('OptRes/fl_' + day + '.txt', 'w') as f:
+            for item in fl_box:
+                f.write("%s " % item[0])
+                f.write("%s " % item[1])
+                f.write("%s\n" % item[2])
+        with open('OptRes/fr_' + day + '.txt', 'w') as f:
+            for item in fr_box:
+                f.write("%s " % item[0])
+                f.write("%s " % item[1])
+                f.write("%s\n" % item[2])
 
 
     if readMode == True:
         # read file
+        f_com = open("OptRes/com_pos_201809191343.txt", "r")
+        f_fl = open("OptRes/fl_201809191343.txt", "r")
+        f_fr = open("OptRes/fr_201809191343.txt", "r")
+
         # f_com = open("OptRes/com_pos_201809141443.txt", "r")
         # f_fl = open("OptRes/fl_201809141443.txt", "r")
         # f_fr = open("OptRes/fr_201809141443.txt", "r")
 
-        f_com = open("OptRes/com_pos_01809172007.txt", "r")
-        f_fl = open("OptRes/fl_01809172007.txt", "r")
-        f_fr = open("OptRes/fr_01809172007.txt", "r")
+        # f_com = open("OptRes/com_pos_201809191214.txt", "r")
+        # f_fl = open("OptRes/fl_201809191214.txt", "r")
+        # f_fr = open("OptRes/fr_201809191214.txt", "r")
 
         res_com_ff = []
         res_fl_ff = []

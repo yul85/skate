@@ -154,6 +154,7 @@ def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
     #####################################################
     P = np.eye(num_variable)
     P[:num_dof, :num_dof] *= 100. + 1/skel.m * PJ.transpose().dot(PJ) + foot_l_J.transpose().dot(foot_l_J) + foot_r_J.transpose().dot(foot_r_J)
+    P[num_dof+num_tau:, num_dof+num_tau:] *= 10.
     q = np.zeros(num_variable)
     q[:num_dof] = -100.*ddq_des - 100. *(ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ) - 200. * l_term - 200. * r_term
 
