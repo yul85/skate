@@ -28,6 +28,10 @@ com_pos = []
 l_footCenter = []
 r_footCenter = []
 
+# target_l_foot = np.array([0., -0.98, -0.2])
+# target_r_foot = np.array([0., -0.98, 0.2])
+
+
 def TicTocGenerator():
     ti = 0              # initial time
     tf = time.time()    # final time
@@ -52,31 +56,11 @@ def solve_trajectory_optimization(skel, T, h):
     # tic()
     ndofs = skel.num_dofs()
 
+    target_COM = world.target_COM
+    target_l_foot = world.target_l_foot
+    target_r_foot = world.target_r_foot
+
     # print(skel.body('h_blade_right').to_world([-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0]))
-
-    #  todo: Given information
-    target_COM = [0] * (3*T)
-    target_l_foot = [0] * (3 * T)
-    target_r_foot = [0] * (3 * T)
-    for i in range(T):
-        target_COM[3 * i] = 0.05*i
-        target_COM[3 * i+1] = 0.
-        target_COM[3 * i+2] = 0.
-
-        target_l_foot[3 * i] = 0.05 * i
-        target_l_foot[3 * i + 2] = -0.09
-        target_r_foot[3 * i] = 0.05 * i
-        target_r_foot[3 * i + 2] = 0.09
-
-        if i < int(T / 2):
-            target_l_foot[3 * i + 1] = -0.87 - 0.07
-            target_r_foot[3 * i + 1] = -0.66 - 0.07
-        else:
-            target_l_foot[3 * i + 1] = -0.66 - 0.07
-            target_r_foot[3 * i + 1] = -0.87 - 0.07
-
-    # target_l_foot = np.array([0., -0.98, -0.2])
-    # target_r_foot = np.array([0., -0.98, 0.2])
 
     contact_flag = [0] * (4 * T)
     for i in range(T):
@@ -170,18 +154,18 @@ def solve_trajectory_optimization(skel, T, h):
         tracking_objective = 0.
 
         for i in range(T):
-            x_ref = np.zeros(7)
-            x_state = np.zeros(7)
+            x_ref = np.zeros(10)
+            x_state = np.zeros(10)
             x_ref[0:3] = target_COM[3 * i:3 * (i + 1)]
             x_ref[3] = target_l_foot[3 * i]
             x_ref[4] = target_l_foot[3 * i + 2]
             x_ref[5] = target_r_foot[3 * i]
             x_ref[6] = target_r_foot[3 * i + 2]
             x_state[0:3] = mp.get_com_position(i)
-            x_state[3] = mp.get_end_effector_l_position(i)[0]
-            x_state[4] = mp.get_end_effector_l_position(i)[2]
-            x_state[5] = mp.get_end_effector_r_position(i)[0]
-            x_state[6] = mp.get_end_effector_r_position(i)[2]
+            x_state[3:5] = mp.get_end_effector_l_position(i)
+            x_state[5:7] = mp.get_end_effector_r_position(i)
+            x_state[7:10] = mp.get_angular_momentum(i)
+
             tracking_objective = tracking_objective + np.linalg.norm(x_ref - x_state) ** 2
         # speed
         # speed_objective = np.linalg.norm((mp.get_COM_position(T-1) - mp.get_COM_position(0)) - t)**2
@@ -194,10 +178,16 @@ def solve_trajectory_optimization(skel, T, h):
         #distance btw COM and a foot
         distance_objective = 0.
         for i in range(T):
-            l_f = mp.get_end_effector_l_position(i)
+            l_f = np.zeros(3)
+            l_f[0] = mp.get_end_effector_l_position(i)[0]
             l_f[1] = target_l_foot[3 * i + 1]
-            r_f = mp.get_end_effector_r_position(i)
+            l_f[2] = mp.get_end_effector_l_position(i)[1]
+
+            r_f = np.zeros(3)
+            r_f[0]= mp.get_end_effector_r_position(i)[0]
             r_f[1] = target_r_foot[3 * i + 1]
+            r_f[2] = mp.get_end_effector_r_position(i)[1]
+
             d_l = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - l_f))
             d_r = np.linalg.norm(np.linalg.norm(mp.get_com_position(i) - r_f))
             ref_l_dis = np.linalg.norm(np.array(target_COM[3 * i: 3 * (i + 1)]) - np.array(target_l_foot[3 * i: 3 * (i + 1)]))
@@ -213,7 +203,7 @@ def solve_trajectory_optimization(skel, T, h):
             am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i - 1)) * (1 / h)
             smooth_objective = smooth_objective + np.linalg.norm(np.vstack([com_acc, am_val_der]))**2
 
-        return w_track * tracking_objective + w_dis * distance_objective + w_smooth * smooth_objective #+ w_effort * effort_objective
+        return w_track * tracking_objective + w_dis * distance_objective #+ w_smooth * smooth_objective #+ w_effort * effort_objective
 
     #####################################################
     # equality constraints
@@ -261,14 +251,23 @@ def solve_trajectory_optimization(skel, T, h):
             am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i-1))*(1/h)
             sum_diff_cop_com = 0
 
+            lfp = np.zeros(3)
+            lfp[0] = mp.get_end_effector_l_position(i)[0]
+            lfp[1] = target_l_foot[1]
+            lfp[2] = mp.get_end_effector_l_position(i)[1]
+            rfp = np.zeros(3)
+            rfp[0] = mp.get_end_effector_r_position(i)[0]
+            rfp[1] = target_r_foot[1]
+            rfp[2] = mp.get_end_effector_r_position(i)[1]
+
             if contact_flag[4 * i + 0] == 1:
-                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_l_position(i) - mp.get_com_position(i), contact_forces[0:3])
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(lfp - mp.get_com_position(i), contact_forces[0:3])
             if contact_flag[4 * i + 1] == 1:
-                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_l_position(i) - mp.get_com_position(i), contact_forces[3:6])
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(lfp - mp.get_com_position(i), contact_forces[3:6])
             if contact_flag[4 * i + 2] == 1:
-                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_r_position(i) - mp.get_com_position(i), contact_forces[6:9])
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(rfp - mp.get_com_position(i), contact_forces[6:9])
             if contact_flag[4 * i + 3] == 1:
-                sum_diff_cop_com = sum_diff_cop_com + np.cross(mp.get_end_effector_r_position(i) - mp.get_com_position(i), contact_forces[9:12])
+                sum_diff_cop_com = sum_diff_cop_com + np.cross(rfp - mp.get_com_position(i), contact_forces[9:12])
 
             cons_value[3 * (i - 1):3 * i] = am_val_der - sum_diff_cop_com
 
@@ -283,8 +282,18 @@ def solve_trajectory_optimization(skel, T, h):
         pre_pos_r = mp.get_end_effector_r_position(0)
 
         for i in range(1, T):
-            p1 = mp.get_end_effector_l_position(i) + np.array(offset_list[0])
-            p2 = mp.get_end_effector_l_position(i) + np.array(offset_list[1])
+            lfp = np.zeros(3)
+            lfp[0] = mp.get_end_effector_l_position(i)[0]
+            lfp[1] = skel.body('h_blade_left').com()[1]
+            lfp[2] = mp.get_end_effector_l_position(i)[1]
+
+            rfp = np.zeros(3)
+            rfp[0] = mp.get_end_effector_r_position(i)[0]
+            rfp[1] = skel.body('h_blade_right').com()[1]
+            rfp[2] = mp.get_end_effector_r_position(i)[1]
+
+            p1 = lfp + np.array(offset_list[0])
+            p2 = rfp + np.array(offset_list[1])
 
             blade_direction_vec = p2 - p1
             norm_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
@@ -311,8 +320,8 @@ def solve_trajectory_optimization(skel, T, h):
             vel_l = (mp.get_end_effector_l_position(i) - pre_pos_l) / h
             vel_r = (mp.get_end_effector_r_position(i) - pre_pos_r) / h
 
-            cons_value[2 * (i-1) + 0] = vel_l[0] * sa_l - vel_l[2] * ca_l
-            cons_value[2 * (i-1) + 1] = vel_r[0] * sa_r - vel_r[2] * ca_r
+            cons_value[2 * (i-1) + 0] = vel_l[0] * sa_l - vel_l[1] * ca_l
+            cons_value[2 * (i-1) + 1] = vel_r[0] * sa_r - vel_r[1] * ca_r
 
             pre_pos_l = mp.get_end_effector_l_position(i)
             pre_pos_r = mp.get_end_effector_r_position(i)
@@ -321,29 +330,29 @@ def solve_trajectory_optimization(skel, T, h):
         return cons_value
 
     # Contact_flag [ 0 or 1 ]
-    def is_contact(x):
-        mp = motionPlan(skel, T, x)
-
-        cons_value = [0] * (total_cn * 3)
-        cn_till = 0
-        for i in range(T):
-            contact_force = mp.get_contact_force(i)
-            k = 0
-            if contact_flag[4 * i + 0] == 0:
-                cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[0:3]
-                k = k + 1
-            if contact_flag[4 * i + 1] == 0:
-                cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[3:6]
-                k = k + 1
-            if contact_flag[4 * i + 2] == 0:
-                cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[6:9]
-                k = k + 1
-            if contact_flag[4 * i + 3] == 0:
-                cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[9:12]
-                k = k + 1
-            cn_till = cn_till + cn[i]
-            # cons_value[cn * 3*i:cn * 3*(i+1)] = contact_force[0:6]
-        return cons_value
+    # def is_contact(x):
+    #     mp = motionPlan(skel, T, x)
+    #
+    #     cons_value = [0] * (total_cn * 3)
+    #     cn_till = 0
+    #     for i in range(T):
+    #         contact_force = mp.get_contact_force(i)
+    #         k = 0
+    #         if contact_flag[4 * i + 0] == 0:
+    #             cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[0:3]
+    #             k = k + 1
+    #         if contact_flag[4 * i + 1] == 0:
+    #             cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[3:6]
+    #             k = k + 1
+    #         if contact_flag[4 * i + 2] == 0:
+    #             cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[6:9]
+    #             k = k + 1
+    #         if contact_flag[4 * i + 3] == 0:
+    #             cons_value[(cn_till+k)*3:(cn_till+(k+1))*3] = contact_force[9:12]
+    #             k = k + 1
+    #         cn_till = cn_till + cn[i]
+    #         # cons_value[cn * 3*i:cn * 3*(i+1)] = contact_force[0:6]
+    #     return cons_value
 
         #####################################################
         # inequality constraint
@@ -442,67 +451,84 @@ def solve_trajectory_optimization(skel, T, h):
             #     cons_value[4*i + j] = -contact_force[3*j+0] ** 2 - contact_force[3*j+2] ** 2 + (myu ** 2) * (contact_force[3*j+1] ** 2)
         return cons_value
 
-    def swing(x):
+    # def swing(x):
+    #     mp = motionPlan(skel, T, x)
+    #     cons_value = [0] * (3*4*T - total_cn)
+    #     cn_till = 0
+    #     for i in range(T):
+    #         k = 0
+    #         if contact_flag[4 * i + 0] == 0:
+    #             cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
+    #             k = k+1
+    #         if contact_flag[4 * i + 1] == 0:
+    #             cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
+    #             k = k + 1
+    #         if contact_flag[4 * i + 2] == 0:
+    #             cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
+    #             k = k + 1
+    #         if contact_flag[4 * i + 3] == 0:
+    #             cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
+    #             k = k + 1
+    #         cn_till = cn_till + cn[i]
+    #     return cons_value
+    #
+    # def stance(x):
+    #     mp = motionPlan(skel, T, x)
+    #     cons_value = [0] *(2 * total_cn)
+    #     cn_till = 0
+    #
+    #     threshold = 0.035
+    #     for i in range(T):
+    #         k = 0
+    #         if contact_flag[4 * i + 0] == 1:
+    #             y_pos = mp.get_end_effector_l_position(i)[1]
+    #             cons_value[cn_till + k] = y_pos + 0.98 - threshold
+    #             cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
+    #             k = k + 2
+    #         if contact_flag[4 * i + 1] == 1:
+    #             y_pos = mp.get_end_effector_l_position(i)[1]
+    #             cons_value[cn_till + k] = y_pos + 0.98 - threshold
+    #             cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
+    #             k = k + 2
+    #         if contact_flag[4 * i + 2] == 1:
+    #             y_pos = mp.get_end_effector_r_position(i)[1]
+    #             cons_value[cn_till + k] = y_pos + 0.98 - threshold
+    #             cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
+    #             k = k + 2
+    #         if contact_flag[4 * i + 3] == 1:
+    #             y_pos = mp.get_end_effector_r_position(i)[1]
+    #             cons_value[cn_till + k] = y_pos + 0.98 - threshold
+    #             cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
+    #             k = k + 2
+    #         cn_till = cn_till + cn[i]
+    #     return cons_value
+
+
+    def foot_collision(x):
+
+        foot_threshold = 0.1
         mp = motionPlan(skel, T, x)
-        cons_value = [0] * (3*4*T - total_cn)
+        cons_value = [0] * T
         cn_till = 0
         for i in range(T):
-            k = 0
-            if contact_flag[4 * i + 0] == 0:
-                cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
-                k = k+1
-            if contact_flag[4 * i + 1] == 0:
-                cons_value[cn_till+k] = mp.get_end_effector_l_position(i)[1] + 0.98
-                k = k + 1
-            if contact_flag[4 * i + 2] == 0:
-                cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
-                k = k + 1
-            if contact_flag[4 * i + 3] == 0:
-                cons_value[cn_till+k] = mp.get_end_effector_r_position(i)[1] + 0.98
-                k = k + 1
-            cn_till = cn_till + cn[i]
-        return cons_value
-
-    def stance(x):
-        mp = motionPlan(skel, T, x)
-        cons_value = [0] *(2 * total_cn)
-        cn_till = 0
-
-        threshold = 0.035
-        for i in range(T):
-            k = 0
-            if contact_flag[4 * i + 0] == 1:
-                y_pos = mp.get_end_effector_l_position(i)[1]
-                cons_value[cn_till + k] = y_pos + 0.98 - threshold
-                cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
-                k = k + 2
-            if contact_flag[4 * i + 1] == 1:
-                y_pos = mp.get_end_effector_l_position(i)[1]
-                cons_value[cn_till + k] = y_pos + 0.98 - threshold
-                cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
-                k = k + 2
-            if contact_flag[4 * i + 2] == 1:
-                y_pos = mp.get_end_effector_r_position(i)[1]
-                cons_value[cn_till + k] = y_pos + 0.98 - threshold
-                cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
-                k = k + 2
-            if contact_flag[4 * i + 3] == 1:
-                y_pos = mp.get_end_effector_r_position(i)[1]
-                cons_value[cn_till + k] = y_pos + 0.98 - threshold
-                cons_value[cn_till + k+1] = -y_pos - 0.98 + threshold
-                k = k + 2
-            cn_till = cn_till + cn[i]
+            lfp = mp.get_end_effector_l_position(i)
+            rfp = mp.get_end_effector_r_position(i)
+            dis = np.linalg.norm(lfp-rfp)
+            cons_value[i] = dis - foot_threshold
         return cons_value
 
     cons_list.append({'type': 'eq', 'fun': eom_i})
     cons_list.append({'type': 'eq', 'fun': am})
     cons_list.append({'type': 'eq', 'fun': non_holonomic})
-    cons_list.append({'type': 'eq', 'fun': is_contact})
+
     cons_list.append({'type': 'ineq', 'fun': friction_normal})
     cons_list.append({'type': 'ineq', 'fun': friction_tangent})
     cons_list.append({'type': 'ineq', 'fun': tangential_vel})
-    cons_list.append({'type': 'ineq', 'fun': swing})
-    cons_list.append({'type': 'ineq', 'fun': stance})
+    cons_list.append({'type': 'ineq', 'fun': foot_collision})
+
+    # cons_list.append({'type': 'eq', 'fun': is_contact})
+    # cons_list.append({'type': 'ineq', 'fun': swing})
+    # cons_list.append({'type': 'ineq', 'fun': stance})
 
     # toc()
     #####################################################
@@ -512,7 +538,7 @@ def solve_trajectory_optimization(skel, T, h):
     tic()
     # bnds = ()
 
-    x0 = [0.] * ((3 * 3 + 3 * 4 + 3) * T)  #  initial guess
+    x0 = [0.] * ((3 + 2 * 2 + 3 * 4 + 3) * T)  #  initial guess
 
     # x0 = None  # initial guess
 
@@ -571,8 +597,13 @@ class MyWorld(pydart.World):
         self.res_com_ff = []
         self.res_fl_ff = []
         self.res_fr_ff = []
+        self.res_am_ff = []
 
         self.frame_num = 0
+
+        self.target_COM = []
+        self.target_l_foot = []
+        self.target_r_foot = []
 
     def step(self, i):
         # print("step")
@@ -605,20 +636,30 @@ class MyWorld(pydart.World):
         ddc = np.zeros(6)
         ddf_l = np.zeros(3)
         ddf_r = np.zeros(3)
-        #todo: add angular momentum
+
         if i >= 1:
             if readMode == True:
                 ddc[0:3] = 400. * (np.array(world.res_com_ff[i]) - skel.com()) - 10. * skel.dC
-                ddc[3:6] = 400. * 1/h * (np.array(world.res_com_ff[i]) - np.array(world.res_com_ff[i-1]))
-                ddf_l = 400. * (np.array(world.res_fl_ff[i]) - skel.body('h_blade_left').com()) - 10. * skel.body('h_blade_left').com_linear_velocity()
-                ddf_r = 400. * (np.array(world.res_fr_ff[i]) - skel.body('h_blade_right').com()) - 10. * skel.body('h_blade_right').com_linear_velocity()
+                # ddc[3:6] = 400. * 1/h * (np.array(world.res_com_ff[i]) - np.array(world.res_com_ff[i-1]))
+                ddc[3:6] = 400. * 1/h * (np.array(world.res_am_ff[i]) - np.array(world.res_am_ff[i-1]))
+                ddf_l = 400. * (np.array([world.res_fl_ff[i][0], world.target_l_foot[3*i + 1], world.res_fl_ff[i][1]]) - skel.body('h_blade_left').com()) - 10. * skel.body('h_blade_left').com_linear_velocity()
+                ddf_r = 400. * (np.array([world.res_fr_ff[i][0], world.target_r_foot[3*i + 1], world.res_fr_ff[i][1]]) - skel.body('h_blade_right').com()) - 10. * skel.body('h_blade_right').com_linear_velocity()
             else:
                 ddc[0:3] = 400. * (mp.get_com_position(i) - skel.com()) - 10. * skel.dC
                 ddc[3:6] = 400. * 1/h * (mp.get_angular_momentum(i) - mp.get_angular_momentum(i-1))
-                ddf_l = 400. * (mp.get_end_effector_l_position(i) - skel.body('h_blade_left').com()) - 10. * skel.body(
-                    'h_blade_left').com_linear_velocity()
-                ddf_r = 400. * (mp.get_end_effector_r_position(i) - skel.body('h_blade_right').com()) - 10. * skel.body(
-                    'h_blade_right').com_linear_velocity()
+
+                lfp = np.zeros(3)
+                lfp[0] = mp.get_end_effector_l_position(i)[0]
+                lfp[1] = world.target_l_foot[3*i + 1]
+                lfp[2] = mp.get_end_effector_l_position(i)[1]
+
+                rfp = np.zeros(3)
+                rfp[0] = mp.get_end_effector_r_position(i)[0]
+                rfp[1] = world.target_r_foot[3*i + 1]
+                rfp[2] = mp.get_end_effector_r_position(i)[1]
+
+                ddf_l = 400. * (lfp - skel.body('h_blade_left').com()) - 10. * skel.body('h_blade_left').com_linear_velocity()
+                ddf_r = 400. * (rfp - skel.body('h_blade_right').com()) - 10. * skel.body('h_blade_right').com_linear_velocity()
 
         # ddf_l[1] = -0.87
         # ddf_r[1] = -0.66
@@ -652,12 +693,21 @@ class MyWorld(pydart.World):
 
         if readMode == True:
             com_pos.append(world.res_com_ff[i])
-            l_footCenter.append(world.res_fl_ff[i])
-            r_footCenter.append(world.res_fr_ff[i])
+            l_footCenter.append(np.array([world.res_fl_ff[i][0], world.target_l_foot[3*i + 1], world.res_fl_ff[i][1]]))
+            r_footCenter.append(np.array([world.res_fr_ff[i][0], world.target_r_foot[3*i + 1], world.res_fr_ff[i][1]]))
         else:
             com_pos.append(mp.get_com_position(i))
-            l_footCenter.append(mp.get_end_effector_l_position(i))
-            r_footCenter.append(mp.get_end_effector_r_position(i))
+            lfp = np.zeros(3)
+            lfp[0] = mp.get_end_effector_l_position(i)[0]
+            lfp[1] = world.target_l_foot[3*i + 1]
+            lfp[2] = mp.get_end_effector_l_position(i)[1]
+
+            rfp = np.zeros(3)
+            rfp[0] = mp.get_end_effector_r_position(i)[0]
+            rfp[1] = world.target_r_foot[3*i + 1]
+            rfp[2] = mp.get_end_effector_r_position(i)[1]
+            l_footCenter.append(lfp)
+            r_footCenter.append(rfp)
 
 if __name__ == '__main__':
     pydart.init()
@@ -673,6 +723,29 @@ if __name__ == '__main__':
     # frame_num = 10
     world.frame_num = frame_num
 
+    # Given information = Reference motion
+    T = frame_num
+    world.target_COM = [0] * (3 * T)
+    world.target_l_foot = [0] * (3 * T)
+    world.target_r_foot = [0] * (3 * T)
+
+    for i in range(T):
+        world.target_COM[3 * i] = 0.05 * i
+        world.target_COM[3 * i + 1] = 0.
+        world.target_COM[3 * i + 2] = 0.
+
+        world.target_l_foot[3 * i] = 0.05 * i
+        world.target_l_foot[3 * i + 2] = -0.09
+        world.target_r_foot[3 * i] = 0.05 * i
+        world.target_r_foot[3 * i + 2] = 0.09
+
+        if i < int(T / 2):
+            world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+            world.target_r_foot[3 * i + 1] = -0.66 - 0.07
+        else:
+            world.target_l_foot[3 * i + 1] = -0.66 - 0.07
+            world.target_r_foot[3 * i + 1] = -0.87 - 0.07
+
     if readMode == False:
         opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
         print(opt_res)
@@ -686,11 +759,13 @@ if __name__ == '__main__':
         com_box = []
         fl_box = []
         fr_box = []
+        am_box = []
 
         for i in range(frame_num):
             com_box.append(mp.get_com_position(i))
             fl_box.append(mp.get_end_effector_l_position(i))
             fr_box.append(mp.get_end_effector_r_position(i))
+            am_box.append(mp.get_angular_momentum(i))
 
         day = datetime.today().strftime("%Y%m%d%H%M")
 
@@ -703,20 +778,24 @@ if __name__ == '__main__':
         with open('OptRes/fl_' + day + '.txt', 'w') as f:
             for item in fl_box:
                 f.write("%s " % item[0])
-                f.write("%s " % item[1])
-                f.write("%s\n" % item[2])
+                f.write("%s\n" % item[1])
         with open('OptRes/fr_' + day + '.txt', 'w') as f:
             for item in fr_box:
+                f.write("%s " % item[0])
+                f.write("%s\n" % item[1])
+        with open('OptRes/am_' + day + '.txt', 'w') as f:
+            for item in am_box:
+                # print("item: ", item[0], item[1], item[2])
                 f.write("%s " % item[0])
                 f.write("%s " % item[1])
                 f.write("%s\n" % item[2])
 
-
     if readMode == True:
         # read file
-        f_com = open("OptRes/com_pos_201809191343.txt", "r")
-        f_fl = open("OptRes/fl_201809191343.txt", "r")
-        f_fr = open("OptRes/fr_201809191343.txt", "r")
+        f_com = open("OptRes/com_pos_201810011530.txt", "r")
+        f_fl = open("OptRes/fl_201810011530.txt", "r")
+        f_fr = open("OptRes/fr_201810011530.txt", "r")
+        f_am = open("OptRes/am_201810011530.txt", "r")
 
         # f_com = open("OptRes/com_pos_201809141443.txt", "r")
         # f_fl = open("OptRes/fl_201809141443.txt", "r")
@@ -729,6 +808,7 @@ if __name__ == '__main__':
         res_com_ff = []
         res_fl_ff = []
         res_fr_ff = []
+        res_am_ff = []
 
         for line in f_com:
             # print(line)
@@ -742,20 +822,26 @@ if __name__ == '__main__':
 
         for line in f_fl:
             value = line.split(" ")
-            vec = [float(value[0]), float(value[1]), float(value[2])]
+            vec = [float(value[0]), float(value[1])]
             res_fl_ff.append(vec)
         f_fl.close()
 
         for line in f_fr:
             value = line.split(" ")
-            vec = [float(value[0]), float(value[1]), float(value[2])]
+            vec = [float(value[0]), float(value[1])]
             res_fr_ff.append(vec)
         f_fr.close()
+
+        for line in f_am:
+            value = line.split(" ")
+            vec = [float(value[0]), float(value[1]), float(value[2])]
+            res_am_ff.append(vec)
+        f_am.close()
 
         world.res_com_ff = res_com_ff
         world.res_fl_ff = res_fl_ff
         world.res_fr_ff = res_fr_ff
-
+        world.res_am_ff = res_am_ff
 
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
