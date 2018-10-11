@@ -56,6 +56,7 @@ class momentum_control(object):
              0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
              0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
 
+
         # self.weight_map_vec = np.diagflat(
         #     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.1, 0.1, 0.5,
         #      0.8, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
@@ -158,7 +159,7 @@ class momentum_control(object):
 
         c_r = skel.body('h_blade_left').to_world([0.0, 0.0, 0.0])
         # c_r = np.array([-0.057, -0.9, -0.09])
-        print("ref_cm, cm : ", c_r, skel.C)
+        # print("ref_cm, cm : ", c_r, skel.C)
         l_p = skel.m * k_l * (c_r - skel.C)
         # l_p[1] = 0.0
         l_d = skel.m * d_l * (skel.com_velocity())

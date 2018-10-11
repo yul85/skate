@@ -14,6 +14,7 @@
                 <!-- <transformation>0 -0.92 0 0 0 0</transformation> -->
                 <transformation>0 -0.98 0 0 0 0</transformation>
                 <!-- <transformation>0 -1.0 0 0 0 0</transformation> -->
+                <!--
                 <visualization_shape>
                     <transformation>0 0 0 0 0 0</transformation>
                     <geometry>
@@ -21,9 +22,10 @@
                             <size>5.0 0.05 5.0</size>
                         </box>
                     </geometry>
-                    <!-- <color>1.0 0.9999 0.99 1.0 </color> -->
-                    <color>1.0 1.0 1.0 1.0 </color>
+                    
+                    <color>1.0 1.0 1.0 0.0 </color>
                 </visualization_shape>
+                -->
 <!--                 <collision_shape>
                     <transformation>0 0 0 0 0 0</transformation>
                     <geometry>

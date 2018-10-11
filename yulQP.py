@@ -2,6 +2,7 @@ import numpy as np
 from cvxopt import solvers, matrix
 import pydart2 as pydart
 import itertools
+import math
 
 from PyCommon.modules.Math import mmMath as mm
 
@@ -18,7 +19,6 @@ LAMBDA_CONTAIN_NORMAL = False
 NON_HOLONOMIC = False
 
 QPOASES = False
-
 
 def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
     """
@@ -154,7 +154,7 @@ def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
     #####################################################
     P = np.eye(num_variable)
     P[:num_dof, :num_dof] *= 100. + 1/skel.m * PJ.transpose().dot(PJ) + foot_l_J.transpose().dot(foot_l_J) + foot_r_J.transpose().dot(foot_r_J)
-    P[num_dof+num_tau:, num_dof+num_tau:] *= 10.
+    P[num_dof+num_tau:, num_dof+num_tau:] *= 300.
     q = np.zeros(num_variable)
     q[:num_dof] = -100.*ddq_des - 100. *(ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ) - 200. * l_term - 200. * r_term
 
@@ -167,7 +167,7 @@ def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
     #####################################################
     # equality
     #####################################################
-    num_equality = num_dof + 6
+    num_equality = num_dof + 6 + 2
 
     A = np.zeros((num_equality, num_variable))
     b = np.zeros(num_equality)
@@ -185,6 +185,66 @@ def calc_QP(skel, ddq_des, ddc, ddf_l_des, ddf_r_des, inv_h):
 
     # floating base
     A[num_dof:num_dof+6, num_dof:num_dof+6] = np.eye(6)
+
+    # todo : add non-holonomic constraints
+
+    _h = 1/inv_h
+
+    def get_foot_info(body_name):
+        jaco = skel.body(body_name).linear_jacobian()
+        jaco_der = skel.body(body_name).linear_jacobian_deriv()
+
+        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+        blade_direction_vec = p2 - p1
+
+        # print(body_name, p1, p2, blade_direction_vec)
+
+        # if body_name == "h_blade_right":
+        #     blade_direction_vec = p2 - p1
+        # else:
+        #     blade_direction_vec = p1 - p2
+        if np.linalg.norm(blade_direction_vec) != 0:
+            blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+
+        blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
+
+        if body_name == "h_blade_left":
+            theta = math.acos(np.dot(np.array([-1., 0., 0.]), blade_direction_vec))
+        else:
+            theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        # print("theta: ", body_name, ", ", theta)
+        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
+        next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
+        # print("next_step_angle: ", next_step_angle)
+        sa = math.sin(next_step_angle)
+        ca = math.cos(next_step_angle)
+
+        return jaco, jaco_der, sa, ca, blade_direction_vec
+
+    # FOR NON-HOLONOMIC CONSTRAINTS
+    jaco_L, jaco_der_L, sa_L, ca_L, blade_direction_L = get_foot_info("h_blade_left")
+    jaco_R, jaco_der_R, sa_R, ca_R, blade_direction_R = get_foot_info("h_blade_right")
+
+
+    A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+    A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+    # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
+    # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
+    # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
+    # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
+
+    b[num_dof + 6:num_dof + 6 + 1] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                         2] * ca_L - \
+                                     (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                         0] * sa_L
+    b[num_dof + 6 + 1:num_dof + 6 + 2] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                             2] * ca_R - \
+                                         (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                             0] * sa_R
+
 
     #####################################################
     # inequality

@@ -2,6 +2,7 @@ import numpy as np
 from cvxopt import solvers, matrix
 import pydart2 as pydart
 import itertools
+import math
 
 from PyCommon.modules.Math import mmMath as mm
 
@@ -11,8 +12,10 @@ QP_PENETRATION_FACTOR = 0.01
 QP_RESTITUTION = 1.
 
 QP_CONE_DIM = 4
-MU_x = 1.
-MU_z = 1.
+# MU_x = 1.
+# MU_z = 1.
+MU_x = 0.02
+MU_z = 0.02
 
 LAMBDA_CONTAIN_NORMAL = False
 NON_HOLONOMIC = False
@@ -20,7 +23,7 @@ NON_HOLONOMIC = False
 QPOASES = False
 
 
-def calc_QP(skel, ddq_des, inv_h):
+def calc_QP(skel, ddq_des, ddc, inv_h):
     """
     :param skel:
     :type skel: pydart.Skeleton
@@ -28,6 +31,15 @@ def calc_QP(skel, ddq_des, inv_h):
     :type ddq_des: np.ndarray
     :return:
     """
+
+    weight_map_vec = np.diagflat(
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.1, 0.1, 0.1, 0.25, 0.25, 0.25, 0.2, 0.2, 0.2,
+         0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+         # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+         0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+         0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+         0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
     solvers.options['show_progress'] = False
 
     num_dof = skel.num_dofs()
@@ -63,23 +75,97 @@ def calc_QP(skel, ddq_des, inv_h):
 
     num_contact = len(position_globals)
 
+    # todo: two contact points when sliding
+    # num_contact
+    # position_globals
+    # position_locals
+
     num_lambda = (1 + QP_CONE_DIM) * num_contact if LAMBDA_CONTAIN_NORMAL else QP_CONE_DIM * num_contact
 
     num_tau = num_dof
     num_variable = num_dof + num_tau + num_lambda
 
+
+    #--------------------------yul------------------------------------
+    # tracking COM
+    Pmat = np.zeros((6, 6 * skel.num_bodynodes()))
+    J = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+    Pmat_dot = np.zeros((6, 6 * skel.num_bodynodes()))
+    J_dot = np.zeros((3 * 2 * skel.num_bodynodes(), skel.ndofs))
+    # print("mm", skel.M)
+
+    T = np.zeros((3, 3 * skel.num_bodynodes()))
+    U = np.zeros((3, 3 * skel.num_bodynodes()))
+    Udot = np.zeros((3, 3 * skel.num_bodynodes()))
+    V = np.zeros((3, 3 * skel.num_bodynodes()))
+    Vdot = np.zeros((3, 3 * skel.num_bodynodes()))
+
+    def transformToSkewSymmetricMatrix(v):
+
+        x = v[0]
+        y = v[1]
+        z = v[2]
+
+        mat = np.zeros((3, 3))
+        mat[0, 1] = -z
+        mat[0, 2] = y
+        mat[1, 2] = -x
+
+        mat[1, 0] = z
+        mat[2, 0] = -y
+        mat[2, 1] = x
+
+        return mat
+
+    # todo: replace jacobian
+    for bi in range(skel.num_bodynodes()):
+        r_v = skel.body(bi).to_world([0, 0, 0]) - skel.C
+        r_m = transformToSkewSymmetricMatrix(r_v)
+        T[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * np.identity(3)
+        U[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * r_m
+        v_v = skel.body(bi).dC - skel.dC
+        v_m = transformToSkewSymmetricMatrix(v_v)
+        Udot[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).mass() * v_m
+        V[:, 3 * bi:3 * (bi + 1)] = skel.body(bi).inertia()
+
+        body_w_v = skel.body(bi).world_angular_velocity()
+        body_w_m = transformToSkewSymmetricMatrix(body_w_v)
+        # print("w: ", skel.body(bi).world_angular_velocity())
+        Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
+
+        J[3 * bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
+        J[3 * skel.num_bodynodes() + 3 * bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(
+            bi).angular_jacobian()
+
+        J_dot[3 * bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian_deriv([0, 0, 0])
+        J_dot[3 * skel.num_bodynodes() + 3 * bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(
+            bi).angular_jacobian_deriv()
+
+    # print("r", r)
+    Pmat[0:3, 0: 3 * skel.num_bodynodes()] = T
+    Pmat[3:, 0:3 * skel.num_bodynodes()] = U
+    Pmat[3:, 3 * skel.num_bodynodes():] = V
+
+    Pmat_dot[3:, 0:3 * skel.num_bodynodes()] = Udot
+    Pmat_dot[3:, 3 * skel.num_bodynodes():] = Vdot
+
+    PJ = np.dot(Pmat, J)
+    PdotJ_PJdot = Pmat_dot.dot(J) + Pmat.dot(J_dot)
+
     #####################################################
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100.
+    P[:num_dof, :num_dof] *= 100. + 1/skel.m * PJ.transpose().dot(PJ)
+    # P[:num_dof, :num_dof] *= 100. + weight_map_vec
+    # P[num_dof + num_tau:, num_dof + num_tau:] *= 10.
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des
+    q[:num_dof] = -100.*ddq_des - 30.* (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
     #####################################################
     # equality
     #####################################################
-    num_equality = num_dof + 6
+    num_equality = num_dof + 6 + 2
 
     A = np.zeros((num_equality, num_variable))
     b = np.zeros(num_equality)
@@ -97,6 +183,64 @@ def calc_QP(skel, ddq_des, inv_h):
 
     # floating base
     A[num_dof:num_dof+6, num_dof:num_dof+6] = np.eye(6)
+
+    _h = 1 / inv_h
+
+    def get_foot_info(body_name):
+        jaco = skel.body(body_name).linear_jacobian()
+        jaco_der = skel.body(body_name).linear_jacobian_deriv()
+
+        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+        blade_direction_vec = p2 - p1
+
+        # print(body_name, p1, p2, blade_direction_vec)
+
+        # if body_name == "h_blade_right":
+        #     blade_direction_vec = p2 - p1
+        # else:
+        #     blade_direction_vec = p1 - p2
+        if np.linalg.norm(blade_direction_vec) != 0:
+            blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+
+        blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
+        # print(blade_direction_vec)
+        # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
+        # print(blade_direction_vec)
+        if body_name == "h_blade_left":
+            theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        else:
+            theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
+        # print("theta: ", body_name, ", ", theta)
+        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
+        next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
+        # print("next_step_angle: ", next_step_angle)
+        sa = math.sin(next_step_angle)
+        ca = math.cos(next_step_angle)
+
+        return jaco, jaco_der, sa, ca, blade_direction_vec
+
+    # FOR NON-HOLONOMIC CONSTRAINTS
+    jaco_L, jaco_der_L, sa_L, ca_L, blade_direction_L = get_foot_info("h_blade_left")
+    jaco_R, jaco_der_R, sa_R, ca_R, blade_direction_R = get_foot_info("h_blade_right")
+
+    A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+    A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+    # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
+    # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
+    # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
+    # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
+
+    b[num_dof + 6:num_dof + 6 + 1] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                         2] * ca_L - \
+                                     (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                         0] * sa_L
+    b[num_dof + 6 + 1:num_dof + 6 + 2] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                             2] * ca_R - \
+                                         (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                             0] * sa_R
 
     #####################################################
     # inequality

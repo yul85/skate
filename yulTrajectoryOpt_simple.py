@@ -14,8 +14,8 @@ from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 from PyCommon.modules.Simulator import hpDartQpSimulator as hqp
 
-# readMode = True
-readMode = False
+readMode = True
+# readMode = False
 
 np.set_printoptions(threshold=np.nan)
 
@@ -199,7 +199,7 @@ def solve_trajectory_optimization(skel, T, h):
         for i in range(1, T-1):
             com_vel1 = (mp.get_com_position(i) - mp.get_com_position(i - 1)) * (1 / h)
             com_vel2 = (mp.get_com_position(i + 1) - mp.get_com_position(i)) * (1 / h)
-            com_acc = (1 / (h * h)) * (com_vel2 - com_vel1)
+            com_acc = (1 / h) * (com_vel2 - com_vel1)
             am_val_der = (mp.get_angular_momentum(i) - mp.get_angular_momentum(i - 1)) * (1 / h)
             smooth_objective = smooth_objective + np.linalg.norm(np.vstack([com_acc, am_val_der]))**2
 
@@ -592,7 +592,8 @@ class MyWorld(pydart.World):
 
         self.s1q = s1q
 
-        self.skeletons[3].set_positions(s0q)
+        # self.skeletons[3].set_positions(s0q)
+        self.skeletons[3].set_positions(np.zeros(skel.ndofs))
 
         self.res_com_ff = []
         self.res_fl_ff = []
@@ -613,11 +614,28 @@ class MyWorld(pydart.World):
         #   Prioritized optimization scheme(Lasa et al.(2010))
         #      or JUST QP  ....
         # ======================================================
-        if i < int(self.frame_num/2):
+        state_q = np.zeros(skel.ndofs)
+        # if i > 5:
+        #     state_q = self.s0q
+        #     self.skeletons[3].set_positions(state_q)
+
+        if i < int(frame_num/2):
+            # state_q = np.zeros(skel.ndofs)
             state_q = self.s0q
+            self.skeletons[3].set_positions(state_q)
         else:
             state_q = self.s1q
             self.skeletons[3].set_positions(state_q)
+
+        # if i < 15:
+        #     state_q = np.zeros(skel.ndofs)
+        # elif i >= 15 and i < 30:
+        #     state_q = self.s0q
+        #     self.skeletons[3].set_positions(state_q)
+        # else:
+        #     state_q = self.s1q
+        #     self.skeletons[3].set_positions(state_q)
+
         ndofs = skel.num_dofs()
         h = self.time_step()
         Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
@@ -730,21 +748,63 @@ if __name__ == '__main__':
     world.target_r_foot = [0] * (3 * T)
 
     for i in range(T):
-        world.target_COM[3 * i] = 0.05 * i
+        # world.target_COM[3 * i] = 0.0
+        # world.target_l_foot[3 * i] = 0.0
+        # world.target_r_foot[3 * i] = 0.0
+
+        world.target_COM[3 * i] = 0.01 * i
+        world.target_l_foot[3 * i] = 0.01 * i
+        world.target_r_foot[3 * i] = 0.01 * i
+
         world.target_COM[3 * i + 1] = 0.
         world.target_COM[3 * i + 2] = 0.
-
-        world.target_l_foot[3 * i] = 0.05 * i
         world.target_l_foot[3 * i + 2] = -0.09
-        world.target_r_foot[3 * i] = 0.05 * i
         world.target_r_foot[3 * i + 2] = 0.09
+
+        # if i < 10:
+        #     world.target_r_foot[3 * i] = -0.02 * i
+        #     world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+        #     world.target_r_foot[3 * i + 1] = -0.87 - 0.07
+        # else:
+        #     world.target_COM[3 * i] = 0.1 + 0.03 * (i - 10)
+        #     world.target_l_foot[3 * i] = 0.1 + 0.03 * (i - 10)
+        #     world.target_r_foot[3 * i] = -0.2 + 0.03 * (i - 10)
+        #     world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+        #     world.target_r_foot[3 * i + 1] = -0.66 - 0.07
 
         if i < int(T / 2):
             world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+            # world.target_r_foot[3 * i + 1] = -0.87 - 0.07
             world.target_r_foot[3 * i + 1] = -0.66 - 0.07
         else:
             world.target_l_foot[3 * i + 1] = -0.66 - 0.07
             world.target_r_foot[3 * i + 1] = -0.87 - 0.07
+
+        # world.target_COM[3 * i + 1] = 0.
+        # world.target_l_foot[3 * i + 1] = -0.09
+        # world.target_r_foot[3 * i + 1] = 0.09
+
+        # if i < 15:
+        #     world.target_COM[3 * i] = 0.0
+        #     world.target_l_foot[3 * i] = 0.0
+        #     world.target_r_foot[3 * i] = 0.0
+        #     world.target_COM[3 * i + 2] = 0.
+        #     world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+        #     world.target_r_foot[3 * i + 1] = -0.87 - 0.07
+        # elif i >=15 and i < 30:
+        #     world.target_COM[3 * i] = 0.05 * (i-15)
+        #     world.target_l_foot[3 * i] = 0.05 * (i-15)
+        #     world.target_r_foot[3 * i] = 0.05 * (i-15)
+        #     world.target_COM[3 * i + 2] = -0.06
+        #     world.target_l_foot[3 * i + 1] = -0.87 - 0.07
+        #     world.target_r_foot[3 * i + 1] = -0.66 - 0.07
+        # else:
+        #     world.target_COM[3 * i] = 0.05 * (i-15)
+        #     world.target_l_foot[3 * i] = 0.05 * (i - 15)
+        #     world.target_r_foot[3 * i] = 0.05 * (i - 15)
+        #     world.target_COM[3 * i + 2] = 0.06
+        #     world.target_l_foot[3 * i + 1] = -0.66 - 0.07
+        #     world.target_r_foot[3 * i + 1] = -0.87 - 0.07
 
     if readMode == False:
         opt_res = solve_trajectory_optimization(skel, frame_num, world.time_step())
@@ -792,10 +852,28 @@ if __name__ == '__main__':
 
     if readMode == True:
         # read file
-        f_com = open("OptRes/com_pos_201810011530.txt", "r")
-        f_fl = open("OptRes/fl_201810011530.txt", "r")
-        f_fr = open("OptRes/fr_201810011530.txt", "r")
-        f_am = open("OptRes/am_201810011530.txt", "r")
+
+        # f_com = open("OptRes/com_pos_201810050928.txt", "r")
+        # f_fl = open("OptRes/fl_201810050928.txt", "r")
+        # f_fr = open("OptRes/fr_201810050928.txt", "r")
+        # f_am = open("OptRes/am_201810050928.txt", "r")
+
+        # left stance -> right stance
+        f_com = open("OptRes/com_pos_201810041029.txt", "r")
+        f_fl = open("OptRes/fl_201810041029.txt", "r")
+        f_fr = open("OptRes/fr_201810041029.txt", "r")
+        f_am = open("OptRes/am_201810041029.txt", "r")
+
+        # double stance(5) -> left stance
+        # f_com = open("OptRes/com_pos_201810050959.txt", "r")
+        # f_fl = open("OptRes/fl_201810050959.txt", "r")
+        # f_fr = open("OptRes/fr_201810050959.txt", "r")
+        # f_am = open("OptRes/am_201810050959.txt", "r")
+
+        # f_com = open("OptRes/com_pos_201810011530.txt", "r")
+        # f_fl = open("OptRes/fl_201810011530.txt", "r")
+        # f_fr = open("OptRes/fr_201810011530.txt", "r")
+        # f_am = open("OptRes/am_201810011530.txt", "r")
 
         # f_com = open("OptRes/com_pos_201809141443.txt", "r")
         # f_fl = open("OptRes/fl_201809141443.txt", "r")
