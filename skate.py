@@ -59,6 +59,7 @@ class MyWorld(pydart.World):
         spine = skel.dof_indices(["j_spine_x", "j_spine_y", "j_spine_z"])
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"])
         left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left_z"])
+        knee = skel.dof_indices(["j_shin_left_x", "j_shin_right_x"])
         arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
         foot = skel.dof_indices(["j_heel_left_x", "j_heel_left_y", "j_heel_left_z", "j_heel_right_x", "j_heel_right_y", "j_heel_right_z"])
         leg_y = skel.dof_indices(["j_thigh_right_y", "j_thigh_left_y"])
@@ -156,30 +157,74 @@ class MyWorld(pydart.World):
         s011q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
         s011q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state011 = State("state011", 0.25, 2.2, 0.0, s011q)
+        state011 = State("state011", 0.5, 2.2, 0.0, s011q)
 
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
-        # s1q[upper_body] = 0.0, 0., -0.5
-        # s1q[spine] = 0.0, 0., 0.5
+        s1q[upper_body] = 0., 0., -0.2
+        s1q[spine] = 0.0, 0., 0.2
         s1q[left_leg] = -0.1, 0., 0.3, -0.5
         # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s1q[right_leg] = 0.1, -0., 0.6, -1.5
+        s1q[right_leg] = 0.1, -0., 0.9, -1.2
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         s1q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state1 = State("state1", 1.0, 2.2, 0.0, s1q)
+        state1 = State("state1", 0.8, 2.2, 0.0, s1q)
 
         s2q = np.zeros(skel.ndofs)
         # s2q[pelvis] = -0.3, -0.0
-        # s2q[upper_body] = -0., 0, -0.
-        # s2q[left_leg] = 0., 0., 0., -0.
-        # s2q[right_leg] = -0.4, -0.785, -0.2, -0.17
+        s2q[upper_body] = -0., 0, -0.3
+        s2q[left_leg] = -0.1, 0., 0.2, -0.5
+        s2q[right_leg] = -0., -0.2, 0.3, -0.2
         s2q[arms] = 1.5, -1.5
-        # s2q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, -0.
-        state2 = State("state2", 0.25, 0.0, 0.2, s2q)
+        s2q[foot] = -0.0, 0.0, 0.2, 0.0, -0., 0.2
+        # state2 = State("state2", 0.25, 0.0, 0.2, s2q)
+        state2 = State("state2", 0.3, 0.0, 0.2, s2q)
 
-        self.state_list = [state0, state01, state011, state1, state2]
+        # s02q = np.zeros(skel.ndofs)
+        # # s02q[pelvis] = -0.3, -0.0
+        # s02q[upper_body] = -0., 0, -0.3
+        # s02q[left_leg] = 0., 0., 0.2, -0.5
+        # s02q[right_leg] = -0., -0., -0.2, -0.2
+        # s02q[arms] = 1.5, -1.5
+        # s02q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
+        # # state02 = State("state02", 0.25, 0.0, 0.2, s02q)
+        # state02 = State("state02", 0.3, 0.0, 0.2, s02q)
+
+        s3q = np.zeros(skel.ndofs)
+        s3q[upper_body] = 0.0, 0., -0.3
+        s3q[spine] = 0.0, 0., 0.3
+        s3q[left_leg] = -0., -0., 0.9, -1.2
+        s3q[right_leg] = -0.1, -0., 0.3, -0.3
+        s3q[arms] = 1.5, -1.5
+        s3q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.
+        state3 = State("state3", 0.8, 0.0, 0.2, s3q)
+        #s1q[pelvis] = -0.3", 0.2, 2.2, 0.0, s3q)
+
+        s03q = np.zeros(skel.ndofs)
+        s03q[upper_body] = 0.0, 0., -0.1
+        s03q[spine] = 0.0, 0., 0.1
+        s03q[left_leg] = 0., -0., 0.4, -0.2
+        s03q[right_leg] = -0.2, 0., 0.3, -0.3
+        s03q[arms] = 1.5, -1.5
+        s03q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.
+        state03 = State("state03", 0.3, 0.0, 0.2, s03q)
+        # s1q[pelvis] = -0.3", 0.2, 2.2, 0.0, s3q)
+
+        s4q = np.zeros(skel.ndofs)
+        s4q[arms] = 1.5, -1.5
+        # s4q[upper_body] = 0., 0., 0.
+        # s4q[left_leg] = 0.1, -0., 0., -0.
+        # s4q[right_leg] = 0., -0., 0.5, -0.5
+        # s4q[knee] = 0., -0.2
+        state4 = State("state4", 0.5, 0.0, 0.2, s4q)
+
+        s04q = np.zeros(skel.ndofs)
+        s04q[arms] = 1.5, -1.5
+        # s04q[left_leg] = 0.2, -0., 0., -0.
+        state04 = State("state04", 10.0, 0.0, 0.2, s04q)
+
+        self.state_list = [state0, state01, state011, state1, state2, state3, state03, state4, state04]
         # self.state_list = [state0, state1]
 
         state_num = len(self.state_list)
@@ -233,10 +278,10 @@ class MyWorld(pydart.World):
         # self.force = np.array([20.0, 0.0, 0.0])
         # self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
 
-        if self.curr_state.name == "state1":
-            self.force = np.array([10.0, 0.0, 0.0])
-        else:
-            self.force = None
+        # if self.curr_state.name == "state1":
+        #     self.force = np.array([10.0, 0.0, 0.0])
+        # else:
+        #     self.force = None
 
         self.controller.cur_state = self.curr_state.name
         if self.force is not None:
@@ -306,11 +351,14 @@ class MyWorld(pydart.World):
 
         contact_list = self.mo_con.check_contact()
 
+        # gain_value = 25.0
+        gain_value = 50.0
+
         # if self.mo_con.contact_num == 0:
         #     ndofs = skel.num_dofs()
         #     h = self.time_step()
-        #     Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
-        #     Kd = np.diagflat([0.0] * 6 + [2.*(25.0**.5)] * (ndofs - 6))
+        #     Kp = np.diagflat([0.0] * 6 + [gain_value] * (ndofs - 6))
+        #     Kd = np.diagflat([0.0] * 6 + [2.*(gain_value**.5)] * (ndofs - 6))
         #     invM = np.linalg.inv(skel.M + Kd * h)
         #     p = -Kp.dot(skel.q - self.curr_state.angles + skel.dq * h)
         #     d = -Kd.dot(skel.dq)
@@ -323,14 +371,15 @@ class MyWorld(pydart.World):
 
         ndofs = skel.num_dofs()
         h = self.time_step()
-        Kp = np.diagflat([0.0] * 6 + [25.0] * (ndofs - 6))
-        Kd = np.diagflat([0.0] * 6 + [2. * (25.0 ** .5)] * (ndofs - 6))
+
+        Kp = np.diagflat([0.0] * 6 + [gain_value] * (ndofs - 6))
+        Kd = np.diagflat([0.0] * 6 + [2. * (gain_value ** .5)] * (ndofs - 6))
         invM = np.linalg.inv(skel.M + Kd * h)
         p = -Kp.dot(skel.q - self.curr_state.angles + skel.dq * h)
         d = -Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
-        #
+
         ddc = np.zeros(6)
         # if self.curr_state.name == "state3":
         #     # print("com control : state3!!", skel.body('h_blade_left').to_world([0., 0.98, 0.]), skel.com())
@@ -359,17 +408,113 @@ class MyWorld(pydart.World):
         if self.curr_state.name == "state011":
             my_jaco = skel.body("h_blade_right").linear_jacobian()
             my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([1.0, -7., 1.0])
+            my_force = 10. * np.array([-1.0, -8., 1.0])
             # my_force = 50. * np.array([-1.0, 0., .0])
             my_tau = np.dot(my_jaco_t, my_force)
-            _tau += my_tau
 
-        if self.curr_state.name == "state2":
             my_jaco2 = skel.body("h_blade_left").linear_jacobian()
             my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 10. * np.array([.0, -7.0, -1.0])
+            my_force2 = 30. * np.array([1.0, -.0, -1.0])
             my_tau2 = np.dot(my_jaco_t2, my_force2)
-            _tau += my_tau2
+
+            _tau += my_tau + my_tau2
+
+        if self.curr_state.name == "state1":
+            my_jaco2 = skel.body("h_blade_left").linear_jacobian()
+            my_jaco_t2 = my_jaco2.transpose()
+            my_force2 = 10. * np.array([1.0, -.0, .0])
+            my_tau2 = np.dot(my_jaco_t2, my_force2)
+
+            # my_jaco = skel.body("h_thigh_right").linear_jacobian()
+            # my_jaco_t = my_jaco.transpose()
+            # my_force = 10. * np.array([-.0, 0., 1.0])
+            # # my_force = 50. * np.array([-1.0, 0., .0])
+            # my_tau = np.dot(my_jaco_t, my_force)
+
+            my_jaco = skel.body("h_thigh_left").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 10. * np.array([-.0, 0., 1.0])
+            # my_force = 50. * np.array([-1.0, 0., .0])
+            my_tau = np.dot(my_jaco_t, my_force)
+
+            _tau += my_tau2 + my_tau
+
+        # if self.curr_state.name == "state02":
+        #     my_jaco2 = skel.body("h_blade_left").linear_jacobian()
+        #     my_jaco_t2 = my_jaco2.transpose()
+        #     my_force2 = 10. * np.array([1.0, -8.0, -1.0])
+        #     my_tau2 = np.dot(my_jaco_t2, my_force2)
+        #     _tau += my_tau2
+
+        if self.curr_state.name == "state2":
+            # my_jaco2 = skel.body("h_blade_left").linear_jacobian()
+            # my_jaco_t2 = my_jaco2.transpose()
+            # my_force2 = 10. * np.array([1.0, -1.0, -1.0])
+            # my_tau2 = np.dot(my_jaco_t2, my_force2)
+
+            my_jaco = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 10. * np.array([1.0, -1., 1.0])
+            # my_force = 50. * np.array([-1.0, 0., .0])
+            my_tau = np.dot(my_jaco_t, my_force)
+
+            my_jaco3 = skel.body("h_thigh_right").linear_jacobian()
+            my_jaco_t3 = my_jaco3.transpose()
+            my_force3 = 10. * np.array([-.0, 0., -1.0])
+            my_tau3 = np.dot(my_jaco_t3, my_force3)
+
+            my_jaco4 = skel.body("h_blade_left").linear_jacobian()
+            my_jaco_t4 = my_jaco4.transpose()
+            my_force4 = 5. * np.array([-1.0, -0., -.0])
+            my_tau4 = np.dot(my_jaco_t4, my_force4)
+
+            _tau += my_tau + my_tau4 + my_tau3 #+ my_tau2
+
+        if self.curr_state.name == "state3":
+            my_jaco = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            my_force = 20. * np.array([1.0, -0.0, .0])
+            # my_force = 50. * np.array([-1.0, 0., .0])
+            my_tau = np.dot(my_jaco_t, my_force)
+
+            # my_jaco = skel.body("h_thigh_right").linear_jacobian()
+            # my_jaco_t = my_jaco.transpose()
+            # my_force = 20. * np.array([-.0, 0., -1.0])
+            # # my_force = 50. * np.array([-1.0, 0., .0])
+            # my_tau2 = np.dot(my_jaco_t, my_force)
+
+            my_jaco3 = skel.body("h_thigh_right").linear_jacobian()
+            my_jaco_t3 = my_jaco3.transpose()
+            my_force3 = 10. * np.array([-.0, 0., -1.0])
+            my_tau3 = np.dot(my_jaco_t3, my_force3)
+
+            _tau += my_tau #+ my_tau3# + my_tau2
+
+        # if self.curr_state.name == "state03":
+        #     jaco = skel.body("h_blade_right").linear_jacobian()
+        #     jaco_t = jaco.transpose()
+        #     _force = 20. * np.array([.0, 0., 1.0])
+        #     my_tau = np.dot(jaco_t, _force)
+        #
+        #     _tau += my_tau
+
+        # if self.curr_state.name == "state04":
+        #     # jaco = skel.body("h_thigh_left").linear_jacobian()
+        #     # jaco_t = jaco.transpose()
+        #     # _force = 30. * np.array([.0, 0., 1.0])
+        #     # my_tau = np.dot(jaco_t, _force)
+        #     #
+        #     # jaco1 = skel.body("h_thigh_right").linear_jacobian()
+        #     # jaco_t1 = jaco1.transpose()
+        #     # force1 = 20. * np.array([.0, 0., 1.0])
+        #     # my_tau1 = np.dot(jaco_t1, force1)
+        #
+        #     jaco = skel.body("h_blade_left").linear_jacobian()
+        #     jaco_t = jaco.transpose()
+        #     _force = 20. * np.array([.0, -8., -1.0])
+        #     my_tau = np.dot(jaco_t, _force)
+        #
+        #     _tau += my_tau #+ my_tau1
 
         # if self.curr_state.name == "state1":
         #     my_jaco2 = skel.body("h_blade_left").linear_jacobian()
@@ -509,6 +654,11 @@ class MyWorld(pydart.World):
         # com = self.skeletons[2].body('h_blade_left').to_world(np.array([0.1040 + 0.0216, +0.80354016 - 0.85354016, -0.054]))
         rd_footCenter.append(com)
 
+        if self.curr_state.name == "state3":
+            blade_force.append(np.array([1.0, -1.0, 1.0]))
+            blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
+
+
         # if self.curr_state.name == "state1" or self.curr_state.name == "state11" :
         #     blade_force.append(np.array([1.0, 0.0, 0.0]))
         #     blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
@@ -517,13 +667,13 @@ class MyWorld(pydart.World):
         # if self.curr_state.name == "state12":
         #     blade_force.append(np.array([-0.7, 1.0, 0.0]))
         #     blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
-        if self.curr_state.name == "state011":
-            blade_force.append(np.array([1.0, -7., 1.0]))
-            blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
-
-        if self.curr_state.name == "state2":
-            blade_force.append(np.array([-0., -7.0, -1.0]))
-            blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
+        # if self.curr_state.name == "state011":
+        #     blade_force.append(np.array([1.0, -7., 1.0]))
+        #     blade_force_origin.append(self.skeletons[2].body('h_heel_right').to_world())
+        #
+        # if self.curr_state.name == "state2":
+        #     blade_force.append(np.array([-0., -7.0, -1.0]))
+        #     blade_force_origin.append(self.skeletons[2].body('h_heel_left').to_world())
 
         # if self.curr_state.name == "state2":
         #     # blade_force.append(np.array([-1.0, 0., 1.0]))
