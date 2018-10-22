@@ -12,6 +12,12 @@ if '..' not in sys.path:
     sys.path.append('..')
 from PyCommon.modules.Math import mmMath as mm
 from PyCommon.modules.Util import ysGlHelper as ygh
+from PyCommon.modules.Motion import ysMotion as ym
+# from PyCommon.modules.Mesh import ysMesh as yms
+# import Math.mmMath as mm
+# import Util.ysGlHelper as ygh
+# import Motion.ysMotion as ym
+# import Mesh.ysMesh as yms
 
 # from PyCommon.modules.Renderer import csRenderer as cr
 # from PyCommon.modules.Renderer.csRenderer import ObjImporter
@@ -56,7 +62,7 @@ LEFT_FOOT_ONLY = False
 RIGHT_FOOT_ONLY = False
 
 CAPSULE_SLICE_SIZE = 8
-SPHERE_SLICE_SIZE = 16
+SPHERE_SLICE_SIZE = 64
 
 
 class Renderer:
@@ -295,21 +301,22 @@ class VpWorldRenderer(Renderer):
                 self.rc.drawSphere(sphere_bump[0])
                 glPopMatrix()
 
-        for plane in self._world.get_plane_list():
-            if renderType == RENDER_OBJECT:
-                plane_normal = plane[0]
-                plane_origin = plane[1]
-                box_center = plane_origin - plane_normal*0.05
-                glColor3ubv(self._color)
-                glPushMatrix()
-                glTranslatef(box_center[0], box_center[1], box_center[2])
-                rot_vec = mm.logSO3(mm.getSO3FromVectors(mm.unitY(), plane_normal))
-                angle = numpy.linalg.norm(rot_vec)
-                if angle > 0.00001:
-                    axis = rot_vec/angle
-                    glRotatef(mm.rad2Deg(angle), axis[0], axis[1], axis[2])
-                self.rc.drawCenteredBox(4., 0.1, 4.)
-                glPopMatrix()
+        if False:
+            for plane in self._world.get_plane_list():
+                if renderType == RENDER_OBJECT:
+                    plane_normal = plane[0]
+                    plane_origin = plane[1]
+                    box_center = plane_origin - plane_normal*0.05
+                    glColor3ubv(self._color)
+                    glPushMatrix()
+                    glTranslatef(box_center[0], box_center[1], box_center[2])
+                    rot_vec = mm.logSO3(mm.getSO3FromVectors(mm.unitY(), plane_normal))
+                    angle = numpy.linalg.norm(rot_vec)
+                    if angle > 0.00001:
+                        axis = rot_vec/angle
+                        glRotatef(mm.rad2Deg(angle), axis[0], axis[1], axis[2])
+                    self.rc.drawCenteredBox(4., 0.1, 4.)
+                    glPopMatrix()
 
 
 class VpModelRenderer(Renderer):
@@ -450,18 +457,18 @@ class DartRenderer(Renderer):
     """
     :type world: pydart.World
     """
-    def __init__(self, target, color=(255, 255, 255), polygonStyle=POLYGON_FILL, lineWidth=1.):
+    def __init__(self, target, color=(255, 255, 255), polygonStyle=POLYGON_FILL, lineWidth=1., save_state=True):
         Renderer.__init__(self, target, color)
         self.world = target
         self.rc.setPolygonStyle(polygonStyle)
         self._lineWidth = lineWidth
-        self.savable = True
+        self.savable = save_state
 
     def render(self, renderType=RENDER_OBJECT):
         glLineWidth(self._lineWidth)
 
         if renderType == RENDER_SHADOW:
-            glColor3ub(90, 90, 90)
+            glColor3ubv(shadow_color)
         else:
             glColor3ubv(self.totalColor)
 
@@ -522,6 +529,11 @@ class DartRenderer(Renderer):
             glTranslatef(0., 0., -data[1]/2.)
             self.rc.drawCylinder(data[0], data[1])
             # self.rc.drawCapsule(data[0], data[1])
+        elif geomType == 'SphereShape':
+            shape = shapeNode.shape  # type: pydart.SphereShape
+            data = shape.radius()
+            glScalef(data, data, data)
+            self.rc.drawSphere(1.)
         elif geomType == 'EllipsoidShape':
             shape = shapeNode.shape  # type: pydart.EllipsoidShape
             data = shape.size()  # type: numpy.ndarray
@@ -530,7 +542,7 @@ class DartRenderer(Renderer):
         glPopMatrix()
 
     def renderFrame(self, frame, renderType=RENDER_OBJECT):
-        if frame == -1:
+        if frame == -1 or not self.savable:
             self.renderState(self.getState(), renderType)
         elif frame == self.get_max_saved_frame() + 1:
             self.saveState()
@@ -544,6 +556,7 @@ class DartRenderer(Renderer):
         state = []
         for skeleton in self.world.skeletons:
             for body in skeleton.bodynodes:
+                body_name = body.name
                 bodyFrame = body.world_transform()
                 for shapeNode in body.shapenodes:
                     if shapeNode.has_visual_aspect():
@@ -565,7 +578,9 @@ class DartRenderer(Renderer):
                             data = [shape.radius(), shape.height()]
                         elif geomType[0] == 'E':
                             data = shape.size()
-                        state.append((body.name, geomType, geomT, data, color))
+                        elif geomType[0] == 'S':
+                            data = shape.radius()
+                        state.append((body_name, geomType, geomT, data, color))
         return state
 
     def renderState(self, state, renderType=RENDER_OBJECT):
@@ -578,15 +593,18 @@ class DartRenderer(Renderer):
 
         for elem in state:
             body_name, geomType, geomT, data, color = elem
-            if renderType != RENDER_SHADOW:
-                glColor3ubv(color)
-            elif body_name == 'ground':
-                continue
-            else:
-                glColor3ub(90, 90, 90)
-
             glPushMatrix()
             glMultMatrixd(geomT.transpose())
+
+            if body_name == 'ground':
+                glPopMatrix()
+                continue
+
+            if renderType != RENDER_SHADOW:
+                glColor3ubv(color)
+            else:
+                glColor3ubv(shadow_color)
+
             if geomType[0] == 'B':
                 glTranslatef(-data[0]/2., -data[1]/2., -data[2]/2.)
                 self.rc.drawBox(data[0], data[1], data[2])
@@ -597,6 +615,9 @@ class DartRenderer(Renderer):
             elif geomType[0] == 'E':
                 glScalef(data[0]/2., data[1]/2., data[2]/2.)
                 self.rc.drawSphere(1.)
+            elif geomType[0] == 'S':
+                glScalef(data, data, data)
+                self.rc.drawSphere(1.)
 
             glPopMatrix()
 
@@ -605,12 +626,12 @@ class DartModelRenderer(Renderer):
     """
     :type model: cdm.DartModel
     """
-    def __init__(self, target, color=(255,255,255), polygonStyle=POLYGON_FILL, lineWidth=1.):
+    def __init__(self, target, color=(255,255,255), polygonStyle=POLYGON_FILL, lineWidth=1., save_state=True):
         Renderer.__init__(self, target, color)
         self.model = target
         self.rc.setPolygonStyle(polygonStyle)
         self._lineWidth = lineWidth
-        self.savable = True
+        self.savable = save_state
 
     def render(self, renderType=RENDER_OBJECT):
         glLineWidth(self._lineWidth)
@@ -676,7 +697,7 @@ class DartModelRenderer(Renderer):
         glPopMatrix()
 
     def renderFrame(self, frame, renderType=RENDER_OBJECT):
-        if frame == -1:
+        if frame == -1 or not self.savable:
             self.renderState(self.getState(), renderType)
         elif frame == self.get_max_saved_frame() + 1:
             self.saveState()
@@ -690,6 +711,7 @@ class DartModelRenderer(Renderer):
         state = []
         for body in self.model.skeleton.bodynodes:
             bodyFrame = body.world_transform()
+            body_name = body.name
             for shapeNode in body.shapenodes:
                 if shapeNode.has_visual_aspect():
                     color = None
@@ -725,6 +747,7 @@ class DartModelRenderer(Renderer):
             geomType, geomT, data, color = elem
             glPushMatrix()
             glMultMatrixd(geomT.transpose())
+
             if renderType != RENDER_SHADOW:
                 glColor3ubv(color)
             else:
@@ -777,16 +800,17 @@ class JointMotionRenderer(Renderer):
     def renderJointPosture(self, posture):
         joint = posture.skeleton.root
         glPushMatrix()
-        glTranslatef(posture.rootPos[0], posture.rootPos[1], posture.rootPos[2])
+        # glTranslatef(posture.rootPos[0], posture.rootPos[1], posture.rootPos[2])
         self._renderJoint(joint, posture)
         glPopMatrix()
 
     def _renderJoint(self, joint, posture):
         glPushMatrix()
-        glTranslatef(joint.offset[0], joint.offset[1],joint.offset[2])
+        glTranslatef(joint.offset[0], joint.offset[1], joint.offset[2])
 #        glMultMatrixf(mm.R2T(posture.localRMap[joint.name]).transpose())
+        glMultMatrixf(mm.p2T(posture.local_ts[posture.skeleton.getElementIndex(joint.name)]).transpose())
         glMultMatrixf(mm.R2T(posture.localRs[posture.skeleton.getElementIndex(joint.name)]).transpose())
-                
+
 #        if joint.name in self.partColors:
 #            color = self.partColors[joint.name]
 #        else:
@@ -919,6 +943,223 @@ class JointMotionRenderer(Renderer):
     #         return state
 
 
+class BasicSkeletonRenderer(Renderer):
+    def __init__(self, Ts, color=(255, 255, 255), offset_draw=(0., 0., 0.)):
+        """
+        Ts should be dict type.
+        pelvis, spine_ribs, head, thigh_R, shin_R, foot_R, upper_limb_R, lower_limb_R
+                                  thigh_L, shin_L, foot_L, upper_limb_L, lower_limb_L
+        :param Ts:
+        :param color:
+        """
+        REAL_JOINT = True
+
+        from glob import glob
+        Renderer.__init__(self, Ts, color)
+        self.Ts_init = Ts
+        # self.savedState.append(Ts)
+        self.objs = dict()  # type: dict[str, ObjImporter]
+
+        for path in glob('../../data/obj/zygote_skeleton_common/*.obj'):
+            filename = path.split('/')[-1].split('.')[0]
+            self.objs[filename] = ObjImporter()
+            self.objs[filename].import_obj(path, 0.01)
+
+        if REAL_JOINT:
+            for path in glob('../../data/obj/zygote_skeleton_real_joint/*.obj'):
+                filename = path.split('/')[-1].split('.')[0]
+                self.objs[filename] = ObjImporter()
+                self.objs[filename].import_obj(path, 0.01)
+        else:
+            for path in glob('../../data/obj/zygote_skeleton_basic/*.obj'):
+                filename = path.split('/')[-1].split('.')[0]
+                self.objs[filename] = ObjImporter()
+                self.objs[filename].import_obj(path, 0.01)
+
+        self.offset = dict()  # type: dict[str, numpy.ndarray]
+        self.offset['pelvis'] = numpy.array([0., 0., 0.])
+        self.offset['spine_ribs'] = numpy.array([0., 0.0577, -0.01791])
+        self.offset['head'] = numpy.array([0., 0.57875, 0.04319])
+        self.offset['upper_limb_R'] = numpy.array([-0.19431, 0.40374, 0.01608])
+        self.offset['lower_limb_R'] = numpy.array([-0.327, 0.01339, -0.0251])
+        self.offset['upper_limb_L'] = numpy.array([0.19431, 0.40374, 0.01608])
+        self.offset['lower_limb_L'] = numpy.array([0.327, 0.01339, -0.0251])
+
+        self.offset['thigh_R'] = numpy.array([-0.08931, -0.031, 0.01779])
+        self.offset['shin_R'] = numpy.array([-0.007, -0.40402, -0.00173])
+        self.offset['foot_R'] = numpy.array([0.01482, -0.46019, -0.02403])
+        self.offset['foot_heel_R'] = numpy.array([0.01482, -0.46019, -0.02403])
+
+        self.offset['thigh_L'] = numpy.array([0.08931, -0.031, 0.01779])
+        self.offset['shin_L'] = numpy.array([0.007, -0.40402, -0.00173])
+        self.offset['foot_L'] = numpy.array([-0.01482, -0.46019, -0.02403])
+        self.offset['foot_heel_L'] = numpy.array([-0.01482, -0.46019, -0.02403])
+
+        if REAL_JOINT:
+            self.offset['heel_R'] = numpy.array([0., 0., 0.])
+            self.offset['outside_metatarsal_R'] = numpy.array([-0.02784, -0.03463, 0.0452])
+            self.offset['outside_phalanges_R'] = numpy.array([-0.00773, -0.01936, 0.05877])
+            self.offset['inside_phalanges_R'] = numpy.array([-0.01823, -0.05399, 0.10397])
+
+            self.offset['heel_L'] = numpy.array([0., 0., 0.])
+            self.offset['outside_metatarsal_L'] = numpy.array([0.02784, -0.03463, 0.0452])
+            self.offset['outside_phalanges_L'] = numpy.array([0.00773, -0.01936, 0.05877])
+            self.offset['inside_phalanges_L'] = numpy.array([0.01823, -0.05399, 0.10397])
+        else:
+            self.offset['outside_metatarsal_R'] = numpy.array([-0.02714, -0.05689, 0.])
+            self.offset['outside_phalanges_R'] = numpy.array([0., 0., 0.09059])
+            self.offset['inside_metatarsal_R'] = numpy.array([0.01409, 0., 0.])
+            self.offset['inside_phalanges_R'] = numpy.array([0., 0.00762, 0.11214])
+
+            self.offset['outside_metatarsal_L'] = numpy.array([0.02714, -0.05689, 0.])
+            self.offset['outside_phalanges_L'] = numpy.array([0., 0., 0.09059])
+            self.offset['inside_metatarsal_L'] = numpy.array([-0.01409, 0., 0.])
+            self.offset['inside_phalanges_L'] = numpy.array([0., 0.00762, 0.11214])
+
+        self.children = dict()
+        self.children['pelvis'] = ['spine_ribs', 'thigh_R', 'thigh_L']
+        self.children['spine_ribs'] = ['head', 'upper_limb_R', 'upper_limb_L']
+        self.children['upper_limb_R'] = ['lower_limb_R']
+        self.children['lower_limb_R'] = []
+        self.children['upper_limb_L'] = ['lower_limb_L']
+        self.children['lower_limb_L'] = []
+        self.children['head'] = []
+
+        self.children['thigh_R'] = ['shin_R']
+        self.children['shin_R'] = ['foot_R']
+        self.children['foot_R'] = []
+
+        self.children['thigh_L'] = ['shin_L']
+        self.children['shin_L'] = ['foot_L']
+        self.children['foot_L'] = []
+
+        if REAL_JOINT:
+            self.children['foot_R'] = ['heel_R', 'outside_metatarsal_R', 'inside_phalanges_R']
+            self.children['heel_R'] = []
+            self.children['outside_metatarsal_R'] = ['outside_phalanges_R']
+            self.children['outside_phalanges_R'] = []
+            self.children['inside_phalanges_R'] = []
+
+            self.children['foot_L'] = ['heel_L', 'outside_metatarsal_L', 'inside_phalanges_L']
+            self.children['heel_L'] = []
+            self.children['outside_metatarsal_L'] = ['outside_phalanges_L']
+            self.children['outside_phalanges_L'] = []
+            self.children['inside_phalanges_L'] = []
+        else:
+            self.children['shin_R'] = ['foot_heel_R']
+            self.children['foot_heel_R'] = ['outside_metatarsal_R']
+            self.children['outside_metatarsal_R'] = ['inside_metatarsal_R', 'outside_phalanges_R']
+            self.children['outside_phalanges_R'] = []
+            self.children['inside_metatarsal_R'] = ['inside_phalanges_R']
+            self.children['inside_phalanges_R'] = []
+
+            self.children['shin_L'] = ['foot_heel_L']
+            self.children['foot_heel_L'] = ['outside_metatarsal_L']
+            self.children['outside_metatarsal_L'] = ['inside_metatarsal_L', 'outside_phalanges_L']
+            self.children['outside_phalanges_L'] = []
+            self.children['inside_metatarsal_L'] = ['inside_phalanges_L']
+            self.children['inside_phalanges_L'] = []
+
+        def get_offset_from_root(offset_dict, child_dict, link_name):
+            """
+
+            :param offset_dict:
+            :param child_dict:
+            :type child_dict: dict
+            :param link_name:
+            :return:
+            """
+            parent_dict = dict()
+            for parent, child_list in child_dict.items():
+                for child in child_list:
+                    parent_dict[child] = parent
+
+            offset = numpy.zeros(3)
+            while link_name != 'pelvis':
+                offset = offset + offset_dict[link_name]
+                link_name = parent_dict[link_name]
+
+            return offset
+
+        # for link_name in self.objs.keys():
+        #     print(link_name, get_offset_from_root(self.offset, self.children, link_name))
+
+        self.offset_draw = copy.deepcopy(offset_draw)
+
+        self.isInit = False
+
+    def appendFrameState(self, Ts, body_color={}):
+        self.savedState.append((Ts, body_color))
+
+    def render(self, renderType=RENDER_OBJECT):
+        print("Renderer.render() : Must subclass me")
+        raise NotImplementedError
+
+    def renderState(self, state, renderType=RENDER_OBJECT):
+        """
+
+        :param state:
+        :type state: tuple[dict[str, np.ndarray], dict[str, tuple[int, int, int]]]
+        :param renderType:
+        :return:
+        """
+        # glEnable(GL_LIGHTING)
+        glPushMatrix()
+        glTranslatef(self.offset_draw[0], self.offset_draw[1], self.offset_draw[2])
+        self._render('pelvis', state, renderType)
+        glPopMatrix()
+        # glDisable(GL_LIGHTING)
+
+    def _render(self, body_name, state, renderType=RENDER_OBJECT):
+        glPushMatrix()
+        offset = self.offset[body_name]
+        glTranslatef(offset[0], offset[1], offset[2])
+        glMultMatrixf(state[0][body_name].T)
+        if renderType == RENDER_OBJECT:
+            if body_name in state[1].keys():
+                glColor3ubv(state[1][body_name])
+            else:
+                glColor3ubv(self.totalColor)
+        elif renderType == RENDER_SHADOW:
+            # glColor3ub(90, 90, 90)
+            glColor3ubv(shadow_color)
+        if FOOT_RENDER_ONLY:
+            if LEFT_FOOT_ONLY:
+                if body_name in ('foot_heel_L', 'foot_L', 'heel_L', 'outside_metatarsal_L', 'outside_phalanges_L', 'inside_phalanges_L'):
+                    self.objs[body_name].draw()
+            elif RIGHT_FOOT_ONLY:
+                if body_name in ('foot_heel_R', 'foot_R', 'heel_R', 'outside_metatarsal_R', 'outside_phalanges_R', 'inside_phalanges_R'):
+                    self.objs[body_name].draw()
+            else:
+                if body_name in ('foot_heel_R', 'foot_R', 'heel_R', 'outside_metatarsal_R', 'outside_phalanges_R', 'inside_phalanges_R',
+                                 'foot_heel_L', 'foot_L', 'heel_L', 'outside_metatarsal_L', 'outside_phalanges_L', 'inside_phalanges_L'):
+                    self.objs[body_name].draw()
+        else:
+            self.objs[body_name].draw()
+        for child_name in self.children[body_name]:
+            self._render(child_name, state, renderType)
+        glPopMatrix()
+
+    def renderFrame(self, frame, renderType=RENDER_OBJECT):
+        if frame == -1:
+            self.renderState((self.Ts_init, dict()), renderType)
+        elif frame == self.get_max_saved_frame() + 1:
+            self.saveState()
+            self.renderState(self.savedState[frame], renderType)
+        elif frame <= self.get_max_saved_frame():
+            self.renderState(self.savedState[frame], renderType)
+        else:
+            self.renderState(self.savedState[-1], renderType)
+
+    # def saveState(self):
+    #     self.savedState.append(self.getState())
+
+    def get_max_saved_frame(self):
+        return len(self.savedState) - 1
+
+    def set_offset_Y(self, offset_Y):
+        self.offset_Y = offset_Y
+
 
 class PointMotionRenderer(Renderer):
     def __init__(self, target, color = (0,0,255)):
@@ -974,15 +1215,52 @@ class MMMotionRenderer(Renderer):
         for link in posture.skeleton.links:
             self.rc.drawLine(posture.pointMap[link[0]], posture.pointMap[link[1]])
 
+
+class MeshRenderer(Renderer):
+    def __init__(self, mesh, color = (127,127,127), drawStyle = POLYGON_LINE):
+        Renderer.__init__(self, mesh, color)
+        self.mesh = mesh
+        self.rc.setPolygonStyle(drawStyle)
+    def render(self, renderType=RENDER_OBJECT):
+        if isinstance(self.selectedElement, yms.Vertex):
+            glColor3ubv(SELECTION_COLOR)
+            self.rc.drawPoint(self.selectedElement.pos)
+
+        pmid = None
+        glPolygonMode(GL_FRONT, GL_LINE)
+        glColor3ubv(self.totalColor)
+        glBegin(GL_TRIANGLES)
+        for f in self.mesh.faces:
+            if f == self.selectedElement:
+                glColor3ubv(SELECTION_COLOR)
+
+            p0 = self.mesh.vertices[f.vertexIndex[0]].pos
+            p1 = self.mesh.vertices[f.vertexIndex[1]].pos
+            p2 = self.mesh.vertices[f.vertexIndex[2]].pos
+            glVertex3f(p0[0], p0[1], p0[2])
+            glVertex3f(p1[0], p1[1], p1[2])
+            glVertex3f(p2[0], p2[1], p2[2])
+
+            if f == self.selectedElement:
+                pmid = (p0+p1+p2)/3.
+                glColor3ubv(self.totalColor)
+        glEnd()
+
+        if pmid!=None:
+            glColor3ubv(SELECTION_COLOR)
+            self.rc.drawPoint(pmid)
+
 #===============================================================================
 # # debugging renderers
 #===============================================================================
 class PointsRenderer(Renderer):
-    def __init__(self, points, color = (255,0,0), pointStyle = POINT_CROSS):
+    def __init__(self, points, color=(255,0,0), pointStyle=POINT_CROSS, save_state=True):
         Renderer.__init__(self, points, color)
         self.points = points
         self.pointStyle = pointStyle
         self.rc.setLineWidth(2.)
+        self.savable = save_state
+
     def render(self, renderType=RENDER_OBJECT):
         if renderType == RENDER_OBJECT:
             self.rc.beginDraw()
@@ -1010,7 +1288,7 @@ class PointsRenderer(Renderer):
                         self.rc.drawCube(point)
 
     def renderFrame(self, frame, renderType=RENDER_OBJECT):
-        if frame == -1:
+        if frame == -1 or not self.savable:
             self.renderState(self.getState(), renderType)
         elif frame == self.get_max_saved_frame() + 1:
             self.saveState()
@@ -1112,7 +1390,11 @@ class FramesRenderer(Renderer):
         Renderer.__init__(self, Ts, color)
         self.Ts = Ts
         self.axisLength = axisLength
+
     def render(self, renderType=RENDER_OBJECT):
+        if renderType == RENDER_SHADOW:
+            return
+
         for T in self.Ts:
             if T is not None:
                 glPushMatrix()
@@ -1439,6 +1721,7 @@ class SpheresRenderer(Renderer):
         self.rc.setNormalStyle(NORMAL_SMOOTH)
         self.rc.setPolygonStyle(polygonStyle)
         self.rc.setLineWidth(2.)
+
     def render(self, renderType=RENDER_OBJECT):
         self.rc.beginDraw()
         glColor3ubv(self.totalColor)
@@ -1482,6 +1765,8 @@ class RenderContext:
         self.setLineWidth(1.)
         self.crossLength = .1
 
+        # self.crc = cr.RenderContext()
+        
     def __del__(self):
         gluDeleteQuadric(self.quad)
         gluDeleteQuadric(self.quad2)
@@ -1527,7 +1812,9 @@ class RenderContext:
         glPushMatrix()
         glTranslated(lx/2.,ly/2.,lz/2.)
         glScale(lx, ly, lz)
+        #self.crc.drawBox(self.polygonStyle)
 
+        #'''
         if self.polygonStyle == POLYGON_LINE:
             glBegin(GL_LINES)
             glVertex3f(-.5, -.5, -.5)
@@ -1620,6 +1907,7 @@ class RenderContext:
     def drawCenteredBox(self, lx, ly, lz):
         glPushMatrix()
         glScale(lx, ly, lz)
+        self.crc.drawBox(self.polygonStyle)
         glPopMatrix()
 
     def drawCylinder(self, radius, length_z):
@@ -1786,10 +2074,10 @@ class RenderContext:
         arrowT = mm.Rp2T(mm.getSO3FromVectors((length,0,0), vector), startPos)
         glMultMatrixf(arrowT.transpose())
 
-        triWidth = lineWidth * 3
-        triLength = triWidth * 1.2
-        # triWidth = lineWidth * 1.5
+        # triWidth = lineWidth * 3
         # triLength = triWidth * 1.2
+        triWidth = lineWidth * 1.5
+        triLength = triWidth * 1.2
 
         # line + cone all parts
         glePolyCone(((0,0,0), (0,0,0), (length-triLength,0,0), (length-triLength,0,0), (length,0,0), (length,0,0)), None,
