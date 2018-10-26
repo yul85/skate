@@ -34,8 +34,9 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
 
     weight_map_vec = np.diagflat(
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.1, 0.1, 0.1, 0.25, 0.25, 0.25, 0.2, 0.2, 0.2,
-         0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+         0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
+         0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
+         # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
          # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
          0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
          0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
@@ -151,11 +152,11 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100. # + 1/skel.m * PJ.transpose().dot(PJ)
+    P[:num_dof, :num_dof] *= 100. #+ 100. * 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
-    # P[num_dof + num_tau:, num_dof + num_tau:] *= 10.
+    P[num_dof + num_tau:, num_dof + num_tau:] *= 0.1
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des # - 30.* (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
+    q[:num_dof] = -100.*ddq_des #- 100. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
     #####################################################
     # equality
@@ -185,36 +186,32 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
         jaco = skel.body(body_name).linear_jacobian()
         jaco_der = skel.body(body_name).linear_jacobian_deriv()
 
-        p1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+        v1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        v2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
 
-        blade_direction_vec = p2 - p1
-
-        # print(body_name, p1, p2, blade_direction_vec)
-
-        # if body_name == "h_blade_right":
-        #     blade_direction_vec = p2 - p1
-        # else:
-        #     blade_direction_vec = p1 - p2
+        blade_direction_vec = v2 - v1
 
         blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
 
         if np.linalg.norm(blade_direction_vec) != 0:
             blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        # print(blade_direction_vec)
+        # print(l_blade_dir, r_blade_dir, blade_direction_vec)
         # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
 
-        if body_name == "h_blade_left":
-            theta = math.acos(np.dot(l_blade_dir, blade_direction_vec))
-            if theta / math.pi * 180 > 90:
-                theta = math.pi - theta
-        else:
-            theta = math.acos(np.dot(r_blade_dir, blade_direction_vec))
-            # print(theta, theta / math.pi * 180)
-            if theta / math.pi * 180 > 90:
-                # print("Obtuse Angle: ", math.pi - theta)
-                theta = math.pi - theta
+        x_axis = np.array([1., 0., 0.])
+        theta = math.acos(np.dot(x_axis, blade_direction_vec))
+
+        # if body_name == "h_blade_left":
+        #     theta = math.acos(np.dot(l_blade_dir, blade_direction_vec))
+        #     if theta / math.pi * 180 > 90:
+        #         theta = math.pi - theta
+        # else:
+        #     theta = math.acos(np.dot(r_blade_dir, blade_direction_vec))
+        #     # print(theta, theta / math.pi * 180)
+        #     if theta / math.pi * 180 > 90:
+        #         # print("Obtuse Angle: ", math.pi - theta)
+        #         theta = math.pi - theta
         # print("theta: ", body_name, ", ", theta)
         # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h

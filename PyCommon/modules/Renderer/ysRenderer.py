@@ -487,14 +487,8 @@ class DartRenderer(Renderer):
                                 glColor4ubv(c)
                             else:
                                 glColor3ubv(self.totalColor)
-                            if body.name == 'ground':
-                                glColor3ub(128, 128, 128)
-                                glPushMatrix()
-                                gravity = 0.0001*self.world.gravity()
-                                glTranslatef(gravity[0], gravity[1], gravity[2])
+
                             self.renderShapeNode(shapeNode)
-                            if body.name == 'ground':
-                                glPopMatrix()
                         elif body.name != 'ground':
                             glColor3ub(90, 90, 90)
                             self.renderShapeNode(shapeNode)
@@ -595,10 +589,6 @@ class DartRenderer(Renderer):
             body_name, geomType, geomT, data, color = elem
             glPushMatrix()
             glMultMatrixd(geomT.transpose())
-
-            if body_name == 'ground':
-                glPopMatrix()
-                continue
 
             if renderType != RENDER_SHADOW:
                 glColor3ubv(color)

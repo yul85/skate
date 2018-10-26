@@ -16,6 +16,8 @@ render_vector = []
 render_vector_origin = []
 push_force = []
 push_force_origin = []
+push_force1 = []
+push_force1_origin = []
 blade_force = []
 blade_force_origin = []
 
@@ -56,8 +58,11 @@ class MyWorld(pydart.World):
         pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/blade2_3dof.skel')
 
         self.force = None
+        self.force1 = None
         self.my_tau = None
+        self.my_tau2 = None
         self.my_force = None
+        self.my_force2 = None
 
         # ---------------------------------- bvh -----------------------------------
         bvh = yf.readBvhFileAsBvh('./data/mocap/skate_spin.bvh')
@@ -235,8 +240,31 @@ class MyWorld(pydart.World):
         #     self.force = np.array([0.0, 0.0, 50.0])
         # else:
         #     self.force = None
+
+        ref_skel = self.skeletons[1]
+
+        # q_temp = np.asarray(ref_skel.q)
+        # cur_com_pos = ref_skel.com()
         #
-        if self.flag < 100:
+        # ref_skel.set_positions(self.read_q_list[self.fn_bvh + 1])
+        # future_com_pos = ref_skel.com()
+        # ref_skel.set_positions(q_temp)
+        #
+        # ref_com_vel = future_com_pos - cur_com_pos
+        # # print("COM_VEL", ref_com_vel)
+        # self.force = 1000.* ref_com_vel
+
+        if self.fn_bvh < 10:
+            self.force = 3.*np.array([-10.0, -10.0, 100.0])
+            self.force1 = 5.*np.array([-20.0, 10.0, -100.0])
+
+            # self.force = 1. * np.array([-1.0, -1.0, 100.0])
+            # self.force1 = 1. * np.array([.0, -0.0, -100.0])
+        else:
+            self.force = None
+            self.force1 = None
+
+        if self.flag < 10:
             self.skeletons[1].set_positions(self.read_q_list[self.fn_bvh])
             self.flag += 1
         else:
@@ -247,51 +275,38 @@ class MyWorld(pydart.World):
         h = self.time_step()
 
         if self.force is not None:
-            self.skeletons[0].body('h_pelvis').add_ext_force(self.force)
+            self.skeletons[0].body('h_pelvis').add_ext_force(self.force, [0., 0., -0.1088])
+        if self.force1 is not None:
+            self.skeletons[0].body('h_pelvis').add_ext_force(self.force1, [0., 0., 0.1088])
 
         # PD CONTROL
+
+        q_revised = np.asarray(self.read_q_list[self.fn_bvh])
+        q_revised[0:1] = 0.001
 
         # gain_value = 25.0
         gain_value = 50.0
         Kp = np.diagflat([0.0] * 6 + [gain_value] * (ndofs - 6))
         Kd = np.diagflat([0.0] * 6 + [2. * (gain_value ** .5)] * (ndofs - 6))
         invM = np.linalg.inv(skel.M + Kd * h)
-        p = -Kp.dot(skel.q - self.read_q_list[self.fn_bvh] + skel.dq * h)
+        p = -Kp.dot(skel.q - q_revised + skel.dq * h)
         d = -Kd.dot(skel.dq)
         qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
         des_accel = p + d + qddot
 
         ddc = np.zeros(6)
 
-        # print(skel.body('h_blade_left').to_world([0., 0, 0.]), skel.com())
-
-        # if self.fn_bvh == 0:
-        #     p1 = skel.body('h_blade_left').to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body('h_blade_left').to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #     slidingAxisLeft = p2 - p1
-        #     slidingAxisLeft = np.array([1, 0, 1]) * slidingAxisLeft
-        #
-        #     if np.linalg.norm(slidingAxisLeft) != 0:
-        #         slidingAxisLeft = slidingAxisLeft / np.linalg.norm(slidingAxisLeft)
-        #
-        #     p1 = skel.body('h_blade_right').to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body('h_blade_right').to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #     slidingAxisRight = p2 - p1
-        #     slidingAxisRight = np.array([1, 0, 1]) * slidingAxisRight
-        #
-        #     if np.linalg.norm(slidingAxisRight) != 0:
-        #         slidingAxisRight = slidingAxisRight / np.linalg.norm(slidingAxisRight)
-
-        ref_skel = self.skeletons[1]
         if self.fn_bvh < self.fn:
             q_temp = np.asarray(ref_skel.q)
             cur_blade_left_pos = ref_skel.body('h_blade_left').to_world([0., 0., 0.])
             cur_blade_right_pos = ref_skel.body('h_blade_right').to_world([0., 0., 0.])
+            cur_com_pos = ref_skel.com()
             # self.r1 = cur_blade_right_pos
 
             ref_skel.set_positions(self.read_q_list[self.fn_bvh+1])
             future_blade_left_pos = ref_skel.body('h_blade_left').to_world([0., 0., 0.])
             future_blade_right_pos = ref_skel.body('h_blade_right').to_world([0., 0., 0.])
+            future_com_pos = ref_skel.com()
             # self.r2 = future_blade_right_pos
             slidingAxisLeft = future_blade_left_pos - cur_blade_left_pos
             slidingAxisRight = future_blade_right_pos - cur_blade_right_pos
@@ -302,6 +317,17 @@ class MyWorld(pydart.World):
                 slidingAxisLeft = slidingAxisLeft / np.linalg.norm(slidingAxisLeft)
             if np.linalg.norm(slidingAxisRight) != 0:
                 slidingAxisRight = slidingAxisRight / np.linalg.norm(slidingAxisRight)
+
+            r_vec_l = skel.body('h_blade_left').to_local([0., 0., 0.])
+            r_vec_l = np.array([1, 0, 1]) * r_vec_l
+            r_vec_r = skel.body('h_blade_right').to_local([0., 0., 0.])
+            r_vec_r = np.array([1, 0, 1]) * r_vec_r
+            r_vec_ref_l = ref_skel.body('h_blade_left').to_local([0., 0., 0.])
+            r_vec_ref_l = np.array([1, 0, 1]) * r_vec_ref_l
+            r_vec_ref_r = ref_skel.body('h_blade_right').to_local([0., 0., 0.])
+            r_vec_ref_r = np.array([1, 0, 1]) * r_vec_ref_r
+            zero_term = np.linalg.norm(r_vec_l - r_vec_ref_l) + np.linalg.norm(r_vec_r - r_vec_ref_r)
+            ddc[0:3] = 1/(2*1.5)*zero_term + 0.1*(skel.com_velocity())
 
             ref_skel.set_positions(q_temp)
 
@@ -324,16 +350,31 @@ class MyWorld(pydart.World):
             self.contactPositionLocals.append(_contactPositionLocals[i])
         # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
 
-        # Jacobian transpose control
+        # # Jacobian transpose control
+        if self.fn_bvh < 10:
+            my_jaco = skel.body("h_blade_right").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            self.my_force2 = 50. * np.array([.0, -0.0, -1.0])
+            # self.my_force2 = 10. * slidingAxisRight
+            # self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
 
-        # if self.fn_bvh < 10:
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force = 10. * np.array([0.7, 0., 1.0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
-        #
-        #     _tau += self.my_tau
+            p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
+            p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+            blade_direction_vec = p2 - p1
+            blade_direction_vec[1] = -0.
+            # print("dir vec:", blade_direction_vec)
+            my_jaco = skel.body("h_blade_left").linear_jacobian()
+            my_jaco_t = my_jaco.transpose()
+            self.my_force = 100. * np.array([-0., -0., 1.])
+            # self.my_force = 100. * blade_direction_vec
+            # self.my_force = 500. * slidingAxisLeft
+            self.my_tau = np.dot(my_jaco_t, self.my_force)
+
+            _tau += self.my_tau #+ self.my_tau2
+        else:
+            self.my_tau = None
+            self.my_tau2 = None
 
         skel.set_forces(_tau)
 
@@ -358,6 +399,8 @@ class MyWorld(pydart.World):
         del render_vector_origin[:]
         del push_force[:]
         del push_force_origin[:]
+        del push_force1[:]
+        del push_force1_origin[:]
         del blade_force[:]
         del blade_force_origin[:]
         del COM[:]
@@ -387,9 +430,16 @@ class MyWorld(pydart.World):
         if self.my_tau is not None:
             blade_force.append(self.my_force* 0.05)
             blade_force_origin.append(self.skeletons[0].body('h_heel_left').to_world())
+        if self.my_tau2 is not None:
+            blade_force.append(self.my_force2* 0.05)
+            blade_force_origin.append(self.skeletons[0].body('h_heel_right').to_world())
+
         if self.force is not None:
-            push_force.append(self.force * 0.05)
-            push_force_origin.append(self.skeletons[0].body('h_pelvis').to_world())
+            push_force.append(self.force * 0.001)
+            push_force_origin.append(self.skeletons[0].body('h_pelvis').to_world([0., 0., -0.1088]))
+        if self.force1 is not None:
+            push_force1.append(self.force1 * 0.001)
+            push_force1_origin.append(self.skeletons[0].body('h_pelvis').to_world([0., 0., 0.1088]))
         if len(self.bodyIDs) != 0:
             print(len(self.bodyIDs))
             for ii in range(len(self.contact_force)):
@@ -416,20 +466,26 @@ if __name__ == '__main__':
     q = np.asarray(skel.q)
     skel.set_positions(world.read_q_list[0])
     q_new = np.asarray(skel.q)
-    # q_new[0:1] = 0.000000000000001
-    q_new[3:6] = q[3:6] - np.array([0., 0.05, 0.])
+    q_new[0:1] = 0.001
+    q_new[3:6] = q[3:6] - np.array([0., 0.025, 0.])
+    # q_new[3:6] = q[3:6] - np.array([0., 0.03, 0.])
     # q_new[17:18] = -0.2
     # q_new[20:21] = -0.2
     skel.set_positions(q_new)
+
+    q_vel = skel.position_differences(world.read_q_list[0], world.read_q_list[1])/world.bvh.frameTime
+    # print("Init vel: ", q_vel)
+    skel.set_velocities(q_vel)
 
     # pydart.gui.viewer.launch_pyqt5(world)
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     # viewer = hsv.hpSimpleViewer(rect=[0, 0, 1280 + 300, 720 + 1 + 55], viewForceWnd=False)
 
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL))
-    # viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255, 0)))
+    viewer.doc.addRenderer('pushForce1', yr.WideArrowRenderer(push_force1, push_force1_origin, (0, 255, 0)))
     viewer.doc.addRenderer('COM_pos', yr.PointsRenderer(COM))
     # viewer.doc.addRenderer('ref_motion', yr.JointMotionRenderer(world.motion), visible=False)
 
@@ -437,8 +493,8 @@ if __name__ == '__main__':
 
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
 
-    viewer.doc.addRenderer('lbladeDir', yr.WideArrowRenderer(l_blade_dir_vec, l_blade_dir_vec_origin, (0, 255, 0)))
-    viewer.doc.addRenderer('rbladeDir', yr.WideArrowRenderer(r_blade_dir_vec, r_blade_dir_vec_origin, (0, 0, 255)))
+    viewer.doc.addRenderer('lbladeDir', yr.WideArrowRenderer(l_blade_dir_vec, l_blade_dir_vec_origin, (0, 255, 0)), visible=False)
+    viewer.doc.addRenderer('rbladeDir', yr.WideArrowRenderer(r_blade_dir_vec, r_blade_dir_vec_origin, (0, 0, 255)), visible=False)
 
     # viewer.doc.addRenderer('r1', yr.PointsRenderer(r1_point))
     # viewer.doc.addRenderer('r2', yr.PointsRenderer(r2_point))
