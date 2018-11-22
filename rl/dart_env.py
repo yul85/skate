@@ -15,7 +15,7 @@ from PyCommon.modules.Simulator import yulQpSimulator_penalty as yulqp
 from multiprocessing import Pool
 
 debug = False
-debug = True
+# debug = True
 
 def exp_reward_term(w, exp_w, v0, v1):
     norm = np.linalg.norm(v0 - v1)
@@ -91,7 +91,6 @@ class YulDartEnv(gym.Env):
         self.contactPositionLocals = []
         self.bodyIDs = []
 
-    # todo
     def get_dq(self, frame):
 
         prevFrame = frame-1 if frame > 0 else frame
@@ -127,7 +126,16 @@ class YulDartEnv(gym.Env):
         self.ref_skel.set_positions(self.ref_motion[current_frame])
         self.ref_skel.set_velocities(self.get_dq(current_frame))
 
-        p_e_hat = np.asarray([body.world_transform()[:3, 3] for body in self.ref_body_e]).flatten()
+        # p_e_hat = np.asarray([body.world_transform()[:3, 3] for body in self.ref_body_e]).flatten()
+        p_e_hat_list = []
+        for body in self.ref_body_e:
+            if 'blade' in body.name:
+                p_e_hat_list.append(body.world_transform()[:3, 3])
+                p_e_hat_list[-1][1] = 0.
+            else:
+                p_e_hat_list.append(body.world_transform()[:3, 3])
+
+        p_e_hat = np.asarray(p_e_hat_list).flatten()
         p_e = np.asarray([body.world_transform()[:3, 3] for body in self.body_e]).flatten()
 
         return exp_reward_term(self.w_p, self.exp_p, self.skel.q, self.ref_skel.q) \

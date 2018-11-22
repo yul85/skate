@@ -67,7 +67,7 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
                     # print(position_local)
                     position_global = body.to_world(position_local)
                     # ground_height = -0.98
-                    ground_height = 0.0 + 0.02
+                    ground_height = 0.0
                     if position_global[1] < ground_height:
                         bodies.append(body)
                         position_locals.append(position_local)
@@ -128,9 +128,9 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100. + 10000000.*mat_a.transpose().dot(mat_a)
+    P[:num_dof, :num_dof] *= 100. + 5000000.*mat_a.transpose().dot(mat_a)
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des - 100000000. * mat_a.transpose().dot(vec_b)
+    q[:num_dof] = -100.*ddq_des - 50000000. * mat_a.transpose().dot(vec_b)
 
     #####################################################
     # equality

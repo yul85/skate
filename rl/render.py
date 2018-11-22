@@ -24,13 +24,17 @@ def main():
     # viewer settings
     rd_contact_positions = [None]
     rd_contact_forces = [None]
+    zero_point = [None]
+    zero_point.append(np.array([0.0, 0.0, 0.0]))
+
     dart_world = ppo.env.world
     viewer = hsv.hpSimpleViewer(rect=(0, 0, 1200, 800), viewForceWnd=False)
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(ppo.env.ref_world, (150,150,255), yr.POLYGON_FILL))
     if not MOTION_ONLY:
         viewer.doc.addRenderer('controlModel', yr.DartRenderer(dart_world, (255,240,255), yr.POLYGON_FILL))
         viewer.doc.addRenderer('contact', yr.VectorsRenderer(rd_contact_forces, rd_contact_positions, (255,0,0)))
-        viewer.doc.addRenderer('ground', yr.DartRenderer(ppo.env.ground, (255, 255, 255), yr.POLYGON_FILL))
+        # viewer.doc.addRenderer('ground', yr.DartRenderer(ppo.env.ground, (255, 255, 255), yr.POLYGON_FILL))
+        viewer.doc.addRenderer('zero_point', yr.PointsRenderer(zero_point))
 
     def postCallback(frame):
         ppo.env.ref_skel.set_positions(ppo.env.ref_motion[frame])
@@ -49,13 +53,19 @@ def main():
             print(frame, 'Done')
             ppo.env.reset()
 
+
+        lf_pos = ppo.env.ref_skel.body("h_blade_left").to_world([0.0, 0.0, 0.0])
+        rf_pos = ppo.env.ref_skel.body("h_blade_right").to_world([0.0, 0.0, 0.0])
+        # print(lf_pos[1], rf_pos[1])
+        # zero_point.append(lf_pos)
+
         # contact rendering
 
         del rd_contact_forces[:]
         del rd_contact_positions[:]
 
         if len(ppo.env.bodyIDs) != 0:
-            # print(len(ppo.env.bodyIDs))
+            print(len(ppo.env.bodyIDs))
             for ii in range(len(ppo.env.contact_force)):
                 # print(len(ppo.env.contact_force))
                 if ppo.env.bodyIDs[ii] == 4:
@@ -77,8 +87,8 @@ def main():
         viewer.setSimulateCallback(simulateCallback)
         viewer.setMaxFrame(3000)
 
-    # viewer.motionViewWnd.glWindow.planeHeight = -0.98 + 0.0251
-    viewer.motionViewWnd.glWindow.planeHeight = 0.05
+    # viewer.motionViewWnd.glWindow.planeHeight = 0.98
+    viewer.motionViewWnd.glWindow.planeHeight = 0.0
     viewer.startTimer(1./30.)
     viewer.show()
 

@@ -159,12 +159,15 @@ class MyWorld(pydart.World):
                 self.ik.add_vector_const('h_heel_left', np.array([1., -0.8, 0.]), np.asarray(left_blade_vec))
                 self.ik.add_vector_const('h_heel_right', np.array([1., -0.8, 0.]), np.asarray(right_blade_vec))
 
-                self.ik.add_position_const('h_blade_left', motion.getJointPositionGlobal(left_toe_index, f),
-                                      [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
+                left_toe_pos = motion.getJointPositionGlobal(left_toe_index, f)
+                print("lt: ", left_toe_pos)
+                # left_toe_pos[1] = 0.0
+                self.ik.add_position_const('h_blade_left', left_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
                 # self.ik.add_position_const('h_blade_left', motion.getJointPositionGlobal(left_toe_index, f),
                 #                            [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
-                self.ik.add_position_const('h_blade_right', motion.getJointPositionGlobal(right_toe_index, f),
-                                      [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
+                right_toe_pos = motion.getJointPositionGlobal(right_toe_index, f)
+                # right_toe_pos[1] = 0.0
+                self.ik.add_position_const('h_blade_right', right_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
                 # self.ik.add_position_const('h_blade_right', motion.getJointPositionGlobal(right_toe_index, f),
                 #                            [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
 
@@ -173,7 +176,8 @@ class MyWorld(pydart.World):
                 self.q_list.append(self.skeletons[1].q)
 
             #store q_list to txt file
-            with open('data/mocap/skate_spin.txt', 'w') as f:
+            # with open('data/mocap/skate_spin.txt', 'w') as f:
+            with open('data/mocap/skate_spin_test1.txt', 'w') as f:
                 for pose in self.q_list:
                     for a in pose:
                         f.write('%s ' % a)
@@ -185,7 +189,7 @@ class MyWorld(pydart.World):
         # read q_list from txt file
         self.read_q_list = []
         # with open('data/mocap/skate_spin.txt') as f:
-        with open('data/mocap/skate_spin_cut.txt') as f:
+        with open('data/mocap/skate_spin_ground.txt') as f:
             # lines = f.read().splitlines()
             for line in f:
                 q_temp = []
@@ -377,34 +381,34 @@ class MyWorld(pydart.World):
             self.skeletons[0].body('h_pelvis').add_ext_force(self.force1, [0., 0., 0.1088])
 
         # Jacobian transpose control
-        if self.fn_bvh < 20:
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            self.my_force2 = 30. * np.array([-1.0,  -5., 5.0])
-            # self.my_force2 = 10. * slidingAxisRight
-            self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-
-            p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-            p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-
-            blade_direction_vec = p2 - p1
-            blade_direction_vec[1] = -0.
-            if np.linalg.norm(blade_direction_vec) != 0:
-                blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-
-            # print("dir vec:", blade_direction_vec)
-            my_jaco = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            self.my_force = 20. * np.array([-3., 0., 5.])
-            # self.my_force = 30. * np.array([1., -15., 40.])
-            # self.my_force = 50. * blade_direction_vec
-            # self.my_force = 500. * slidingAxisLeft
-            self.my_tau = np.dot(my_jaco_t, self.my_force)
-
-            _tau += self.my_tau + self.my_tau2
-        else:
-            self.my_tau = None
-            self.my_tau2 = None
+        # if self.fn_bvh < 20:
+        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     self.my_force2 = 30. * np.array([-1.0,  -5., 5.0])
+        #     # self.my_force2 = 10. * slidingAxisRight
+        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
+        #
+        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
+        #
+        #     blade_direction_vec = p2 - p1
+        #     blade_direction_vec[1] = -0.
+        #     if np.linalg.norm(blade_direction_vec) != 0:
+        #         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+        #
+        #     # print("dir vec:", blade_direction_vec)
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     self.my_force = 20. * np.array([-3., 0., 5.])
+        #     # self.my_force = 30. * np.array([1., -15., 40.])
+        #     # self.my_force = 50. * blade_direction_vec
+        #     # self.my_force = 500. * slidingAxisLeft
+        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
+        #
+        #     _tau += self.my_tau + self.my_tau2
+        # else:
+        #     self.my_tau = None
+        #     self.my_tau2 = None
 
         # Jacobian transpose control
         # if self.fn_bvh < 10:
