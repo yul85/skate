@@ -23,7 +23,7 @@ NON_HOLONOMIC = False
 QPOASES = False
 
 
-def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
+def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade_r, inv_h):
     """
     :param skel:
     :type skel: pydart.Skeleton
@@ -66,8 +66,9 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
                     # print(data)
                     # print(position_local)
                     position_global = body.to_world(position_local)
-
-                    if position_global[1] < -0.98 + 0.05:
+                    # ground_height = -0.98
+                    ground_height = 0.0
+                    if position_global[1] < ground_height + 0.05:
                         bodies.append(body)
                         position_locals.append(position_local)
                         position_globals.append(position_global)
@@ -154,7 +155,7 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
     P = np.eye(num_variable)
     P[:num_dof, :num_dof] *= 100. #+ 100. * 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
-    P[num_dof + num_tau:, num_dof + num_tau:] *= 0.1
+    # P[num_dof + num_tau:, num_dof + num_tau:] *= 0.1
     q = np.zeros(num_variable)
     q[:num_dof] = -100.*ddq_des #- 100. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
@@ -200,7 +201,20 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, inv_h):
         # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
 
         x_axis = np.array([1., 0., 0.])
+        if body_name == "h_blade_right":
+            blade_direction_vec = - blade_direction_vec
+        #
         theta = math.acos(np.dot(x_axis, blade_direction_vec))
+
+        # if body_name == "h_blade_left":
+        #     theta = math.acos(np.dot(l_blade_dir, cur_blade_l))
+        #     if theta / math.pi * 180 > 90:
+        #         theta = math.pi - theta
+        #     # print("left theta: ", theta, theta / math.pi * 180)
+        # else:
+        #     theta = math.acos(np.dot(r_blade_dir, -cur_blade_r))
+        #     if theta / math.pi * 180 > 90:
+        #         theta = math.pi - theta
 
         # if body_name == "h_blade_left":
         #     theta = math.acos(np.dot(l_blade_dir, blade_direction_vec))

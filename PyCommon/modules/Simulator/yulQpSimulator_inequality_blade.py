@@ -23,7 +23,7 @@ NON_HOLONOMIC = False
 QPOASES = False
 
 
-def calc_QP(skel, ddq_des, ddc, inv_h):
+def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade_r, inv_h):
     """
     :param skel:
     :type skel: pydart.Skeleton
@@ -34,8 +34,9 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
 
     weight_map_vec = np.diagflat(
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.1, 0.1, 0.1, 0.25, 0.25, 0.25, 0.2, 0.2, 0.2,
-         0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+         0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
+         0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
+         # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
          # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
          0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
          0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
@@ -65,9 +66,8 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
                     # print(data)
                     # print(position_local)
                     position_global = body.to_world(position_local)
-                    ground_height = -0.98
-                    # ground_height = 0.0
-                    if position_global[1] < ground_height + 0.05:
+
+                    if position_global[1] < -0.98 + 0.05:
                         bodies.append(body)
                         position_locals.append(position_local)
                         position_globals.append(position_global)
@@ -75,11 +75,6 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
                         vel_globals.append(vel_global)
 
     num_contact = len(position_globals)
-
-    # todo: two contact points when sliding
-    # num_contact
-    # position_globals
-    # position_locals
 
     num_lambda = (1 + QP_CONE_DIM) * num_contact if LAMBDA_CONTAIN_NORMAL else QP_CONE_DIM * num_contact
 
@@ -157,11 +152,11 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100.# + 1/skel.m * PJ.transpose().dot(PJ)
+    P[:num_dof, :num_dof] *= 100. #+ 100. * 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
-    # P[num_dof + num_tau:, num_dof + num_tau:] *= 10.
+    P[num_dof + num_tau:, num_dof + num_tau:] *= 0.1
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des# - 30.* (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
+    q[:num_dof] = -100.*ddq_des #- 100. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
     #####################################################
     # equality
@@ -185,12 +180,10 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
     # floating base
     A[num_dof:num_dof+6, num_dof:num_dof+6] = np.eye(6)
 
-    _h = 1 / inv_h
-
     #####################################################
     # inequality
     #####################################################
-    num_inequality = 2*num_lambda + (QP_CONE_DIM + 1) * num_contact if LAMBDA_CONTAIN_NORMAL else 2*num_lambda
+    num_inequality = 2*num_lambda + (QP_CONE_DIM + 1) * num_contact + 2 if LAMBDA_CONTAIN_NORMAL else 2*num_lambda + 2 + 2
     G = np.zeros((num_inequality, num_variable))
     h = np.zeros(num_inequality)
     V = np.zeros((3*num_contact, num_lambda))
@@ -221,6 +214,7 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
                 # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
                 V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 0., MU_z)))
 
+
         #####################################################
         # equality
         #####################################################
@@ -249,6 +243,56 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
 
                     G[2*num_lambda+(QP_CONE_DIM+1)*i+j,
                     num_dof+num_tau+(QP_CONE_DIM+1)*i:num_dof+num_tau+(QP_CONE_DIM+1)*i + QP_CONE_DIM+1] = g
+
+        blade_threshold = 0.5
+        _h = 1 / inv_h
+        def get_foot_info(body_name):
+            jaco = skel.body(body_name).linear_jacobian()
+            jaco_der = skel.body(body_name).linear_jacobian_deriv()
+
+            v1 = skel.body(body_name).to_world([-0.1040 + 0.0216, 0.0, 0.0])
+            v2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
+
+            blade_direction_vec = v2 - v1
+            blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
+            if np.linalg.norm(blade_direction_vec) != 0:
+                blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+
+            x_axis = np.array([1., 0., 0.])
+            theta = math.acos(np.dot(x_axis, blade_direction_vec))
+            next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
+
+            sa = math.sin(next_step_angle)
+            ca = math.cos(next_step_angle)
+
+            return jaco, jaco_der, sa, ca
+
+        # FOR NON-HOLONOMIC CONSTRAINTS
+        jaco_L, jaco_der_L, sa_L, ca_L = get_foot_info("h_blade_left")
+        jaco_R, jaco_der_R, sa_R, ca_R= get_foot_info("h_blade_right")
+
+        G[2*num_lambda:2*num_lambda+1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+        G[2*num_lambda+1:2*num_lambda+2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+        G[2 * num_lambda+2:2 * num_lambda + 3, :num_dof] = -np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
+        G[2 * num_lambda + 3:2 * num_lambda + 4, :num_dof] = -np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+
+        h[2*num_lambda:2*num_lambda+1] = -((np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                             2] * ca_L - \
+                                         (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                             0] * sa_L) + blade_threshold
+        h[2*num_lambda+1:2*num_lambda+2] = -((np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                                 2] * ca_R - \
+                                             (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                                 0] * sa_R) + blade_threshold
+
+        h[2*num_lambda+2:2*num_lambda+3] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                             2] * ca_L - \
+                                         (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
+                                             0] * sa_L + blade_threshold
+        h[2*num_lambda+3:2*num_lambda+4] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                                 2] * ca_R - \
+                                             (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
+                                                 0] * sa_R + blade_threshold
 
     forces = list()
 

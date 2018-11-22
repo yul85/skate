@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<skel version="1.0">
+    <world name="world 1">
+        <physics>
+            <time_step>0.001</time_step>
+            <gravity>0 -9.81 0</gravity>
+            <collision_detector>fcl_mesh</collision_detector>
+        </physics>
+    
+        <skeleton name="ground skeleton">
+            <mobile>false</mobile>
+            <body name="ground">
+                <!-- <transformation>0 -0.92 0 0 0 0</transformation> -->
+                <transformation>0 -0.98 0 0 0 0</transformation>
+                <!-- <transformation>0 -1.0 0 0 0 0</transformation> -->
+                <visualization_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>10.0 0.05 10.0</size>
+                        </box>
+                    </geometry>
+                    <!-- <color>1.0 0.9999 0.99 1.0 </color> -->
+                    <color>1.0 1.0 1.0 1.0 </color>
+                </visualization_shape>
+<!--                 <collision_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>10.0 0.05 10.0</size>
+                        </box>
+                    </geometry>
+                </collision_shape> -->                                
+            </body>
+            <joint type="free" name="joint 1">
+                <parent>world</parent>
+                <child>ground</child>
+            </joint>
+        </skeleton> 
+
+    </world>
+</skel>
