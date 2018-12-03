@@ -67,7 +67,7 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
                     # print(position_local)
                     position_global = body.to_world(position_local)
                     # ground_height = -0.98
-                    ground_height = 0.0
+                    ground_height = 0.0 + 0.025
                     if position_global[1] < ground_height:
                         bodies.append(body)
                         position_locals.append(position_local)
@@ -80,7 +80,10 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
     num_lambda = (1 + QP_CONE_DIM) * num_contact if LAMBDA_CONTAIN_NORMAL else QP_CONE_DIM * num_contact
 
     num_tau = num_dof
-    num_variable = num_dof + num_tau + num_lambda
+
+    num_variable = num_dof + num_tau
+    if num_contact > 0:
+        num_variable = num_dof + num_tau + num_lambda
 
     # non-holonoic constaraint to penalty term
 
@@ -130,7 +133,7 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
     P = np.eye(num_variable)
     P[:num_dof, :num_dof] *= 100. + 5000000.*mat_a.transpose().dot(mat_a)
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des - 50000000. * mat_a.transpose().dot(vec_b)
+    q[:num_dof] = -100.*ddq_des - 5000000. * mat_a.transpose().dot(vec_b)
 
     #####################################################
     # equality
@@ -219,6 +222,7 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
 
     forces = list()
 
+    solvers.options['feastol'] = 1e-3
     if num_contact > 0:
         result = solvers.qp(matrix(P), matrix(q), matrix(G), matrix(h), matrix(A), matrix(b))
         value_ddq = np.asarray(result['x']).flatten()[num_dof:]

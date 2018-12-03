@@ -7,6 +7,9 @@ import numpy as np
 
 import pydart2 as pydart
 
+debug = False
+# debug = True
+
 
 def main():
     MOTION_ONLY = False
@@ -16,16 +19,26 @@ def main():
     env_name = 'spin'
 
     ppo = PPO(env_name, 1, visualize_only=True)
-    # if not MOTION_ONLY:
-    #     ppo.LoadModel('model/' + env_name + '.pt')
+    if not MOTION_ONLY:
+        ppo.LoadModel('model/' + env_name + '.pt')
     ppo.env.Resets(False)
     ppo.env.ref_skel.set_positions(ppo.env.ref_motion[ppo.env.phase_frame])
+    #yul : set initial velocities
+    ppo.env.ref_skel.set_velocities(ppo.env.get_dq(ppo.env.phase_frame))
 
     # viewer settings
     rd_contact_positions = [None]
     rd_contact_forces = [None]
     zero_point = [None]
     zero_point.append(np.array([0.0, 0.0, 0.0]))
+
+    if debug:
+        for body in ppo.env.ref_body_e:
+            if 'blade' in body.name:
+                ppp = body.world_transform()[:3, 3]
+                print(body.name, ppp)
+                zero_point.append(ppp)
+                zero_point[-1][1] -= 0.05
 
     dart_world = ppo.env.world
     viewer = hsv.hpSimpleViewer(rect=(0, 0, 1200, 800), viewForceWnd=False)
@@ -88,7 +101,7 @@ def main():
         viewer.setMaxFrame(3000)
 
     # viewer.motionViewWnd.glWindow.planeHeight = 0.98
-    viewer.motionViewWnd.glWindow.planeHeight = 0.0
+    viewer.motionViewWnd.glWindow.planeHeight = 0.0 + 0.025
     viewer.startTimer(1./30.)
     viewer.show()
 

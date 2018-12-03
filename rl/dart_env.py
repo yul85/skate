@@ -15,7 +15,9 @@ from PyCommon.modules.Simulator import yulQpSimulator_penalty as yulqp
 from multiprocessing import Pool
 
 debug = False
-# debug = True
+debug = True
+jtcon = False
+jtcon = True
 
 def exp_reward_term(w, exp_w, v0, v1):
     norm = np.linalg.norm(v0 - v1)
@@ -56,7 +58,8 @@ class YulDartEnv(gym.Env):
 
         self.w_p = 0.65
         self.w_v = 0.1
-        self.w_e = 0.15
+        # self.w_e = 0.15
+        self.w_e = 2.
         self.w_c = 0.1
 
         self.exp_p = 2.
@@ -65,8 +68,9 @@ class YulDartEnv(gym.Env):
         self.exp_c = 10.
 
         self.body_num = self.skel.num_bodynodes()
-        self.idx_e = [self.skel.bodynode_index('h_blade_left'), self.skel.bodynode_index('h_blade_right'),
-                      self.skel.bodynode_index('h_hand_left'), self.skel.bodynode_index('h_hand_right')]
+        # self.idx_e = [self.skel.bodynode_index('h_blade_left'), self.skel.bodynode_index('h_blade_right'),
+        #               self.skel.bodynode_index('h_hand_left'), self.skel.bodynode_index('h_hand_right')]
+        self.idx_e = [self.skel.bodynode_index('h_blade_left'), self.skel.bodynode_index('h_blade_right')]
         self.body_e = list(map(self.skel.body, self.idx_e))
         self.ref_body_e = list(map(self.ref_skel.body, self.idx_e))
         self.motion_len = len(self.ref_motion)
@@ -75,12 +79,17 @@ class YulDartEnv(gym.Env):
         self.time_offset = 0.
 
         state_num = 1 + (3*3 + 4) * self.body_num
-        action_num = self.skel.num_dofs() - 6
+
+        if jtcon:
+            action_num = 6 + self.skel.num_dofs() - 6
+            action_high = np.array([pi * 10. / 2.] * action_num)
+            self.action_space = gym.spaces.Box(-action_high, action_high, dtype=np.float32)
+        else:
+            action_num = self.skel.num_dofs() - 6
+            action_high = np.array([pi * 10. / 2.] * action_num)
+            self.action_space = gym.spaces.Box(-action_high, action_high, dtype=np.float32)
 
         state_high = np.array([np.finfo(np.float32).max] * state_num)
-        action_high = np.array([pi*10./2.] * action_num)
-
-        self.action_space = gym.spaces.Box(-action_high, action_high, dtype=np.float32)
         self.observation_space = gym.spaces.Box(-state_high, state_high, dtype=np.float32)
 
         self.viewer = None
@@ -130,8 +139,11 @@ class YulDartEnv(gym.Env):
         p_e_hat_list = []
         for body in self.ref_body_e:
             if 'blade' in body.name:
+                # print(body.name, body.world_transform()[:3, 3])
                 p_e_hat_list.append(body.world_transform()[:3, 3])
-                p_e_hat_list[-1][1] = 0.
+                # print("end_pos:", p_e_hat_list[-1][1])
+                p_e_hat_list[-1][1] = 0.05 + 0.025
+                # p_e_hat_list[-1][1] = 0.0270 + 0.025
             else:
                 p_e_hat_list.append(body.world_transform()[:3, 3])
 
@@ -173,7 +185,13 @@ class YulDartEnv(gym.Env):
             done (boolean): Whether the episode has ended, in which case further step() calls will return undefined results.
             info (dict): Contains auxiliary diagnostic information (helpful for debugging, and sometimes learning).
         """
-        action = np.hstack((np.zeros(6), _action/10.))
+
+        if jtcon:
+            action_jtforce_l = _action[0:3]*10.
+            action_jtforce_r = _action[3:6]*10.
+            action = np.hstack((np.zeros(6), _action[6:] / 10.))
+        else:
+            action = np.hstack((np.zeros(6), _action / 10.))
 
         next_frame_time = self.world.time() + self.time_offset + self.world.time_step() * self.step_per_frame
         next_frame = int(next_frame_time / self.ref_motion_ft)
@@ -216,13 +234,32 @@ class YulDartEnv(gym.Env):
                     self.contact_force.append(_contactForces[i])
                     self.contactPositionLocals.append(_contactPositionLocals[i])
 
+                # Jacobian transpose control
+                if jtcon:
+                    jaco_lf = self.skel.body("h_blade_left").linear_jacobian()
+                    jaco_lf_t = jaco_lf.transpose()
+                    tau_lf = np.dot(jaco_lf_t, action_jtforce_l)
+
+                    jaco_rf = self.skel.body("h_blade_right").linear_jacobian()
+                    jaco_rf_t = jaco_rf.transpose()
+                    tau_rf = np.dot(jaco_rf_t, action_jtforce_r)
+
+                    _tau += tau_lf + tau_rf
+
                 self.skel.set_forces(_tau)
 
                 self.world.step()
-        # except ZeroDivisionError:
+        except ZeroDivisionError:
+            if debug:
+                print('ZeroDivisionError!')
+                return tuple([self.state(), self.reward(), True, dict()])
         except ArithmeticError:
             if debug:
-                print('qp error!')
+                print('ArithmeticError!')
+                return tuple([self.state(), self.reward(), True, dict()])
+        except ValueError:
+            if debug:
+                print('ValueError!')
             return tuple([self.state(), self.reward(), True, dict()])
         return tuple([self.state(), self.reward(), self.is_done(), dict()])
 
