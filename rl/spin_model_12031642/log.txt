@@ -1,0 +1,28 @@
+# 1
+noise : 1.106
+Epi reward : 8.39, Step reward : 0.28 Total step : 30
+Elapsed time : 523.88s
+# 2
+noise : 1.107
+Epi reward : 8.43, Step reward : 0.29 Total step : 29
+Elapsed time : 1014.64s
+# 3
+noise : 1.105
+Epi reward : 8.83, Step reward : 0.30 Total step : 29
+Elapsed time : 1510.49s
+# 4
+noise : 1.103
+Epi reward : 8.61, Step reward : 0.30 Total step : 29
+Elapsed time : 2002.23s
+# 5
+noise : 1.101
+Epi reward : 8.60, Step reward : 0.29 Total step : 30
+Elapsed time : 2510.65s
+# 6
+noise : 1.100
+Epi reward : 8.40, Step reward : 0.28 Total step : 30
+Elapsed time : 3026.25s
+# 7
+noise : 1.101
+Epi reward : 8.65, Step reward : 0.29 Total step : 30
+Elapsed time : 3537.06s

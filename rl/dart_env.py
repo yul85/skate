@@ -187,8 +187,8 @@ class YulDartEnv(gym.Env):
         """
 
         if jtcon:
-            action_jtforce_l = _action[0:3]*10.
-            action_jtforce_r = _action[3:6]*10.
+            action_jtforce_l = _action[0:3]*100.
+            action_jtforce_r = _action[3:6]*100.
             action = np.hstack((np.zeros(6), _action[6:] / 10.))
         else:
             action = np.hstack((np.zeros(6), _action / 10.))

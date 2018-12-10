@@ -1,0 +1,584 @@
+# 1
+noise : 1.102
+Epi reward : 4.92, Step reward : 0.20 Total step : 24
+Elapsed time : 502.09s
+# 2
+noise : 1.102
+Epi reward : 4.80, Step reward : 0.19 Total step : 25
+Elapsed time : 1014.50s
+# 3
+noise : 1.104
+Epi reward : 4.92, Step reward : 0.20 Total step : 24
+Elapsed time : 1503.38s
+# 4
+noise : 1.103
+Epi reward : 4.71, Step reward : 0.19 Total step : 25
+Elapsed time : 2004.25s
+# 5
+noise : 1.102
+Epi reward : 4.77, Step reward : 0.19 Total step : 25
+Elapsed time : 2494.87s
+# 6
+noise : 1.101
+Epi reward : 4.62, Step reward : 0.18 Total step : 25
+Elapsed time : 3011.16s
+# 7
+noise : 1.101
+Epi reward : 4.91, Step reward : 0.20 Total step : 25
+Elapsed time : 3535.63s
+# 8
+noise : 1.101
+Epi reward : 4.87, Step reward : 0.19 Total step : 25
+Elapsed time : 4060.61s
+# 9
+noise : 1.099
+Epi reward : 4.55, Step reward : 0.18 Total step : 25
+Elapsed time : 4595.65s
+# 10
+noise : 1.098
+Epi reward : 4.91, Step reward : 0.20 Total step : 25
+Elapsed time : 5110.26s
+# 11
+noise : 1.096
+Epi reward : 4.72, Step reward : 0.19 Total step : 25
+Elapsed time : 5627.35s
+# 12
+noise : 1.097
+Epi reward : 5.03, Step reward : 0.20 Total step : 25
+Elapsed time : 6135.71s
+# 13
+noise : 1.095
+Epi reward : 5.01, Step reward : 0.20 Total step : 25
+Elapsed time : 6679.36s
+# 14
+noise : 1.095
+Epi reward : 4.84, Step reward : 0.20 Total step : 24
+Elapsed time : 7184.74s
+# 15
+noise : 1.095
+Epi reward : 4.73, Step reward : 0.19 Total step : 25
+Elapsed time : 7719.26s
+# 16
+noise : 1.093
+Epi reward : 5.07, Step reward : 0.20 Total step : 25
+Elapsed time : 8244.68s
+# 17
+noise : 1.091
+Epi reward : 5.08, Step reward : 0.19 Total step : 27
+Elapsed time : 8770.71s
+# 18
+noise : 1.090
+Epi reward : 5.27, Step reward : 0.20 Total step : 26
+Elapsed time : 9291.37s
+# 19
+noise : 1.091
+Epi reward : 5.24, Step reward : 0.21 Total step : 25
+Elapsed time : 9823.48s
+# 20
+noise : 1.091
+Epi reward : 5.45, Step reward : 0.21 Total step : 26
+Elapsed time : 10343.78s
+# 21
+noise : 1.091
+Epi reward : 5.12, Step reward : 0.20 Total step : 25
+Elapsed time : 10853.87s
+# 22
+noise : 1.090
+Epi reward : 5.29, Step reward : 0.20 Total step : 26
+Elapsed time : 11359.06s
+# 23
+noise : 1.091
+Epi reward : 5.80, Step reward : 0.21 Total step : 28
+Elapsed time : 11874.58s
+# 24
+noise : 1.089
+Epi reward : 5.39, Step reward : 0.21 Total step : 26
+Elapsed time : 12404.95s
+# 25
+noise : 1.090
+Epi reward : 5.43, Step reward : 0.21 Total step : 26
+Elapsed time : 12927.79s
+# 26
+noise : 1.091
+Epi reward : 5.21, Step reward : 0.19 Total step : 27
+Elapsed time : 13442.03s
+# 27
+noise : 1.092
+Epi reward : 5.59, Step reward : 0.22 Total step : 26
+Elapsed time : 13961.15s
+# 28
+noise : 1.093
+Epi reward : 5.04, Step reward : 0.19 Total step : 26
+Elapsed time : 14479.68s
+# 29
+noise : 1.093
+Epi reward : 5.15, Step reward : 0.20 Total step : 26
+Elapsed time : 14987.29s
+# 30
+noise : 1.095
+Epi reward : 5.09, Step reward : 0.20 Total step : 26
+Elapsed time : 15485.14s
+# 31
+noise : 1.094
+Epi reward : 5.19, Step reward : 0.20 Total step : 26
+Elapsed time : 16004.35s
+# 32
+noise : 1.091
+Epi reward : 5.65, Step reward : 0.19 Total step : 29
+Elapsed time : 16543.83s
+# 33
+noise : 1.092
+Epi reward : 5.11, Step reward : 0.18 Total step : 28
+Elapsed time : 17068.59s
+# 34
+noise : 1.089
+Epi reward : 5.13, Step reward : 0.20 Total step : 26
+Elapsed time : 17582.94s
+# 35
+noise : 1.088
+Epi reward : 5.20, Step reward : 0.20 Total step : 26
+Elapsed time : 18120.00s
+# 36
+noise : 1.085
+Epi reward : 5.44, Step reward : 0.21 Total step : 26
+Elapsed time : 18629.64s
+# 37
+noise : 1.085
+Epi reward : 5.51, Step reward : 0.18 Total step : 30
+Elapsed time : 19147.49s
+# 38
+noise : 1.085
+Epi reward : 5.49, Step reward : 0.20 Total step : 28
+Elapsed time : 19687.29s
+# 39
+noise : 1.085
+Epi reward : 5.22, Step reward : 0.18 Total step : 29
+Elapsed time : 20214.44s
+# 40
+noise : 1.085
+Epi reward : 5.19, Step reward : 0.18 Total step : 29
+Elapsed time : 20729.54s
+# 41
+noise : 1.082
+Epi reward : 5.45, Step reward : 0.19 Total step : 29
+Elapsed time : 21267.11s
+# 42
+noise : 1.079
+Epi reward : 5.63, Step reward : 0.21 Total step : 27
+Elapsed time : 21780.42s
+# 43
+noise : 1.077
+Epi reward : 5.39, Step reward : 0.20 Total step : 27
+Elapsed time : 22302.02s
+# 44
+noise : 1.077
+Epi reward : 5.51, Step reward : 0.20 Total step : 27
+Elapsed time : 22809.77s
+# 45
+noise : 1.077
+Epi reward : 5.37, Step reward : 0.19 Total step : 28
+Elapsed time : 23316.11s
+# 46
+noise : 1.074
+Epi reward : 5.19, Step reward : 0.19 Total step : 27
+Elapsed time : 23846.89s
+# 47
+noise : 1.075
+Epi reward : 5.00, Step reward : 0.19 Total step : 27
+Elapsed time : 24377.37s
+# 48
+noise : 1.073
+Epi reward : 5.61, Step reward : 0.20 Total step : 28
+Elapsed time : 24900.44s
+# 49
+noise : 1.074
+Epi reward : 5.35, Step reward : 0.20 Total step : 27
+Elapsed time : 25428.05s
+# 50
+noise : 1.074
+Epi reward : 5.56, Step reward : 0.20 Total step : 28
+Elapsed time : 25966.85s
+# 51
+noise : 1.074
+Epi reward : 5.14, Step reward : 0.20 Total step : 26
+Elapsed time : 26483.30s
+# 52
+noise : 1.074
+Epi reward : 4.81, Step reward : 0.19 Total step : 25
+Elapsed time : 27016.38s
+# 53
+noise : 1.070
+Epi reward : 5.04, Step reward : 0.19 Total step : 26
+Elapsed time : 27553.64s
+# 54
+noise : 1.070
+Epi reward : 5.24, Step reward : 0.21 Total step : 25
+Elapsed time : 28067.75s
+# 55
+noise : 1.070
+Epi reward : 4.85, Step reward : 0.20 Total step : 24
+Elapsed time : 28595.74s
+# 56
+noise : 1.067
+Epi reward : 4.92, Step reward : 0.20 Total step : 25
+Elapsed time : 29132.90s
+# 57
+noise : 1.066
+Epi reward : 4.82, Step reward : 0.20 Total step : 24
+Elapsed time : 29676.56s
+# 58
+noise : 1.064
+Epi reward : 4.82, Step reward : 0.19 Total step : 25
+Elapsed time : 30202.98s
+# 59
+noise : 1.062
+Epi reward : 4.90, Step reward : 0.20 Total step : 25
+Elapsed time : 30738.91s
+# 60
+noise : 1.061
+Epi reward : 5.05, Step reward : 0.20 Total step : 25
+Elapsed time : 31261.66s
+# 61
+noise : 1.061
+Epi reward : 4.90, Step reward : 0.20 Total step : 25
+Elapsed time : 31773.71s
+# 62
+noise : 1.061
+Epi reward : 4.90, Step reward : 0.20 Total step : 25
+Elapsed time : 32327.16s
+# 63
+noise : 1.056
+Epi reward : 4.98, Step reward : 0.21 Total step : 24
+Elapsed time : 32830.95s
+# 64
+noise : 1.054
+Epi reward : 4.95, Step reward : 0.21 Total step : 24
+Elapsed time : 33375.32s
+# 65
+noise : 1.053
+Epi reward : 4.77, Step reward : 0.20 Total step : 24
+Elapsed time : 33899.55s
+# 66
+noise : 1.049
+Epi reward : 4.81, Step reward : 0.20 Total step : 24
+Elapsed time : 34419.93s
+# 67
+noise : 1.050
+Epi reward : 4.92, Step reward : 0.21 Total step : 24
+Elapsed time : 34948.90s
+# 68
+noise : 1.049
+Epi reward : 4.64, Step reward : 0.19 Total step : 24
+Elapsed time : 35487.54s
+# 69
+noise : 1.046
+Epi reward : 4.78, Step reward : 0.20 Total step : 24
+Elapsed time : 36019.18s
+# 70
+noise : 1.049
+Epi reward : 4.86, Step reward : 0.20 Total step : 24
+Elapsed time : 36540.67s
+# 71
+noise : 1.049
+Epi reward : 4.96, Step reward : 0.21 Total step : 24
+Elapsed time : 37073.56s
+# 72
+noise : 1.048
+Epi reward : 4.62, Step reward : 0.19 Total step : 24
+Elapsed time : 37610.13s
+# 73
+noise : 1.046
+Epi reward : 4.69, Step reward : 0.19 Total step : 25
+Elapsed time : 38148.52s
+# 74
+noise : 1.046
+Epi reward : 5.02, Step reward : 0.20 Total step : 25
+Elapsed time : 38689.21s
+# 75
+noise : 1.045
+Epi reward : 5.15, Step reward : 0.20 Total step : 26
+Elapsed time : 39221.65s
+# 76
+noise : 1.044
+Epi reward : 5.36, Step reward : 0.20 Total step : 27
+Elapsed time : 39752.06s
+# 77
+noise : 1.046
+Epi reward : 5.03, Step reward : 0.19 Total step : 26
+Elapsed time : 40289.96s
+# 78
+noise : 1.045
+Epi reward : 4.86, Step reward : 0.19 Total step : 26
+Elapsed time : 40855.62s
+# 79
+noise : 1.044
+Epi reward : 5.10, Step reward : 0.20 Total step : 25
+Elapsed time : 41396.99s
+# 80
+noise : 1.044
+Epi reward : 5.00, Step reward : 0.20 Total step : 25
+Elapsed time : 41932.34s
+# 81
+noise : 1.044
+Epi reward : 4.65, Step reward : 0.19 Total step : 24
+Elapsed time : 42456.36s
+# 82
+noise : 1.041
+Epi reward : 5.02, Step reward : 0.20 Total step : 25
+Elapsed time : 42978.93s
+# 83
+noise : 1.038
+Epi reward : 5.25, Step reward : 0.20 Total step : 26
+Elapsed time : 43522.98s
+# 84
+noise : 1.038
+Epi reward : 5.23, Step reward : 0.20 Total step : 26
+Elapsed time : 44070.96s
+# 85
+noise : 1.037
+Epi reward : 5.01, Step reward : 0.19 Total step : 27
+Elapsed time : 44587.06s
+# 86
+noise : 1.034
+Epi reward : 5.28, Step reward : 0.20 Total step : 27
+Elapsed time : 45105.83s
+# 87
+noise : 1.033
+Epi reward : 4.89, Step reward : 0.19 Total step : 26
+Elapsed time : 45651.24s
+# 88
+noise : 1.036
+Epi reward : 5.36, Step reward : 0.20 Total step : 27
+Elapsed time : 46165.08s
+# 89
+noise : 1.034
+Epi reward : 5.21, Step reward : 0.20 Total step : 26
+Elapsed time : 46682.93s
+# 90
+noise : 1.036
+Epi reward : 5.01, Step reward : 0.21 Total step : 24
+Elapsed time : 47235.72s
+# 91
+noise : 1.036
+Epi reward : 5.08, Step reward : 0.21 Total step : 24
+Elapsed time : 47749.55s
+# 92
+noise : 1.035
+Epi reward : 4.73, Step reward : 0.20 Total step : 24
+Elapsed time : 48299.08s
+# 93
+noise : 1.039
+Epi reward : 5.06, Step reward : 0.21 Total step : 24
+Elapsed time : 48842.70s
+# 94
+noise : 1.037
+Epi reward : 4.92, Step reward : 0.20 Total step : 24
+Elapsed time : 49383.43s
+# 95
+noise : 1.035
+Epi reward : 4.92, Step reward : 0.21 Total step : 24
+Elapsed time : 49933.89s
+# 96
+noise : 1.030
+Epi reward : 5.06, Step reward : 0.21 Total step : 24
+Elapsed time : 50474.37s
+# 97
+noise : 1.029
+Epi reward : 5.01, Step reward : 0.21 Total step : 24
+Elapsed time : 51007.06s
+# 98
+noise : 1.025
+Epi reward : 4.69, Step reward : 0.20 Total step : 24
+Elapsed time : 51555.72s
+# 99
+noise : 1.025
+Epi reward : 5.02, Step reward : 0.21 Total step : 24
+Elapsed time : 52099.82s
+# 100
+noise : 1.026
+Epi reward : 5.00, Step reward : 0.21 Total step : 24
+Elapsed time : 52636.63s
+# 101
+noise : 1.027
+Epi reward : 4.76, Step reward : 0.20 Total step : 24
+Elapsed time : 53183.37s
+# 102
+noise : 1.026
+Epi reward : 4.93, Step reward : 0.21 Total step : 24
+Elapsed time : 53711.52s
+# 103
+noise : 1.025
+Epi reward : 4.76, Step reward : 0.20 Total step : 24
+Elapsed time : 54254.44s
+# 104
+noise : 1.024
+Epi reward : 4.77, Step reward : 0.20 Total step : 24
+Elapsed time : 54791.24s
+# 105
+noise : 1.023
+Epi reward : 5.08, Step reward : 0.21 Total step : 24
+Elapsed time : 55314.99s
+# 106
+noise : 1.022
+Epi reward : 5.00, Step reward : 0.21 Total step : 24
+Elapsed time : 55836.97s
+# 107
+noise : 1.022
+Epi reward : 4.99, Step reward : 0.21 Total step : 24
+Elapsed time : 56388.21s
+# 108
+noise : 1.020
+Epi reward : 5.08, Step reward : 0.21 Total step : 24
+Elapsed time : 56933.77s
+# 109
+noise : 1.018
+Epi reward : 4.82, Step reward : 0.20 Total step : 24
+Elapsed time : 57464.04s
+# 110
+noise : 1.020
+Epi reward : 5.09, Step reward : 0.21 Total step : 24
+Elapsed time : 58001.26s
+# 111
+noise : 1.020
+Epi reward : 5.09, Step reward : 0.21 Total step : 24
+Elapsed time : 58543.03s
+# 112
+noise : 1.020
+Epi reward : 5.09, Step reward : 0.21 Total step : 24
+Elapsed time : 59090.46s
+# 113
+noise : 1.019
+Epi reward : 4.89, Step reward : 0.20 Total step : 24
+Elapsed time : 59644.42s
+# 114
+noise : 1.019
+Epi reward : 5.04, Step reward : 0.21 Total step : 24
+Elapsed time : 60207.00s
+# 115
+noise : 1.016
+Epi reward : 5.02, Step reward : 0.21 Total step : 24
+Elapsed time : 60757.88s
+# 116
+noise : 1.016
+Epi reward : 5.04, Step reward : 0.21 Total step : 24
+Elapsed time : 61309.63s
+# 117
+noise : 1.016
+Epi reward : 5.18, Step reward : 0.22 Total step : 24
+Elapsed time : 61854.37s
+# 118
+noise : 1.016
+Epi reward : 4.90, Step reward : 0.20 Total step : 24
+Elapsed time : 62408.68s
+# 119
+noise : 1.016
+Epi reward : 5.24, Step reward : 0.22 Total step : 24
+Elapsed time : 62992.50s
+# 120
+noise : 1.017
+Epi reward : 5.20, Step reward : 0.22 Total step : 24
+Elapsed time : 63533.80s
+# 121
+noise : 1.019
+Epi reward : 5.13, Step reward : 0.21 Total step : 24
+Elapsed time : 64094.36s
+# 122
+noise : 1.019
+Epi reward : 5.19, Step reward : 0.22 Total step : 24
+Elapsed time : 64642.87s
+# 123
+noise : 1.019
+Epi reward : 5.13, Step reward : 0.21 Total step : 24
+Elapsed time : 65199.28s
+# 124
+noise : 1.018
+Epi reward : 5.09, Step reward : 0.21 Total step : 24
+Elapsed time : 65743.55s
+# 125
+noise : 1.018
+Epi reward : 5.03, Step reward : 0.21 Total step : 24
+Elapsed time : 66274.36s
+# 126
+noise : 1.019
+Epi reward : 5.14, Step reward : 0.21 Total step : 24
+Elapsed time : 66815.21s
+# 127
+noise : 1.019
+Epi reward : 5.16, Step reward : 0.21 Total step : 24
+Elapsed time : 67369.28s
+# 128
+noise : 1.020
+Epi reward : 5.14, Step reward : 0.21 Total step : 24
+Elapsed time : 67892.31s
+# 129
+noise : 1.021
+Epi reward : 5.20, Step reward : 0.22 Total step : 24
+Elapsed time : 68422.44s
+# 130
+noise : 1.017
+Epi reward : 5.20, Step reward : 0.22 Total step : 24
+Elapsed time : 68974.48s
+# 131
+noise : 1.015
+Epi reward : 5.11, Step reward : 0.21 Total step : 24
+Elapsed time : 69516.83s
+# 132
+noise : 1.018
+Epi reward : 4.98, Step reward : 0.21 Total step : 24
+Elapsed time : 70039.25s
+# 133
+noise : 1.020
+Epi reward : 5.06, Step reward : 0.21 Total step : 24
+Elapsed time : 70581.63s
+# 134
+noise : 1.019
+Epi reward : 4.92, Step reward : 0.21 Total step : 24
+Elapsed time : 71138.58s
+# 135
+noise : 1.021
+Epi reward : 5.09, Step reward : 0.21 Total step : 24
+Elapsed time : 71696.31s
+# 136
+noise : 1.020
+Epi reward : 5.05, Step reward : 0.20 Total step : 25
+Elapsed time : 72270.70s
+# 137
+noise : 1.021
+Epi reward : 5.06, Step reward : 0.20 Total step : 25
+Elapsed time : 72844.25s
+# 138
+noise : 1.018
+Epi reward : 5.01, Step reward : 0.20 Total step : 25
+Elapsed time : 73362.60s
+# 139
+noise : 1.018
+Epi reward : 4.87, Step reward : 0.20 Total step : 24
+Elapsed time : 73907.23s
+# 140
+noise : 1.019
+Epi reward : 5.12, Step reward : 0.21 Total step : 24
+Elapsed time : 74447.20s
+# 141
+noise : 1.017
+Epi reward : 5.13, Step reward : 0.21 Total step : 24
+Elapsed time : 75011.06s
+# 142
+noise : 1.015
+Epi reward : 4.99, Step reward : 0.21 Total step : 24
+Elapsed time : 75569.29s
+# 143
+noise : 1.013
+Epi reward : 5.07, Step reward : 0.20 Total step : 25
+Elapsed time : 76139.36s
+# 144
+noise : 1.014
+Epi reward : 5.10, Step reward : 0.20 Total step : 25
+Elapsed time : 76694.41s
+# 145
+noise : 1.011
+Epi reward : 5.00, Step reward : 0.20 Total step : 25
+Elapsed time : 77228.17s
+# 146
+noise : 1.010
+Epi reward : 5.17, Step reward : 0.22 Total step : 24
+Elapsed time : 77773.55s

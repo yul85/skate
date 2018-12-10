@@ -1,0 +1,8 @@
+# 1
+noise : 1.105
+Epi reward : 5.04, Step reward : 0.17 Total step : 30
+Elapsed time : 514.49s
+# 2
+noise : 1.107
+Epi reward : 4.61, Step reward : 0.15 Total step : 30
+Elapsed time : 1038.59s

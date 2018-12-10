@@ -1,0 +1,32 @@
+32
+33
+fallen
+fallen
+133
+134
+135
+136
+137
+138
+Traceback (most recent call last):
+  File "/home/yuri/Downloads/skate/rl/ppo.py", line 399, in <module>
+    ppo.Train()
+  File "/home/yuri/Downloads/skate/rl/ppo.py", line 298, in Train
+    self.GenerateTransitions()
+  File "/home/yuri/Downloads/skate/rl/ppo.py", line 220, in GenerateTransitions
+    self.env.Steps(actions)
+  File "/home/yuri/Downloads/skate/rl/dart_env.py", line 322, in Steps
+    return self.step(actions[0])
+  File "/home/yuri/Downloads/skate/rl/dart_env.py", line 209, in step
+    self.skel, des_accel, None, None, None, None, None, 1. / self.world.time_step())
+  File "/home/yuri/Downloads/skate/PyCommon/modules/Simulator/yulQpSimulator_penalty.py", line 227, in calc_QP
+    result = solvers.qp(matrix(P), matrix(q), matrix(G), matrix(h), matrix(A), matrix(b))
+  File "/home/yuri/Downloads/skate/venv/lib/python3.5/site-packages/cvxopt-1.2.0-py3.5-linux-x86_64.egg/cvxopt/coneprog.py", line 4487, in qp
+    return coneqp(P, q, G, h, None, A,  b, initvals, kktsolver = kktsolver, options = options)
+  File "/home/yuri/Downloads/skate/venv/lib/python3.5/site-packages/cvxopt-1.2.0-py3.5-linux-x86_64.egg/cvxopt/coneprog.py", line 2243, in coneqp
+    if iters == 0:  W = misc.compute_scaling(s, z, lmbda, dims)
+  File "/home/yuri/Downloads/skate/venv/lib/python3.5/site-packages/cvxopt-1.2.0-py3.5-linux-x86_64.egg/cvxopt/misc.py", line 285, in compute_scaling
+    W['d'] = base.sqrt( base.div( s[mnl:mnl+m], z[mnl:mnl+m] ))
+ValueError: domain error
+
+Process finished with exit code 1

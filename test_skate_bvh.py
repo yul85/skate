@@ -38,8 +38,8 @@ ref_r_blade_dir_vec_origin = []
 r1_point = []
 r2_point = []
 
-new_bvh_load = False
-# new_bvh_load = True
+# new_bvh_load = False
+new_bvh_load = True
 
 def TicTocGenerator():
     ti = 0              # initial time
@@ -63,7 +63,7 @@ def tic():
 
 class MyWorld(pydart.World):
     def __init__(self, ):
-        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/blade2_3dof.skel')
+        pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/skate_model.skel')
 
         self.force = None
         self.force1 = None
@@ -72,134 +72,72 @@ class MyWorld(pydart.World):
         self.my_force = None
         self.my_force2 = None
 
-        # ---------------------------------- bvh -----------------------------------
-        bvh = yf.readBvhFileAsBvh('./data/mocap/skate_spin.bvh')
-        motion = yf.readBvhFile('./data/mocap/skate_spin.bvh', 0.0029, True)
-        self.bvh = bvh
-        self.motion = motion
-        self.duration = bvh.frameTime
-        fn = bvh.frameNum
-        self.fn = fn
+        fn = 4
 
-        if new_bvh_load:
-            tic()
-            self.ik = dart_ik.DartIk(self.skeletons[1])
-
-            self.q_list = []
-            # hips_index = motion[0].skeleton.getJointIndex('Hips')
-
-            left_elbow_index = motion[0].skeleton.getJointIndex('LeftElbow')
-            left_wrist_index = motion[0].skeleton.getJointIndex('LeftWrist')
-            left_knee_index = motion[0].skeleton.getJointIndex('LeftKnee')
-            left_ankle_index = motion[0].skeleton.getJointIndex('LeftAnkle')
-
-            right_elbow_index = motion[0].skeleton.getJointIndex('RightElbow')
-            right_wrist_index = motion[0].skeleton.getJointIndex('RightWrist')
-            right_knee_index = motion[0].skeleton.getJointIndex('RightKnee')
-            right_ankle_index = motion[0].skeleton.getJointIndex('RightAnkle')
-
-            head_index = motion[0].skeleton.getJointIndex('Head')
-            neck_index = motion[0].skeleton.getJointIndex('Neck')
-            chest_index = motion[0].skeleton.getJointIndex('Chest')
-            left_hip_index = motion[0].skeleton.getJointIndex('LeftHip')
-            right_hip_index = motion[0].skeleton.getJointIndex('RightHip')
-            left_toe_index = motion[0].skeleton.getJointIndex('LeftToe')
-            right_toe_index = motion[0].skeleton.getJointIndex('RightToe')
-
-            left_shoulder_index = motion[0].skeleton.getJointIndex('LeftShoulder')
-            right_shoulder_index = motion[0].skeleton.getJointIndex('RightShoulder')
-
-
-            for f in range(fn):
-                # motion.getJointPositionGlobal(left_knee_index)
-                q = self.skeletons[1].q
-                q[3:6] = motion.getJointPositionGlobal(0, f)
-                # q[3:6] = motion[f].local_ts[0]
-                self.skeletons[1].set_positions(q)
-
-                chest_pos = motion.getJointPositionGlobal(chest_index, f)
-                left_hip_vec = motion.getJointPositionGlobal(left_hip_index, f) - chest_pos
-                right_hip_vec = motion.getJointPositionGlobal(right_hip_index, f) - chest_pos
-
-                hip_unit_x = np.asarray(mm.normalize(mm.cross(right_hip_vec, left_hip_vec)))
-                hip_unit_y = -np.asarray(mm.normalize(left_hip_vec + right_hip_vec))
-                hip_unit_z = np.asarray(mm.normalize(mm.cross(hip_unit_x, hip_unit_y)))
-
-                hip_ori = mm.I_SO3()
-                hip_ori[:3, 0] = hip_unit_x
-                hip_ori[:3, 1] = hip_unit_y
-                hip_ori[:3, 2] = hip_unit_z
-
-                left_blade_vec = motion.getJointPositionGlobal(left_toe_index, f) - motion.getJointPositionGlobal(
-                    left_ankle_index, f)
-                right_blade_vec = motion.getJointPositionGlobal(right_toe_index, f) - motion.getJointPositionGlobal(
-                    right_ankle_index, f)
-
-                head_vec = motion.getJointPositionGlobal(head_index, f) - motion.getJointPositionGlobal(neck_index, f)
-
-                self.ik.clean_constraints()
-                self.ik.add_orientation_const('h_pelvis', np.asarray(hip_ori))
-
-                # self.ik.add_joint_pos_const('j_abdomen', np.asarray(motion.getJointPositionGlobal(chest_index, f)))
-                self.ik.add_vector_const('h_head', mm.unitY(), np.asarray(head_vec))
-
-                self.ik.add_joint_pos_const('j_scapula_left', np.asarray(motion.getJointPositionGlobal(left_shoulder_index, f)))
-                self.ik.add_joint_pos_const('j_forearm_left', np.asarray(motion.getJointPositionGlobal(left_elbow_index, f)))
-                self.ik.add_joint_pos_const('j_hand_left', np.asarray(motion.getJointPositionGlobal(left_wrist_index, f)))
-                self.ik.add_joint_pos_const('j_shin_left', np.asarray(motion.getJointPositionGlobal(left_knee_index, f)))
-                self.ik.add_joint_pos_const('j_heel_left', np.asarray(motion.getJointPositionGlobal(left_ankle_index, f)))
-
-                self.ik.add_joint_pos_const('j_scapula_right', np.asarray(motion.getJointPositionGlobal(right_shoulder_index, f)))
-
-                self.ik.add_joint_pos_const('j_forearm_right', np.asarray(motion.getJointPositionGlobal(right_elbow_index, f)))
-                self.ik.add_joint_pos_const('j_hand_right', np.asarray(motion.getJointPositionGlobal(right_wrist_index, f)))
-                self.ik.add_joint_pos_const('j_shin_right', np.asarray(motion.getJointPositionGlobal(right_knee_index, f)))
-                self.ik.add_joint_pos_const('j_heel_right', np.asarray(motion.getJointPositionGlobal(right_ankle_index, f)))
-
-                self.ik.add_vector_const('h_heel_left', np.array([1., -0.8, 0.]), np.asarray(left_blade_vec))
-                self.ik.add_vector_const('h_heel_right', np.array([1., -0.8, 0.]), np.asarray(right_blade_vec))
-
-                left_toe_pos = motion.getJointPositionGlobal(left_toe_index, f)
-                # print("lt: ", left_toe_pos)
-                # left_toe_pos[1] = 0.0
-                self.ik.add_position_const('h_blade_left', left_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
-                self.ik.add_position_const('h_blade_left', left_toe_pos, [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
-                right_toe_pos = motion.getJointPositionGlobal(right_toe_index, f)
-                # right_toe_pos[1] = 0.0
-                self.ik.add_position_const('h_blade_right', right_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
-                self.ik.add_position_const('h_blade_right', right_toe_pos, [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
-
-                self.ik.solve()
-
-                self.q_list.append(self.skeletons[1].q)
-
-            #store q_list to txt file
-            # with open('data/mocap/skate_spin.txt', 'w') as f:
-            with open('data/mocap/skate_spin_test2.txt', 'w') as f:
-                for pose in self.q_list:
-                    for a in pose:
-                        f.write('%s ' % a)
-                    f.write('\n')
-            # print(len(self.q_list[0]))
-            # print(self.q_list)
-            toc()
-
-        # read q_list from txt file
-        self.read_q_list = []
+        # read 3d positions of each key pose frame from txt file
+        self.position_storage = []
         # with open('data/mocap/skate_spin.txt') as f:
-        with open('data/mocap/skate_spin_test2.txt') as f:
+        with open('data/mocap/4poses2.txt') as f:
             # lines = f.read().splitlines()
             for line in f:
                 q_temp = []
                 line = line.replace(' \n', '')
                 values = line.split(" ")
-                for a in values:
-                    q_temp.append(float(a))
-                self.read_q_list.append(q_temp)
-        #
-        # print(self.read_q_list)
-        # print(len(self.read_q_list))
-        #---------------------------------- bvh -----------------------------------
+                temp_pos = np.asarray([float(values[0]), -float(values[1]), -float(values[2])])
+                # for a in values:
+                #     q_temp.append(float(a))
+                self.position_storage.append(temp_pos)
+
+        if new_bvh_load:
+            self.ik = dart_ik.DartIk(self.skeletons[0])
+            self.q_list = []
+
+            fi = 0
+            for f in range(fn):
+                print(fn, fi)
+                # q = self.skeletons[0].q
+                # q[3:6] = np.asarray([0., 3.0, 0.])
+                # self.skeletons[0].set_positions(q)
+
+                self.ik.clean_constraints()
+
+                # self.ik.add_orientation_const('h_pelvis', np.asarray([0., 0., 0.]))
+                self.ik.add_joint_pos_const('j_heel_right', self.position_storage[fi])
+                self.ik.add_joint_pos_const('j_shin_right', self.position_storage[fi+1])
+                self.ik.add_joint_pos_const('j_thigh_right', self.position_storage[fi+2])
+
+                self.ik.add_joint_pos_const('j_thigh_left', self.position_storage[fi+3])
+                self.ik.add_joint_pos_const('j_shin_left', self.position_storage[fi+4])
+                self.ik.add_joint_pos_const('j_heel_left', self.position_storage[fi+5])
+
+                self.ik.add_joint_pos_const('j_hand_right', self.position_storage[fi+6])
+                self.ik.add_joint_pos_const('j_forearm_right', self.position_storage[fi+7])
+                self.ik.add_joint_pos_const('j_scapula_right', self.position_storage[fi+8])
+
+                self.ik.add_joint_pos_const('j_scapula_left', self.position_storage[fi+9])
+                self.ik.add_joint_pos_const('j_forearm_left', self.position_storage[fi+10])
+                self.ik.add_joint_pos_const('j_hand_left', self.position_storage[fi+11])
+
+                self.ik.add_joint_pos_const('j_head', self.position_storage[fi+13])
+
+                # self.ik.add_position_const('h_blade_left', left_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
+
+                right_blade_pos = self.position_storage[fi] + np.array([0., -0.054, 0.])
+                left_blade_pos = self.position_storage[fi+5] + np.array([0., -0.054, 0.])
+
+                self.ik.add_position_const('h_blade_right', right_blade_pos, [-0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+                self.ik.add_position_const('h_blade_right', right_blade_pos, [0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+
+                self.ik.add_position_const('h_blade_left', left_blade_pos, [0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+                self.ik.add_position_const('h_blade_left', left_blade_pos, [-0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+
+                    # self.ik.add_vector_const('h_heel_left', np.array([1., -0.8, 0.]), np.asarray(left_blade_vec))
+                    # self.ik.add_vector_const('h_heel_right', np.array([1., -0.8, 0.]), np.asarray(right_blade_vec))
+
+                self.ik.solve()
+
+                self.q_list.append(self.skeletons[0].q)
+                fi += 19
 
         skel = self.skeletons[0]
         # print("mass: ", skel.m, "kg")
@@ -213,8 +151,8 @@ class MyWorld(pydart.World):
         #
         # skel.joint("j_abdomen").set_position_upper_limit(10, 0.0)
 
-        self.skeletons[1].set_positions(self.read_q_list[0])
-
+        skel.set_positions(self.q_list[3])
+        # skel.set_positions(self.read_q_list[0])
         self.elapsedTime = 0
         self.fn_bvh = 0
         self.flag = 0
@@ -229,7 +167,7 @@ class MyWorld(pydart.World):
         self.contact_force = []
         self.contactPositionLocals = []
         self.bodyIDs = []
-        # print("dof: ", skel.ndofs)
+
 
     def step(self):
         # if self.fn_bvh == 0 and self.flag < 200:
@@ -254,7 +192,6 @@ class MyWorld(pydart.World):
         # else:
         #     self.force = None
 
-        ref_skel = self.skeletons[1]
 
         # q_temp = np.asarray(ref_skel.q)
         # cur_com_pos = ref_skel.com()
@@ -379,34 +316,34 @@ class MyWorld(pydart.World):
             self.skeletons[0].body('h_pelvis').add_ext_force(self.force1, [0., 0., 0.1088])
 
         # Jacobian transpose control
-        if self.fn_bvh < 20:
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            self.my_force2 = 30. * np.array([-5.0,  0., -5.0])
-            # self.my_force2 = 10. * slidingAxisRight
-            self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-
-            p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-            p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-
-            blade_direction_vec = p2 - p1
-            blade_direction_vec[1] = -0.
-            if np.linalg.norm(blade_direction_vec) != 0:
-                blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-
-            # print("dir vec:", blade_direction_vec)
-            my_jaco = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            self.my_force = 20. * np.array([2., 0., 10.])
-            # self.my_force = 30. * np.array([1., -15., 40.])
-            # self.my_force = 50. * blade_direction_vec
-            # self.my_force = 500. * slidingAxisLeft
-            self.my_tau = np.dot(my_jaco_t, self.my_force)
-
-            _tau += self.my_tau + self.my_tau2
-        else:
-            self.my_tau = None
-            self.my_tau2 = None
+        # if self.fn_bvh < 20:
+        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     self.my_force2 = 30. * np.array([-1.0,  -5., 5.0])
+        #     # self.my_force2 = 10. * slidingAxisRight
+        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
+        #
+        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
+        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
+        #
+        #     blade_direction_vec = p2 - p1
+        #     blade_direction_vec[1] = -0.
+        #     if np.linalg.norm(blade_direction_vec) != 0:
+        #         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+        #
+        #     # print("dir vec:", blade_direction_vec)
+        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
+        #     my_jaco_t = my_jaco.transpose()
+        #     self.my_force = 20. * np.array([-3., 0., 5.])
+        #     # self.my_force = 30. * np.array([1., -15., 40.])
+        #     # self.my_force = 50. * blade_direction_vec
+        #     # self.my_force = 500. * slidingAxisLeft
+        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
+        #
+        #     _tau += self.my_tau + self.my_tau2
+        # else:
+        #     self.my_tau = None
+        #     self.my_tau2 = None
 
         # Jacobian transpose control
         # if self.fn_bvh < 10:
@@ -541,6 +478,7 @@ class MyWorld(pydart.World):
         ref_r_blade_dir_vec_origin.append(self.skeletons[1].body('h_blade_right').to_world())
 
         # com = self.skeletons[0].body('h_blade_left').to_world(np.array([0.1040 + 0.0216, +0.80354016 - 0.85354016, -0.054]))
+        com = np.zeros(3)
         COM.append(com)
         if self.my_tau is not None:
             blade_force.append(self.my_force* 0.05)
@@ -579,27 +517,37 @@ if __name__ == '__main__':
 
     skel = world.skeletons[0]
     q = np.asarray(skel.q)
-    skel.set_positions(world.read_q_list[0])
     q_new = np.asarray(skel.q)
-    # q_new[0:1] = 0.001
-    # q_new[3:6] = q[3:6] - np.array([0., 0.025, 0.])
-    # q_new[3:6] = q[3:6] - np.array([0., 0.035, 0.])
-    q_new[3:6] = q[3:6] - np.array([0., 0.05, 0.])
-    # q_new[17:18] = -0.2
-    # q_new[20:21] = -0.2
+    q_new[3:6] = q[3:6] - np.array([0., 0.50883394 - 0.054*2, 0.])
     skel.set_positions(q_new)
 
-    q_vel = skel.position_differences(world.read_q_list[0], world.read_q_list[1])/world.bvh.frameTime
-    # print("Init vel: ", q_vel)
-    skel.set_velocities(q_vel)
+    # skel.set_positions(self.q_list[0])
+    # skel.set_positions(np.hstack((np.array([0., 0., 0., 0., 0., 0.0]), world.read_q_list[0][6:])))
+    # skel.set_positions(np.zeros(skel.ndofs))
+    # q = np.asarray(skel.q)
+    # skel.set_positions(world.read_q_list[0])
+    # q_new = np.asarray(skel.q)
+    # q_new[0:1] = 0.001
+    # # q_new[3:6] = q[3:6] - np.array([0., 0.025, 0.])
+    # # q_new[3:6] = q[3:6] - np.array([0., 0.035, 0.])
+    # q_new[3:6] = q[3:6] - np.array([0., 0.1, 0.])
+    # # q_new[17:18] = -0.2
+    # # q_new[20:21] = -0.2
+    # skel.set_positions(q_new)
+    #
+    # q_vel = skel.position_differences(world.read_q_list[0], world.read_q_list[1])/world.bvh.frameTime
+    # # print("Init vel: ", q_vel)
+    # skel.set_velocities(q_vel)
+
+
 
     # pydart.gui.viewer.launch_pyqt5(world)
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     # viewer = hsv.hpSimpleViewer(rect=[0, 0, 1280 + 300, 720 + 1 + 55], viewForceWnd=False)
 
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255, 255, 255), yr.POLYGON_FILL))
-    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
-    # viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
+    # viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255, 0)))
     viewer.doc.addRenderer('pushForce1', yr.WideArrowRenderer(push_force1, push_force1_origin, (0, 255, 0)))
@@ -621,14 +569,14 @@ if __name__ == '__main__':
     viewer.motionViewWnd.glWindow.planeHeight = -0.98 + 0.0251
 
     def simulateCallback(frame):
-        world.motion.frame = frame
+        # world.motion.frame = frame
         for i in range(10):
             world.step()
         world.render_with_ys()
 
     viewer.setSimulateCallback(simulateCallback)
     # viewer.setMaxFrame(1000)
-    viewer.setMaxFrame(len(world.motion) - 1)
+    # viewer.setMaxFrame(len(world.motion) - 1)
     # viewer.startTimer(1 / 25.)
     viewer.startTimer(1. / 30.)
     viewer.show()
