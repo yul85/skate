@@ -65,6 +65,8 @@ class MyWorld(pydart.World):
     def __init__(self, ):
         pydart.World.__init__(self, 1.0 / 1000.0, './data/skel/skate_model.skel')
 
+        self.cur_pose = None
+
         self.force = None
         self.force1 = None
         self.my_tau = None
@@ -72,7 +74,7 @@ class MyWorld(pydart.World):
         self.my_force = None
         self.my_force2 = None
 
-        fn = 4
+        fn = 1
 
         # read 3d positions of each key pose frame from txt file
         self.position_storage = []
@@ -84,6 +86,7 @@ class MyWorld(pydart.World):
                 line = line.replace(' \n', '')
                 values = line.split(" ")
                 temp_pos = np.asarray([float(values[0]), -float(values[1]), -float(values[2])])
+                temp_pos = temp_pos * 0.75     # scaling
                 # for a in values:
                 #     q_temp.append(float(a))
                 self.position_storage.append(temp_pos)
@@ -94,7 +97,6 @@ class MyWorld(pydart.World):
 
             fi = 0
             for f in range(fn):
-                print(fn, fi)
                 # q = self.skeletons[0].q
                 # q[3:6] = np.asarray([0., 3.0, 0.])
                 # self.skeletons[0].set_positions(q)
@@ -117,22 +119,25 @@ class MyWorld(pydart.World):
                 self.ik.add_joint_pos_const('j_scapula_left', self.position_storage[fi+9])
                 self.ik.add_joint_pos_const('j_forearm_left', self.position_storage[fi+10])
                 self.ik.add_joint_pos_const('j_hand_left', self.position_storage[fi+11])
-
+                # self.ik.add_joint_pos_const('j_spine', self.position_storage[fi + 12])
                 self.ik.add_joint_pos_const('j_head', self.position_storage[fi+13])
 
                 # self.ik.add_position_const('h_blade_left', left_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
 
-                right_blade_pos = self.position_storage[fi] + np.array([0., -0.054, 0.])
-                left_blade_pos = self.position_storage[fi+5] + np.array([0., -0.054, 0.])
 
-                self.ik.add_position_const('h_blade_right', right_blade_pos, [-0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
-                self.ik.add_position_const('h_blade_right', right_blade_pos, [0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+                # right_blade_pos = self.position_storage[fi] + np.array([0., -0.054, 0.])
+                # left_blade_pos = self.position_storage[fi+5] + np.array([0., -0.054, 0.])
+
+                right_blade_pos = self.position_storage[fi] + np.array([0., -0.1, 0.])
+                left_blade_pos = self.position_storage[fi + 5] + np.array([0., -0.2, 0.])
+
+                self.ik.add_position_const('h_blade_right', right_blade_pos,
+                                           [-0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
+                self.ik.add_position_const('h_blade_right', right_blade_pos,
+                                           [0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
 
                 self.ik.add_position_const('h_blade_left', left_blade_pos, [0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
                 self.ik.add_position_const('h_blade_left', left_blade_pos, [-0.1040 + 0.0216, 0.80354016 - 0.85354016, 0.0])
-
-                    # self.ik.add_vector_const('h_heel_left', np.array([1., -0.8, 0.]), np.asarray(left_blade_vec))
-                    # self.ik.add_vector_const('h_heel_right', np.array([1., -0.8, 0.]), np.asarray(right_blade_vec))
 
                 self.ik.solve()
 
@@ -140,6 +145,7 @@ class MyWorld(pydart.World):
                 fi += 19
 
         skel = self.skeletons[0]
+
         # print("mass: ", skel.m, "kg")
 
         # print('[Joint]')
@@ -150,8 +156,9 @@ class MyWorld(pydart.World):
         #     print("\t\tdofs = " + str(joint.dofs))
         #
         # skel.joint("j_abdomen").set_position_upper_limit(10, 0.0)
-
-        skel.set_positions(self.q_list[3])
+        print(self.q_list[0])
+        skel.set_positions(self.q_list[0])
+        self.cur_pose = self.q_list[0]
         # skel.set_positions(self.read_q_list[0])
         self.elapsedTime = 0
         self.fn_bvh = 0
@@ -170,268 +177,26 @@ class MyWorld(pydart.World):
 
 
     def step(self):
-        # if self.fn_bvh == 0 and self.flag < 200:
-        #     print("here? : ", self.fn_bvh, self.flag)
-        #     self.skeletons[1].set_positions(self.read_q_list[self.fn_bvh])
-        #     self.flag += 1
-        # else:
-        #     if self.fn_bvh < 10:
-        #         self.force = np.array([0.0, 0.0, 50.0])
-        #     else:
-        #         self.force = None
-        #
-        #     if self.flag < 10:
-        #         self.skeletons[1].set_positions(self.read_q_list[self.fn_bvh])
-        #         self.flag += 1
-        #     else:
-        #         self.flag = 0
-        #         self.fn_bvh += 1
 
-        # if self.fn_bvh < 10:
-        #     self.force = np.array([0.0, 0.0, 50.0])
-        # else:
-        #     self.force = None
-
-
-        # q_temp = np.asarray(ref_skel.q)
-        # cur_com_pos = ref_skel.com()
-        #
-        # ref_skel.set_positions(self.read_q_list[self.fn_bvh + 1])
-        # future_com_pos = ref_skel.com()
-        # ref_skel.set_positions(q_temp)
-        #
-        # ref_com_vel = future_com_pos - cur_com_pos
-        # # print("COM_VEL", ref_com_vel)
-        # self.force = 1000.* ref_com_vel
-
-        if self.flag < 10:
-            self.skeletons[1].set_positions(self.read_q_list[self.fn_bvh])
-            self.flag += 1
-        else:
-            self.flag = 0
-            self.fn_bvh += 1
-
-        ndofs = skel.num_dofs()
-        h = self.time_step()
-
-        # PD CONTROL
-
-        q_revised = np.asarray(self.read_q_list[self.fn_bvh])
-        q_revised[0:1] = 0.001
-
-        # gain_value = 25.0
-        gain_value = 50.0
-        Kp = np.diagflat([0.0] * 6 + [gain_value] * (ndofs - 6))
-        Kd = np.diagflat([0.0] * 6 + [2. * (gain_value ** .5)] * (ndofs - 6))
-        invM = np.linalg.inv(skel.M + Kd * h)
-        p = -Kp.dot(skel.q - q_revised + skel.dq * h)
-        d = -Kd.dot(skel.dq)
-        qddot = invM.dot(-skel.c + p + d + skel.constraint_forces())
-        des_accel = p + d + qddot
-
-        ddc = np.zeros(6)
-
-        if self.fn_bvh < self.fn:
-            q_temp = np.asarray(ref_skel.q)
-            cur_blade_left_pos = ref_skel.body('h_blade_left').to_world([0., 0., 0.])
-            cur_blade_right_pos = ref_skel.body('h_blade_right').to_world([0., 0., 0.])
-
-            cur_v1 = ref_skel.body('h_blade_left').to_world([-0.1040 + 0.0216, 0.0, 0.0])
-            cur_v2 = ref_skel.body('h_blade_left').to_world([0.1040 + 0.0216, 0.0, 0.0])
-            blade_direction_vec_l = cur_v2 - cur_v1
-            cur_blade_direction_vec_l = np.array([1, 0, 1]) * blade_direction_vec_l
-
-            cur_v1 = ref_skel.body('h_blade_right').to_world([-0.1040 + 0.0216, 0.0, 0.0])
-            cur_v2 = ref_skel.body('h_blade_right').to_world([0.1040 + 0.0216, 0.0, 0.0])
-            blade_direction_vec_r = cur_v2 - cur_v1
-            cur_blade_direction_vec_r = np.array([1, 0, 1]) * blade_direction_vec_r
-
-            if np.linalg.norm(cur_blade_direction_vec_l) != 0:
-                cur_blade_direction_vec_l = cur_blade_direction_vec_l / np.linalg.norm(cur_blade_direction_vec_l)
-            if np.linalg.norm(cur_blade_direction_vec_r) != 0:
-                cur_blade_direction_vec_r = cur_blade_direction_vec_r / np.linalg.norm(cur_blade_direction_vec_r)
-
-            ref_skel.set_positions(self.read_q_list[self.fn_bvh+1])
-            future_blade_left_pos = ref_skel.body('h_blade_left').to_world([0., 0., 0.])
-            future_blade_right_pos = ref_skel.body('h_blade_right').to_world([0., 0., 0.])
-
-            slidingAxisLeft = future_blade_left_pos - cur_blade_left_pos
-            slidingAxisRight = future_blade_right_pos - cur_blade_right_pos
-            slidingAxisLeft = np.array([1, 0, 1]) * slidingAxisLeft
-            slidingAxisRight = np.array([1, 0, 1]) * slidingAxisRight
-
-            if np.linalg.norm(slidingAxisLeft) != 0:
-                slidingAxisLeft = slidingAxisLeft / np.linalg.norm(slidingAxisLeft)
-            if np.linalg.norm(slidingAxisRight) != 0:
-                slidingAxisRight = slidingAxisRight / np.linalg.norm(slidingAxisRight)
-
-            r_vec_l = skel.body('h_blade_left').to_local([0., 0., 0.])
-            r_vec_l = np.array([1, 0, 1]) * r_vec_l
-            r_vec_r = skel.body('h_blade_right').to_local([0., 0., 0.])
-            r_vec_r = np.array([1, 0, 1]) * r_vec_r
-            r_vec_ref_l = ref_skel.body('h_blade_left').to_local([0., 0., 0.])
-            r_vec_ref_l = np.array([1, 0, 1]) * r_vec_ref_l
-            r_vec_ref_r = ref_skel.body('h_blade_right').to_local([0., 0., 0.])
-            r_vec_ref_r = np.array([1, 0, 1]) * r_vec_ref_r
-            zero_term = np.linalg.norm(r_vec_l - r_vec_ref_l) + np.linalg.norm(r_vec_r - r_vec_ref_r)
-            ddc[0:3] = 1/(2*1.5)*zero_term + 0.1*(skel.com_velocity())
-
-            ref_skel.set_positions(q_temp)
-
-        self.l_dir = slidingAxisLeft
-        self.r_dir = slidingAxisRight
-        self.l_blade_dir = cur_blade_direction_vec_l
-        self.r_blade_dir = cur_blade_direction_vec_r
-
-        # YUL QP solve
-        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulqp.calc_QP(
-            skel, des_accel, ddc, slidingAxisLeft, slidingAxisRight, cur_blade_direction_vec_l, cur_blade_direction_vec_r, 1. / self.time_step())
-
-        del self.contact_force[:]
-        del self.bodyIDs[:]
-        del self.contactPositionLocals[:]
-
-        self.bodyIDs = _bodyIDs
-
-        for i in range(len(_bodyIDs)):
-            skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
-            self.contact_force.append(_contactForces[i])
-            self.contactPositionLocals.append(_contactPositionLocals[i])
-        # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
-
-        # External force
-        # if self.fn_bvh < 10:
-        #     self.force = 15.*np.array([0.0, -1.0, 100.0])
-        #     # self.force1 = 1.*np.array([-20.0, 0.0, -100.0])
-        #
-        #     # self.force = 1. * np.array([-1.0, -1.0, 100.0])
-        #     # self.force1 = 1. * np.array([.0, -0.0, -100.0])
-        # else:
-        #     self.force = None
-        #     self.force1 = None
-
-        if self.force is not None:
-            self.skeletons[0].body('h_pelvis').add_ext_force(self.force, [0., 0., -0.1088])
-        if self.force1 is not None:
-            self.skeletons[0].body('h_pelvis').add_ext_force(self.force1, [0., 0., 0.1088])
-
-        # Jacobian transpose control
-        # if self.fn_bvh < 20:
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force2 = 30. * np.array([-1.0,  -5., 5.0])
-        #     # self.my_force2 = 10. * slidingAxisRight
-        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-        #
-        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #
-        #     blade_direction_vec = p2 - p1
-        #     blade_direction_vec[1] = -0.
-        #     if np.linalg.norm(blade_direction_vec) != 0:
-        #         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-        #
-        #     # print("dir vec:", blade_direction_vec)
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force = 20. * np.array([-3., 0., 5.])
-        #     # self.my_force = 30. * np.array([1., -15., 40.])
-        #     # self.my_force = 50. * blade_direction_vec
-        #     # self.my_force = 500. * slidingAxisLeft
-        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
-        #
-        #     _tau += self.my_tau + self.my_tau2
-        # else:
-        #     self.my_tau = None
-        #     self.my_tau2 = None
-
-        # Jacobian transpose control
-        # if self.fn_bvh < 10:
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force2 = 30. * np.array([-12.0,  -5., -10.0])
-        #     # self.my_force2 = 10. * slidingAxisRight
-        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-        #
-        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #
-        #     blade_direction_vec = p2 - p1
-        #     blade_direction_vec[1] = -0.
-        #     # print("dir vec:", blade_direction_vec)
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force = 50. * np.array([5., -5., 20.])
-        #     # self.my_force = 30. * np.array([1., -15., 40.])
-        #     # self.my_force = 100. * blade_direction_vec
-        #     # self.my_force = 500. * slidingAxisLeft
-        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
-        #
-        #     _tau += self.my_tau + self.my_tau2
-        # # else:
-        # #     self.my_tau = None
-        # #     self.my_tau2 = None
-        #
-        #
-        # if self.fn_bvh < 20 and self.fn_bvh >= 10:
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force2 = 30. * np.array([5.,  -5., -10.0])
-        #     # self.my_force2 = 10. * slidingAxisRight
-        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-        #
-        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #
-        #     blade_direction_vec = p2 - p1
-        #     blade_direction_vec[1] = -0.
-        #     # print("dir vec:", blade_direction_vec)
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force = 50. * np.array([2., -1., 10.])
-        #     # self.my_force = 30. * np.array([1., -15., 40.])
-        #     # self.my_force = 100. * blade_direction_vec
-        #     # self.my_force = 500. * slidingAxisLeft
-        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
-        #
-        #     _tau += self.my_tau + self.my_tau2
-        # # else:
-        # #     self.my_tau = None
-        # #     self.my_tau2 = None
-        #
-        # if self.fn_bvh >= 20:
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force2 = 30. * np.array([0., -5., -0.0])
-        #     self.my_force2 = 10. * slidingAxisRight
-        #     self.my_tau2 = np.dot(my_jaco_t, self.my_force2)
-        #
-        #     my_jaco = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     self.my_force = 50. * np.array([0., -5., 0.])
-        #     self.my_force = 10. * slidingAxisLeft
-        #     self.my_tau = np.dot(my_jaco_t, self.my_force)
-        #
-        #     _tau += self.my_tau + self.my_tau2
-        #
-        #     # self.my_tau = None
-        #     # self.my_tau2 = None
-
-        skel.set_forces(_tau)
+        self.skeletons[0].set_positions(self.cur_pose)
 
         super(MyWorld, self).step()
 
-        # skel.set_positions(q)
-
     def on_key_press(self, key):
         if key == '1':
-            self.force = np.array([100.0, 0.0, 0.0])
-            self.duration = 1000
-            print('push backward: f = %s' % self.force)
+            self.cur_pose = self.q_list[0]
+            # self.force = np.array([100.0, 0.0, 0.0])
+            # self.duration = 1000
+            # print('push backward: f = %s' % self.force)
         elif key == '2':
-            self.force = np.array([-100.0, 0.0, 0.0])
-            self.duration = 100
-            print('push backward: f = %s' % self.force)
+            self.cur_pose = self.q_list[1]
+            # self.force = np.array([-100.0, 0.0, 0.0])
+            # self.duration = 100
+            # print('push backward: f = %s' % self.force)
+        elif key == '3':
+            self.cur_pose = self.q_list[2]
+        elif key == '4':
+            self.cur_pose = self.q_list[3]
 
     def render_with_ys(self):
         # render contact force --yul
@@ -572,10 +337,11 @@ if __name__ == '__main__':
         # world.motion.frame = frame
         for i in range(10):
             world.step()
-        world.render_with_ys()
+        # world.render_with_ys()
 
     viewer.setSimulateCallback(simulateCallback)
     # viewer.setMaxFrame(1000)
+    viewer.setMaxFrame(50)
     # viewer.setMaxFrame(len(world.motion) - 1)
     # viewer.startTimer(1 / 25.)
     viewer.startTimer(1. / 30.)
