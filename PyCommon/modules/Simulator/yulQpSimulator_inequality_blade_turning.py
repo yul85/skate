@@ -167,7 +167,7 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
     P[:num_dof, :num_dof] *= 100.*weight_map_vec + 100. * 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
     # P[num_dof + num_tau:, num_dof + num_tau:] *= 0.01
-    P[num_dof:num_dof + num_tau,num_dof: num_dof + num_tau] *= 0.001
+    P[num_dof:num_dof + num_tau, num_dof: num_dof + num_tau] *= 0.001
     q = np.zeros(num_variable)
     q[:num_dof] = -100.*ddq_des - 100. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
 
@@ -175,8 +175,8 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
     # equality
     #####################################################
     num_equality = num_dof + 6
-    if num_contact > 0:
-        num_equality = num_dof + 6 + 2
+    # if num_contact > 0:
+    #     num_equality = num_dof + 6 + 2
 
     A = np.zeros((num_equality, num_variable))
     b = np.zeros(num_equality)
@@ -258,27 +258,29 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
             if body_name == "h_blade_left":
                 theta_blade = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
                 theta = math.acos(np.dot(np.array([1., 0., 0.]), lf_tangent))
-                dot_val = np.dot(blade_direction_vec, lf_tangent)
-                # print("l: ", dot_val, blade_direction_vec, lf_tangent)
-                if dot_val != 1.:
-                    if np.cross(blade_direction_vec, lf_tangent)[1] > 0:
-                        des_w_y = math.acos(dot_val)
-                    else:
-                        des_w_y = -1 * math.acos(dot_val)
-                else:
-                    des_w_y = 0.
+                theta = math.acos(np.dot(blade_direction_vec, lf_tangent))
+                # dot_val = np.dot(blade_direction_vec, lf_tangent)
+                # # print("l: ", dot_val, blade_direction_vec, lf_tangent)
+                # if dot_val != 1.:
+                #     if np.cross(blade_direction_vec, lf_tangent)[1] > 0:
+                #         des_w_y = math.acos(dot_val)
+                #     else:
+                #         des_w_y = -1 * math.acos(dot_val)
+                # else:
+                #     des_w_y = 0.
             else:
                 theta_blade = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
                 theta = math.acos(np.dot(np.array([1., 0., 0.]), rf_tangent))
+                theta = math.acos(np.dot(blade_direction_vec, rf_tangent))
                 dot_val = np.dot(blade_direction_vec, rf_tangent)
-                # print("r: ", dot_val, blade_direction_vec, rf_tangent)
-                if dot_val != 1.:
-                    if np.cross(blade_direction_vec, rf_tangent)[1] > 0:
-                        des_w_y = math.acos(dot_val)
-                    else:
-                        des_w_y = -1 * math.acos(dot_val)
-                else:
-                    des_w_y = 0.
+                # # print("r: ", dot_val, blade_direction_vec, rf_tangent)
+                # if dot_val != 1.:
+                #     if np.cross(blade_direction_vec, rf_tangent)[1] > 0:
+                #         des_w_y = math.acos(dot_val)
+                #     else:
+                #         des_w_y = -1 * math.acos(dot_val)
+                # else:
+                #     des_w_y = 0.
             # print("theta: ", body_name, ", ", theta)
             # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
             next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
@@ -291,24 +293,24 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
             ca_plus = math.cos(next_step_angle + blade_threshold)
             ca_minus = math.cos(next_step_angle - blade_threshold)
 
-            return jaco, jaco_der, sa_plus, ca_plus, sa_minus, ca_minus, des_w_y
+            return jaco, jaco_der, sa_plus, ca_plus, sa_minus, ca_minus
 
         # FOR NON-HOLONOMIC CONSTRAINTS
-        jaco_L, jaco_der_L, sa_plus_L, ca_plus_L, sa_minus_L, ca_minus_L, des_w_y_L = get_foot_info("h_blade_left")
-        jaco_R, jaco_der_R, sa_plus_R, ca_plus_R, sa_minus_R, ca_minus_R, des_w_y_R = get_foot_info("h_blade_right")
+        jaco_L, jaco_der_L, sa_plus_L, ca_plus_L, sa_minus_L, ca_minus_L = get_foot_info("h_blade_left")
+        jaco_R, jaco_der_R, sa_plus_R, ca_plus_R, sa_minus_R, ca_minus_R = get_foot_info("h_blade_right")
 
         # print(des_w_y_L, des_w_y_R)
-        if num_contact > 0:
-            # change the blade's direction
-            Kw = 0.0001
-
-            lbody = "h_heel_left"
-            rbody = "h_heel_right"
-            A[num_dof + 6:num_dof + 6+1, :num_dof] = _h * skel.body(lbody).angular_jacobian()[1]
-            A[num_dof + 6+1:num_dof + 6 + 2, :num_dof] = _h * skel.body(rbody).angular_jacobian()[1]
-
-            b[num_dof + 6:num_dof + 6 + 1] = Kw * des_w_y_L - np.dot(skel.body(lbody).angular_jacobian() + _h * skel.body(lbody).angular_jacobian_deriv(), skel.dq)[1]
-            b[num_dof + 6+1:num_dof + 6 + 2] = Kw * des_w_y_R - np.dot(skel.body(rbody).angular_jacobian() + _h * skel.body(rbody).angular_jacobian_deriv(), skel.dq)[1]
+        # if num_contact > 0:
+        #     # change the blade's direction
+        #     Kw = 0.0001
+        #
+        #     lbody = "h_heel_left"
+        #     rbody = "h_heel_right"
+        #     A[num_dof + 6:num_dof + 6+1, :num_dof] = _h * skel.body(lbody).angular_jacobian()[1]
+        #     A[num_dof + 6+1:num_dof + 6 + 2, :num_dof] = _h * skel.body(rbody).angular_jacobian()[1]
+        #
+        #     b[num_dof + 6:num_dof + 6 + 1] = Kw * des_w_y_L - np.dot(skel.body(lbody).angular_jacobian() + _h * skel.body(lbody).angular_jacobian_deriv(), skel.dq)[1]
+        #     b[num_dof + 6+1:num_dof + 6 + 2] = Kw * des_w_y_R - np.dot(skel.body(rbody).angular_jacobian() + _h * skel.body(rbody).angular_jacobian_deriv(), skel.dq)[1]
 
         #####################################################
         # inequality
@@ -332,21 +334,43 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
                     G[2*num_lambda+(QP_CONE_DIM+1)*i+j,
                     num_dof+num_tau+(QP_CONE_DIM+1)*i:num_dof+num_tau+(QP_CONE_DIM+1)*i + QP_CONE_DIM+1] = g
 
+        lf_tangent2 = np.cross(np.array([0., 1.0, 0.]), lf_tangent)
+        rf_tangent2 = np.cross(rf_tangent, np.array([0., 1.0, 0.]))
 
-        G[2*num_lambda:2*num_lambda+1, :num_dof] = -np.dot(_h * np.array([sa_plus_L, 0., -1 * ca_plus_L]), jaco_L)
-        G[2*num_lambda+1:2*num_lambda+2, :num_dof] = -np.dot(_h * np.array([sa_plus_R, 0., -1 * ca_plus_R]), jaco_R)
-        G[2 * num_lambda+2:2 * num_lambda + 3, :num_dof] = np.dot(_h * np.array([sa_minus_L, 0., -1 * ca_minus_L]), jaco_L)
-        G[2 * num_lambda + 3:2 * num_lambda + 4, :num_dof] = np.dot(_h * np.array([sa_minus_R, 0., -1 * ca_minus_R]), jaco_R)
+        print("vec>", lf_tangent, lf_tangent2)
+        print("vec>", rf_tangent, rf_tangent2)
 
-        h[2*num_lambda:2*num_lambda+1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * ca_plus_L + \
-                                         (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * sa_plus_L
-        h[2*num_lambda+1:2*num_lambda+2] = -(np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * ca_plus_R + \
-                                             (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * sa_plus_R
+        G[2 * num_lambda:2 * num_lambda + 1, :num_dof] = -np.dot(_h * (lf_tangent*sa_plus_L - lf_tangent2*ca_plus_L), jaco_L)
+        G[2 * num_lambda + 1:2 * num_lambda + 2, :num_dof] = -np.dot(_h * (rf_tangent*sa_plus_R - rf_tangent2*ca_plus_R), jaco_R)
+        G[2 * num_lambda + 2:2 * num_lambda + 3, :num_dof] = np.dot(_h * (lf_tangent*sa_minus_L - lf_tangent2*ca_minus_L), jaco_L)
+        G[2 * num_lambda + 3:2 * num_lambda + 4, :num_dof] = np.dot(_h * (rf_tangent*sa_minus_R - rf_tangent2*ca_minus_R), jaco_R)
 
-        h[2*num_lambda+2:2*num_lambda+3] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * ca_minus_L - \
-                                         (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * sa_minus_L
-        h[2*num_lambda+3:2*num_lambda+4] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * ca_minus_R - \
-                                             (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * sa_minus_R
+        h[2 * num_lambda:2 * num_lambda + 1] = -np.dot((np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq)),lf_tangent2) * ca_plus_L + \
+                                               np.dot((np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq)), lf_tangent) * sa_plus_L
+        h[2 * num_lambda + 1:2 * num_lambda + 2] = -np.dot((np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq)), rf_tangent2) * ca_plus_R + \
+                                                   np.dot((np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq)), rf_tangent) * sa_plus_R
+
+        h[2 * num_lambda + 2:2 * num_lambda + 3] = np.dot((np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq)), lf_tangent2) * ca_minus_L - \
+                                                   np.dot((np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq)), lf_tangent) * sa_minus_L
+        h[2 * num_lambda + 3:2 * num_lambda + 4] = np.dot((np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq)), rf_tangent2) * ca_minus_R - \
+                                                   np.dot((np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq)), rf_tangent) * sa_minus_R
+
+        # G[2*num_lambda:2*num_lambda+1, :num_dof] = -np.dot(_h * np.array([sa_plus_L, 0., -1 * ca_plus_L]), jaco_L)
+        # G[2*num_lambda+1:2*num_lambda+2, :num_dof] = -np.dot(_h * np.array([sa_plus_R, 0., -1 * ca_plus_R]), jaco_R)
+        # G[2 * num_lambda+2:2 * num_lambda + 3, :num_dof] = np.dot(_h * np.array([sa_minus_L, 0., -1 * ca_minus_L]), jaco_L)
+        # G[2 * num_lambda + 3:2 * num_lambda + 4, :num_dof] = np.dot(_h * np.array([sa_minus_R, 0., -1 * ca_minus_R]), jaco_R)
+        #
+        # h[2*num_lambda:2*num_lambda+1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * ca_plus_L + \
+        #                                  (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * sa_plus_L
+        # h[2*num_lambda+1:2*num_lambda+2] = -(np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * ca_plus_R + \
+        #                                      (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * sa_plus_R
+        #
+        # h[2*num_lambda+2:2*num_lambda+3] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * ca_minus_L - \
+        #                                  (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * sa_minus_L
+        # h[2*num_lambda+3:2*num_lambda+4] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * ca_minus_R - \
+        #                                      (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * sa_minus_R
+
+
 
     forces = list()
 

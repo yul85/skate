@@ -111,7 +111,7 @@ class MyWorld(pydart.World):
         s01q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
         s01q[upper_body] = 0.0, 0., -0.5
-        s01q[spine] = 0.0, 0., 0.
+        s01q[spine] = 0.0, 0., 0.5
         s01q[left_leg] = -0., 0., 0.3, -0.5
         # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
         s01q[right_leg] = -0., -0., 0.3, -0.5
