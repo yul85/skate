@@ -272,6 +272,9 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
                 theta_blade = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
                 theta = math.acos(np.dot(np.array([1., 0., 0.]), rf_tangent))
                 theta = math.acos(np.dot(blade_direction_vec, rf_tangent))
+
+                theta = math.acos(np.dot(blade_direction_vec, lf_tangent))
+
                 dot_val = np.dot(blade_direction_vec, rf_tangent)
                 # # print("r: ", dot_val, blade_direction_vec, rf_tangent)
                 # if dot_val != 1.:
@@ -337,8 +340,11 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
         lf_tangent2 = np.cross(np.array([0., 1.0, 0.]), lf_tangent)
         rf_tangent2 = np.cross(rf_tangent, np.array([0., 1.0, 0.]))
 
-        print("vec>", lf_tangent, lf_tangent2)
-        print("vec>", rf_tangent, rf_tangent2)
+        # print("vec>", lf_tangent, lf_tangent2)
+        # print("vec>", rf_tangent, rf_tangent2)
+
+        rf_tangent = lf_tangent
+        rf_tangent2 = lf_tangent2
 
         G[2 * num_lambda:2 * num_lambda + 1, :num_dof] = -np.dot(_h * (lf_tangent*sa_plus_L - lf_tangent2*ca_plus_L), jaco_L)
         G[2 * num_lambda + 1:2 * num_lambda + 2, :num_dof] = -np.dot(_h * (rf_tangent*sa_plus_R - rf_tangent2*ca_plus_R), jaco_R)
