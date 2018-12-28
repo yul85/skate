@@ -15,8 +15,6 @@ from PyCommon.modules.Renderer import ysRenderer as yr
 from PyCommon.modules.Simulator import yulQpSimulator_inequality_blade_turning as hqp
 # from PyCommon.modules.Simulator import hpDartQpSimulator_turning_penalty as hqp
 
-#haha
-
 render_vector = []
 render_vector_origin = []
 push_force = []
@@ -89,100 +87,50 @@ class MyWorld(pydart.World):
         # #----------------------------------
         s0q = np.zeros(skel.ndofs)
         # s0q[pelvis] = 0., -0.
-        # s0q[upper_body] = 0.0, -0.5
-        s0q[right_leg] = -0., -0., -0.0, -0.0
-        s0q[left_leg] = 0., 0., 0.0, -0.0
+        # s0q[upper_body] = 0.0, 0.0, -0.5
+        # s0q[right_leg] = -0., -0., -0.0, -0.0
+        # s0q[left_leg] = 0., 0., 0.0, -0.0
         # s0q[leg_y] = -0.785, 0.785
         s0q[arms] = 1.5, -1.5
-        # s0q[foot] = -0., 0.4, 0., 0., -0.4, 0.
+        s0q[foot] = -0., 0.785, 0., 0., -0.785, 0.
         state0 = State("state0", 0.2, 0.0, 0.2, s0q)
 
         s001q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
-        s001q[upper_body] = 0.0, 0., -0.5
-        s001q[spine] = 0.0, 0., 0.5
-        s001q[left_leg] = -0., 0., 0.3, -0.5
-        # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s001q[right_leg] = -0., -0., 0.3, -0.5
+        # s001q[upper_body] = 0.0, 0., -0.3
+        # s001q[spine] = 0.0, 0., 0.5
+        # s001q[left_leg] = -0., 0., 0., -0.3
+        # s001q[right_leg] = -0.0, -0., 0., -0.3
         s001q[arms] = 1.5, -1.5
         # # s01q[blade] = -0.3
-        # s001q[foot] = -0., 0.4, 0.1, 0., -0.4, 0.1
-        s001q[foot] = -0., 0., 0.2, 0., -0., 0.2
-        state001 = State("state001", 0.5, 2.2, 0.0, s001q)
+        s001q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state001 = State("state001", 0.3, 2.2, 0.0, s001q)
 
         s01q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
-        s01q[upper_body] = 0.0, 0., -0.5
-        s01q[spine] = 0.0, 0., 0.5
-        s01q[left_leg] = -0., 0., 0.3, -0.5
-        # s01q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s01q[right_leg] = -0., -0., 0.3, -0.5
+        s01q[upper_body] = 0.0, 0., 0.3
+        # s01q[spine] = 0.0, 0., 0.5
+        s01q[left_leg] = -0., 0.2, 0.3, -0.3
+        s01q[right_leg] = -0., -0.2, 0.3, -0.3
         s01q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
-        s01q[foot] = -0., 0., 0.2, 0., 0., 0.2
+        s01q[foot] = -0., 0.785, 0.1, 0., -0.785, 0.1
         state01 = State("state01", 0.5, 2.2, 0.0, s01q)
 
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
-        s1q[upper_body] = 0.0, 0., -0.5
-        s1q[spine] = 0.0, 0., 0.5
-        s1q[left_leg] = -0., 0., 0.3, -0.5
-        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s1q[right_leg] = -0., -0., 0.3, -0.5
+        # s1q[upper_body] = 0.0, 0., 0.5
+        # s1q[spine] = 0.0, 0., 0.5
+        s1q[left_leg] = -0., -0., 0.3, -0.3
+        s1q[right_leg] = -0., -0., 0.3, -0.3
         # s1q[knee] = 0.1, -0.1
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
-        s1q[foot] = -0.0, 0., 0.2, 0.0, -0., 0.2
-        state1 = State("state1", 10., 2.2, 0.0, s1q)
+        s1q[foot] = -0.0, -0.785, 0.1, 0.0, 0.785, 0.1
+        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
-        s12q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = 0., -0.1
-        s12q[upper_body] = 0.0, -0.7, -0.
-        s12q[spine] = 0.0, 0., 0.
-        s12q[left_leg] = -0.1, 0., 0.3, -0.5
-        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s12q[right_leg] = 0.1, -0., 0.5, -0.
-        # s12q[knee] = 0.2, -0.2
-        s12q[arms] = 1.5, -1.5
-        s12q[arms_y] = -1.2, -0.8
-        # s1q[blade] = -0.3
-        s12q[foot] = -0.0, 0., 0.2, 0.0, -0., -0.2
-        # s12q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
-        state12 = State("state12", 5.0, 2.2, 0.0, s12q)
-
-        s2q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = 0., -0.1
-        s2q[upper_body] = 0.0, 0., -0.3
-        # s2q[spine] = 0.0, 0., 0.5
-        s2q[left_leg] = -0., 0., 0.3, -0.5
-        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s2q[right_leg] = -0., -0., 0.3, -0.5
-        # s2q[knee] = 0.2, -0.2
-        s2q[arms] = 1.5, -1.5
-        # s1q[blade] = -0.3
-        s2q[foot] = -0.0, 0., 0.2, 0.0, -0., 0.2
-        # s2q[foot] = -0.0, -0.4, 0.2, 0.0, 0.4, 0.2
-        state2 = State("state2", 0.5, 2.2, 0.0, s2q)
-
-        s22q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = 0., -0.1
-        s22q[upper_body] = 0.0, 0., -0.3
-        # s2q[spine] = 0.0, 0., 0.5
-        s22q[left_leg] = -0., 0., 0.3, -0.5
-        # s1q[right_leg] = -0.0, -0.785, -0.66, -0.0
-        s22q[right_leg] = -0., -0., 0.3, -0.5
-        # s2q[knee] = 0.2, -0.2
-        s22q[arms] = 1.5, -1.5
-        # s1q[blade] = -0.3
-        s22q[foot] = -0.0, 0., 0.2, 0.0, -0., 0.2
-        # s22q[foot] = -0.0, -0.4, 0.2, 0.0, 0.4, 0.2
-        state22 = State("state22", 2.0, 2.2, 0.0, s22q)
-
-        # self.state_list = [state0, state001, state1, state2, state1, state2]
-        # self.state_list = [state0, state001, state1, state12, state01, state2, state22, state1, state12,  state01, state2, state22]
-        # self.state_list = [state0, state001, state01, state12]
-        self.state_list = [state0, state001, state01, state1]
+        self.state_list = [state0, state001, state01, state1, state01, state1]
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -224,6 +172,9 @@ class MyWorld(pydart.World):
 
         self.trajUpdateTime = 0
         self.tangent_index = 0
+
+        self.lf_ = None
+        self.rf_ = None
 
     def generate_spline_trajectory(self, plist):
         ctr = np.array(plist)
@@ -268,10 +219,10 @@ class MyWorld(pydart.World):
         # else:
         #     self.force = None
 
-        if self.curr_state.name == "state01":
-            self.force = 2. * np.array([10.0, 0.0, 0.0])
-        else:
-            self.force = None
+        # if self.curr_state.name == "state01":
+        #     self.force = 2. * np.array([10.0, 0.0, 0.0])
+        # else:
+        #     self.force = None
 
         self.controller.cur_state = self.curr_state.name
         if self.force is not None:
@@ -378,35 +329,75 @@ class MyWorld(pydart.World):
 
         # print(skel.body('h_blade_left').to_world([0., 0, 0.]), skel.com())
         # HP QP solve
-        lf_tangent_vec = np.array([1.0, 0.0, 0.0])
-        rf_tangent_vec = np.array([1.0, 0.0, 0.0])
+        # lf_tangent_vec = np.array([0.0, 0.0, -1.0])
+        # rf_tangent_vec = np.array([0.0, 0.0, 1.0])
+        lf_tangent_vec = np.array([1.0, 0.0, .0])
+        rf_tangent_vec = np.array([1.0, 0.0, .0])
+
+        # lf_tangent_vec_normal = np.array([0.0, 0.0, -1.0])
+        # rf_tangent_vec_normal = np.array([0.0, 0.0, 1.0])
+
         # calculate tangent vector
 
         # if self.curr_state.name == "state1" or self.curr_state.name == "state2":
         # print("time: ", self.time())
-        if self.time() > 1.2:
-            if 0.01 > self.time() - self.trajUpdateTime:
-                # print("in loop", self.tangent_index)
-                lf_tangent_vec = np.asarray([self.left_der[0][self.tangent_index], 0.0, self.left_der[1][self.tangent_index]])
-                if np.linalg.norm(lf_tangent_vec) != 0:
-                    lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
-                rf_tangent_vec = np.asarray([self.right_der[0][self.tangent_index], 0.0, self.right_der[1][self.tangent_index]])
-                if np.linalg.norm(rf_tangent_vec) != 0:
-                    rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
-                # print("left foot traj: ", lf_tangent_vec)
-                # print("right_foot_traj: ", rf_tangent_vec)
-
-            else:
-                if self.tangent_index < len(self.left_foot_traj[0])-1:
-                    self.tangent_index += 1
-                else:
-                    self.tangent_index = 0
-                self.trajUpdateTime = self.time()
+        # if self.time() >= 0.2:
+        #     if 0.005 > self.time() - self.trajUpdateTime:
+        #         # print("in loop", self.tangent_index)
+        #         lf_tangent_vec = np.asarray([self.left_der[0][self.tangent_index], 0.0, self.left_der[1][self.tangent_index]])
+        #
+        #         lf_tangent_vec_normal = np.cross(np.array([0.0, -1.0, 0.0]), lf_tangent_vec)
+        #         if np.linalg.norm(lf_tangent_vec) != 0:
+        #             lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
+        #
+        #         if np.linalg.norm(lf_tangent_vec_normal) != 0:
+        #             lf_tangent_vec_normal = lf_tangent_vec_normal / np.linalg.norm(lf_tangent_vec_normal)
+        #         rf_tangent_vec = np.asarray([self.right_der[0][self.tangent_index], 0.0, self.right_der[1][self.tangent_index]])
+        #         if np.linalg.norm(rf_tangent_vec) != 0:
+        #             rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
+        #
+        #         rf_tangent_vec_normal = np.cross(rf_tangent_vec, np.array([0.0, -1.0, 0.0]))
+        #         if np.linalg.norm(rf_tangent_vec_normal) != 0:
+        #             rf_tangent_vec_normal = rf_tangent_vec_normal / np.linalg.norm(rf_tangent_vec_normal)
+        #
+        #         # print("left foot traj: ", lf_tangent_vec)
+        #         # print("right_foot_traj: ", rf_tangent_vec)
+        #
+        #     else:
+        #         if self.tangent_index < len(self.left_foot_traj[0])-1:
+        #             self.tangent_index += 1
+        #         else:
+        #             self.tangent_index = 0
+        #         self.trajUpdateTime = self.time()
             # print("left foot traj: ", lf_tangent_vec)
             # print("right_foot_traj: ", rf_tangent_vec)
 
+        # if self.time() > 0.2:
+        #     lf_tangent_vec = np.array([1.0, 0.0, -1.0])
+        #     rf_tangent_vec = np.array([1.0, 0.0, 1.0])
+        #     lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
+        #     rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
+        if self.time() > 0.5:
+            lf_tangent_vec = np.array([1.0, 0.0, -1.0])
+            rf_tangent_vec = np.array([1.0, 0.0, 1.0])
+            lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
+            rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
+        if self.time() > 1.0:
+            lf_tangent_vec = np.array([1.0, 0.0, 1.0])
+            rf_tangent_vec = np.array([1.0, 0.0, -1.0])
+            lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
+            rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
+
+        self.lf_ = lf_tangent_vec
+        self.rf_ = rf_tangent_vec
+
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
             skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, 1./self.time_step())
+
+        # print("lf_normal: ", lf_tangent_vec_normal)
+        # print("rf_normal: ", rf_tangent_vec_normal)
+        # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
+        #     skel, des_accel, ddc, lf_tangent_vec_normal, rf_tangent_vec_normal, 1. / self.time_step())
 
         offset_list = [[-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
                        [0.1040+0.0216, +0.80354016-0.85354016, 0.0]]
@@ -437,6 +428,32 @@ class MyWorld(pydart.World):
 
         #Jacobian transpose control
         # todo : make function
+
+        if self.curr_state.name == "state001":
+            l_jaco = skel.body("h_blade_left").linear_jacobian()
+            l_jaco_t = l_jaco.transpose()
+            l_force = 1. * np.array([10.0, 0., 0.])
+            l_tau = np.dot(l_jaco_t, l_force)
+
+            r_jaco = skel.body("h_blade_right").linear_jacobian()
+            r_jaco_t = r_jaco.transpose()
+            r_force = 1. * np.array([10.0, 0., 0.])
+            r_tau = np.dot(r_jaco_t, r_force)
+
+            _tau += l_tau + r_tau
+
+        if self.curr_state.name == "state01":
+            l_jaco = skel.body("h_blade_left").linear_jacobian()
+            l_jaco_t = l_jaco.transpose()
+            l_force = 4. * np.array([10.0, 0., -10.])
+            l_tau = np.dot(l_jaco_t, l_force)
+
+            r_jaco = skel.body("h_blade_right").linear_jacobian()
+            r_jaco_t = r_jaco.transpose()
+            r_force = 4. * np.array([10.0, 0., 10.])
+            r_tau = np.dot(r_jaco_t, r_force)
+
+            _tau += l_tau + r_tau
 
         # if self.curr_state.name == "state1":
         #     l_jaco = skel.body("h_blade_left").linear_jacobian()
@@ -589,7 +606,6 @@ class MyWorld(pydart.World):
             ri.set_color(1.0, 0.0, 0.0)
             ri.render_arrow(p0, p1, r_base=0.03, head_width=0.1, head_len=0.1)
 
-
         # render contact force --yul
         contact_force = self.contact_force
 
@@ -645,11 +661,15 @@ class MyWorld(pydart.World):
         # com = self.skeletons[2].body('h_blade_left').to_world(np.array([0.1040 + 0.0216, +0.80354016 - 0.85354016, -0.054]))
         rd_footCenter.append(com)
 
-        lft.append(np.array([self.left_der[0][self.tangent_index + 1], -0., self.left_der[1][self.tangent_index + 1]]))
-        lft_origin.append(np.array([self.left_foot_traj[0][self.tangent_index], -0.9, self.left_foot_traj[1][self.tangent_index]]))
+        # lft.append(np.array([self.left_der[0][self.tangent_index + 1], -0., self.left_der[1][self.tangent_index + 1]]))
+        # lft_origin.append(np.array([self.left_foot_traj[0][self.tangent_index], -0.9, self.left_foot_traj[1][self.tangent_index]]))
+        # rft.append(np.array([self.right_der[0][self.tangent_index + 1], -0., self.right_der[1][self.tangent_index + 1]]))
+        # rft_origin.append(np.array([self.right_foot_traj[0][self.tangent_index], -0.9, self.right_foot_traj[1][self.tangent_index]]))
 
-        rft.append(np.array([self.right_der[0][self.tangent_index + 1], -0., self.right_der[1][self.tangent_index + 1]]))
-        rft_origin.append(np.array([self.right_foot_traj[0][self.tangent_index], -0.9, self.right_foot_traj[1][self.tangent_index]]))
+        lft.append(self.lf_)
+        lft_origin.append(np.array([0., -0.9, 0.]))
+        rft.append(self.rf_)
+        rft_origin.append(np.array([0., -0.9, 0.]))
 
         for ctr_n in range(0, len(self.left_foot_traj[0])-1, 10):
             lf_trajectory.append(np.array([self.left_foot_traj[0][ctr_n], -0.9, self.left_foot_traj[1][ctr_n]]))
@@ -742,7 +762,7 @@ if __name__ == '__main__':
     # q["j_heel_right_1"] = 0.2
     #
     # q["j_heel_left_y", "j_heel_right_y"] = 0.4, -0.4
-    # q["j_heel_left_y", "j_heel_right_y"] = 0.785, -0.785
+    q["j_heel_left_y", "j_heel_right_y"] = 0.785, -0.785
 
     # # both arm T-pose
     q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
