@@ -12,7 +12,8 @@ from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 # from PyCommon.modules.Simulator import hpDartQpSimulator_turning as hqp
-from PyCommon.modules.Simulator import yulQpSimulator_inequality_blade_turning as hqp
+from PyCommon.modules.Simulator import yulQpSimulator_equality_blade_turning as hqp
+# from PyCommon.modules.Simulator import yulQpSimulator_inequality_blade_turning as hqp
 # from PyCommon.modules.Simulator import hpDartQpSimulator_turning_penalty as hqp
 
 render_vector = []
@@ -97,40 +98,53 @@ class MyWorld(pydart.World):
 
         s001q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
-        # s001q[upper_body] = 0.0, 0., -0.3
+        s001q[upper_body] = 0.0, 0., -0.5
         # s001q[spine] = 0.0, 0., 0.5
-        # s001q[left_leg] = -0., 0., 0., -0.3
-        # s001q[right_leg] = -0.0, -0., 0., -0.3
+        s001q[left_leg] = -0., 0., 0., -0.5
+        s001q[right_leg] = -0.0, -0., 0., -0.5
         s001q[arms] = 1.5, -1.5
         # # s01q[blade] = -0.3
         s001q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        state001 = State("state001", 0.3, 2.2, 0.0, s001q)
+        state001 = State("state001", 0.5, 2.2, 0.0, s001q)
 
         s01q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
-        s01q[upper_body] = 0.0, 0., 0.3
+        s01q[upper_body] = 0.0, 0., -0.5
         # s01q[spine] = 0.0, 0., 0.5
-        s01q[left_leg] = -0., 0.2, 0.3, -0.3
-        s01q[right_leg] = -0., -0.2, 0.3, -0.3
+        s01q[left_leg] = 0., 0., 0., -0.3
+        s01q[right_leg] = -0., -0., 0., -0.3
         s01q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
         s01q[foot] = -0., 0.785, 0.1, 0., -0.785, 0.1
         state01 = State("state01", 0.5, 2.2, 0.0, s01q)
 
+        s011q = np.zeros(skel.ndofs)
+        # s1q[pelvis] = 0., -0.1
+        s011q[upper_body] = 0.0, 0., -0.5
+        # s1q[spine] = 0.0, 0., 0.5
+        s011q[left_leg] = 0.2, -0., 0., -0.3
+        s011q[right_leg] = -0.2, 0., 0., -0.3
+        # s1q[knee] = 0.1, -0.1
+        s011q[arms] = 1.5, -1.5
+        # s1q[blade] = -0.3
+        # s1q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
+        s011q[foot] = -0.0, -0., 0.2, 0.0, 0., 0.2
+        state011 = State("state011", 0.5, 2.2, 0.0, s011q)
+
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
-        # s1q[upper_body] = 0.0, 0., 0.5
+        s1q[upper_body] = 0.0, 0., -0.5
         # s1q[spine] = 0.0, 0., 0.5
-        s1q[left_leg] = -0., -0., 0.3, -0.3
-        s1q[right_leg] = -0., -0., 0.3, -0.3
+        s1q[left_leg] = -0., -0., 0., -0.3
+        s1q[right_leg] = 0., 0., 0., -0.3
         # s1q[knee] = 0.1, -0.1
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
-        s1q[foot] = -0.0, -0.785, 0.1, 0.0, 0.785, 0.1
+        s1q[foot] = -0.0, -0.785, 0.2, 0.0, 0.785, 0.2
         state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
-        self.state_list = [state0, state001, state01, state1, state01, state1]
+        self.state_list = [state0, state001, state01, state011, state1, state01, state011, state1]
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -377,22 +391,33 @@ class MyWorld(pydart.World):
         #     rf_tangent_vec = np.array([1.0, 0.0, 1.0])
         #     lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
         #     rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
-        if self.time() > 0.5:
-            lf_tangent_vec = np.array([1.0, 0.0, -1.0])
-            rf_tangent_vec = np.array([1.0, 0.0, 1.0])
+
+        vel_cone_list = np.zeros(8)
+
+        if self.curr_state.name == "state01":
+            lf_tangent_vec = np.array([1.0, 0.0, -0.5])
+            rf_tangent_vec = np.array([1.0, 0.0, 0.5])
             lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
             rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
-        if self.time() > 1.0:
-            lf_tangent_vec = np.array([1.0, 0.0, 1.0])
-            rf_tangent_vec = np.array([1.0, 0.0, -1.0])
+            vel_cone_list[0] = 1
+            vel_cone_list[1] = 1
+            vel_cone_list[4] = 1
+            vel_cone_list[5] = 1
+        if self.curr_state.name == "state1":
+            lf_tangent_vec = np.array([1.0, 0.0, 0.5])
+            rf_tangent_vec = np.array([1.0, 0.0, -0.5])
             lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
             rf_tangent_vec = rf_tangent_vec / np.linalg.norm(rf_tangent_vec)
+            vel_cone_list[2] = 1
+            vel_cone_list[3] = 1
+            vel_cone_list[6] = 1
+            vel_cone_list[7] = 1
 
         self.lf_ = lf_tangent_vec
         self.rf_ = rf_tangent_vec
 
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
-            skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, 1./self.time_step())
+            skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, vel_cone_list, 1./self.time_step())
 
         # print("lf_normal: ", lf_tangent_vec_normal)
         # print("rf_normal: ", rf_tangent_vec_normal)
@@ -442,115 +467,31 @@ class MyWorld(pydart.World):
 
             _tau += l_tau + r_tau
 
-        if self.curr_state.name == "state01":
-            l_jaco = skel.body("h_blade_left").linear_jacobian()
-            l_jaco_t = l_jaco.transpose()
-            l_force = 4. * np.array([10.0, 0., -10.])
-            l_tau = np.dot(l_jaco_t, l_force)
-
-            r_jaco = skel.body("h_blade_right").linear_jacobian()
-            r_jaco_t = r_jaco.transpose()
-            r_force = 4. * np.array([10.0, 0., 10.])
-            r_tau = np.dot(r_jaco_t, r_force)
-
-            _tau += l_tau + r_tau
-
-        # if self.curr_state.name == "state1":
+        # if self.curr_state.name == "state01":
         #     l_jaco = skel.body("h_blade_left").linear_jacobian()
         #     l_jaco_t = l_jaco.transpose()
-        #     l_force = np.array([0.0, 0., -20.])
+        #     l_force = 3. * np.array([10.0, 0., -10.])
         #     l_tau = np.dot(l_jaco_t, l_force)
         #
         #     r_jaco = skel.body("h_blade_right").linear_jacobian()
         #     r_jaco_t = r_jaco.transpose()
-        #     r_force = np.array([0.0, 0., 20.])
+        #     r_force = 3. * np.array([10.0, 0., 10.])
         #     r_tau = np.dot(r_jaco_t, r_force)
         #
         #     _tau += l_tau + r_tau
-
-        # if self.curr_state.name == "state2":
+        #
+        # if self.curr_state.name == "state1":
         #     l_jaco = skel.body("h_blade_left").linear_jacobian()
         #     l_jaco_t = l_jaco.transpose()
-        #     l_force = np.array([20.0, -2., 20.])
+        #     l_force = 3. * np.array([10.0, 0., 10.])
         #     l_tau = np.dot(l_jaco_t, l_force)
         #
         #     r_jaco = skel.body("h_blade_right").linear_jacobian()
         #     r_jaco_t = r_jaco.transpose()
-        #     r_force = np.array([20.0, -2., -20.])
+        #     r_force = 3. * np.array([10.0, 0., -10.])
         #     r_tau = np.dot(r_jaco_t, r_force)
         #
         #     _tau += l_tau + r_tau
-
-        # if self.curr_state.name == "state011":
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     my_force = 10. * np.array([-1.0, -8., 1.0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     my_tau = np.dot(my_jaco_t, my_force)
-        #
-        #     my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t2 = my_jaco2.transpose()
-        #     my_force2 = 30. * np.array([1.0, -.0, -1.0])
-        #     my_tau2 = np.dot(my_jaco_t2, my_force2)
-        #
-        #     _tau += my_tau + my_tau2
-        #
-        # if self.curr_state.name == "state1":
-        #     my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t2 = my_jaco2.transpose()
-        #     my_force2 = 10. * np.array([1.0, -.0, .0])
-        #     my_tau2 = np.dot(my_jaco_t2, my_force2)
-        #
-        #     my_jaco = skel.body("h_thigh_left").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     my_force = 10. * np.array([-.0, 0., 1.0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     my_tau = np.dot(my_jaco_t, my_force)
-        #
-        #     _tau += my_tau2 + my_tau
-        #
-        # if self.curr_state.name == "state2":
-        #
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     my_force = 10. * np.array([1.0, -1., 1.0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     my_tau = np.dot(my_jaco_t, my_force)
-        #
-        #     my_jaco4 = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t4 = my_jaco4.transpose()
-        #     my_force4 = 10. * np.array([-1.0, -0., -1.0])
-        #     my_tau4 = np.dot(my_jaco_t4, my_force4)
-        #
-        #     _tau += my_tau + my_tau4
-        #
-        # if self.curr_state.name == "state3":
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     my_force = 10. * np.array([1.0, .0, .0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     my_tau = np.dot(my_jaco_t, my_force)
-        #
-        #     my_jaco3 = skel.body("h_thigh_right").linear_jacobian()
-        #     my_jaco_t3 = my_jaco3.transpose()
-        #     my_force3 = 3. * np.array([-.0, 0., -1.0])
-        #     my_tau3 = np.dot(my_jaco_t3, my_force3)
-        #
-        #     _tau += my_tau + my_tau3
-        #
-        # if self.curr_state.name == "state03":
-        #     my_jaco = skel.body("h_blade_right").linear_jacobian()
-        #     my_jaco_t = my_jaco.transpose()
-        #     my_force = 10. * np.array([-1.0, -8., 1.0])
-        #     # my_force = 50. * np.array([-1.0, 0., .0])
-        #     my_tau = np.dot(my_jaco_t, my_force)
-        #
-        #     my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-        #     my_jaco_t2 = my_jaco2.transpose()
-        #     my_force2 = 10. * np.array([1.0, -8.0, -5.0])
-        #     my_tau2 = np.dot(my_jaco_t2, my_force2)
-        #
-        #     _tau += my_tau #+ my_tau2
 
         skel.set_forces(_tau)
 
