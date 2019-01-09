@@ -122,29 +122,37 @@ class MyWorld(pydart.World):
         # s1q[pelvis] = 0., -0.1
         s011q[upper_body] = 0.0, 0., -0.5
         # s1q[spine] = 0.0, 0., 0.5
-        s011q[left_leg] = 0.2, -0., 0., -0.3
-        s011q[right_leg] = -0.2, 0., 0., -0.3
+        s011q[left_leg] = 0.2, -0., -0., -0.3
+        s011q[right_leg] = -0.2, 0., -0., -0.3
         # s1q[knee] = 0.1, -0.1
         s011q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
-        s011q[foot] = -0.0, -0., 0.2, 0.0, 0., 0.2
-        state011 = State("state011", 0.5, 2.2, 0.0, s011q)
+        s011q[foot] = -0.0, -0., 0.3, 0.0, 0., 0.3
+        state011 = State("state011", 0.3, 2.2, 0.0, s011q)
 
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
-        s1q[upper_body] = 0.0, 0., -0.5
+        s1q[upper_body] = 0.0, 0., -0.3
         # s1q[spine] = 0.0, 0., 0.5
-        s1q[left_leg] = -0., -0., 0., -0.3
-        s1q[right_leg] = 0., 0., 0., -0.3
+        s1q[left_leg] = -0., -0., -0., -0.5
+        s1q[right_leg] = 0., 0., -0., -0.5
         # s1q[knee] = 0.1, -0.1
         s1q[arms] = 1.5, -1.5
         # s1q[blade] = -0.3
         # s1q[foot] = -0.0, 0.4, 0.2, 0.0, -0.4, 0.2
-        s1q[foot] = -0.0, -0.785, 0.2, 0.0, 0.785, 0.2
+        s1q[foot] = -0.0, -0.785, 0.3, 0.0, 0.785, 0.3
         state1 = State("state1", 0.5, 2.2, 0.0, s1q)
 
-        self.state_list = [state0, state001, state01, state011, state1, state01, state011, state1]
+        s12q = np.zeros(skel.ndofs)
+        s12q[upper_body] = 0.0, 0., -0.
+        s12q[left_leg] = -0., -0., 0.1, -0.1
+        s12q[right_leg] = 0., 0., 0.1, -0.1
+        s12q[arms] = 1.5, -1.5
+        s12q[foot] = -0.0, -0., 0.2, 0.0, 0., 0.2
+        state12 = State("state12", 0.3, 2.2, 0.0, s12q)
+
+        self.state_list = [state0, state001, state01, state011, state1,  state12, state01, state011, state1, state12]
 
         state_num = len(self.state_list)
         self.state_num = state_num

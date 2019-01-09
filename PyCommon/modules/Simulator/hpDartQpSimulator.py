@@ -201,10 +201,12 @@ def calc_QP(skel, ddq_des, ddc, inv_h):
         #     blade_direction_vec = p2 - p1
         # else:
         #     blade_direction_vec = p1 - p2
+
+        blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
+
         if np.linalg.norm(blade_direction_vec) != 0:
             blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
         # print(blade_direction_vec)
         # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
         # print(blade_direction_vec)

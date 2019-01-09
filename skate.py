@@ -407,78 +407,46 @@ class MyWorld(pydart.World):
         # dartModel.applyPenaltyForce(_bodyIDs, _contactPositionLocals, _contactForces)
 
         #Jacobian transpose control
-        # todo : make function
+
+        jaco_r = skel.body("h_blade_right").linear_jacobian()
+        jaco_l = skel.body("h_blade_left").linear_jacobian()
+        jaco_hip_r = skel.body("h_thigh_right").linear_jacobian()
 
         if self.curr_state.name == "state011":
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([-1.0, -8., 1.0])
-            # my_force = 50. * np.array([-1.0, 0., .0])
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 30. * np.array([1.0, -.0, -1.0])
-            my_tau2 = np.dot(my_jaco_t2, my_force2)
-
-            _tau += my_tau + my_tau2
+            force_r = 10. * np.array([-1.0, -8., 1.0])
+            force_l = 10. * np.array([1.0, -.0, -1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
         if self.curr_state.name == "state1":
-            my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 10. * np.array([1.0, -.0, .0])
-            my_tau2 = np.dot(my_jaco_t2, my_force2)
-
-            my_jaco = skel.body("h_thigh_left").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([-.0, 0., 1.0])
-            # my_force = 50. * np.array([-1.0, 0., .0])
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            _tau += my_tau2 + my_tau
+            force_r = 10. * np.array([1.0, -.0, .0])
+            force_l = 10. * np.array([-.0, 0., 1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
         if self.curr_state.name == "state2":
-
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([1.0, -1., 1.0])
-            # my_force = 50. * np.array([-1.0, 0., .0])
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            my_jaco4 = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t4 = my_jaco4.transpose()
-            my_force4 = 10. * np.array([-1.0, -0., -1.0])
-            my_tau4 = np.dot(my_jaco_t4, my_force4)
-
-            _tau += my_tau + my_tau4
+            force_r = 10. * np.array([1.0, -1., 1.0])
+            force_l = 10. * np.array([-1.0, -0., -1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
         if self.curr_state.name == "state3":
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([1.0, .0, .0])
-            # my_force = 50. * np.array([-1.0, 0., .0])
-            my_tau = np.dot(my_jaco_t, my_force)
+            force_r = 10. * np.array([1.0, -1., 1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            force_hip_r = 3. * np.array([-.0, 0., -1.0])
+            t_hip_r = self.add_JTC_force(jaco_hip_r, force_hip_r)
 
-            my_jaco3 = skel.body("h_thigh_right").linear_jacobian()
-            my_jaco_t3 = my_jaco3.transpose()
-            my_force3 = 3. * np.array([-.0, 0., -1.0])
-            my_tau3 = np.dot(my_jaco_t3, my_force3)
-
-            _tau += my_tau + my_tau3
+            _tau += t_r + t_hip_r
 
         if self.curr_state.name == "state03":
-            my_jaco = skel.body("h_blade_right").linear_jacobian()
-            my_jaco_t = my_jaco.transpose()
-            my_force = 10. * np.array([-1.0, -8., 1.0])
-            # my_force = 50. * np.array([-1.0, 0., .0])
-            my_tau = np.dot(my_jaco_t, my_force)
-
-            my_jaco2 = skel.body("h_blade_left").linear_jacobian()
-            my_jaco_t2 = my_jaco2.transpose()
-            my_force2 = 10. * np.array([1.0, -8.0, -5.0])
-            my_tau2 = np.dot(my_jaco_t2, my_force2)
-
-            _tau += my_tau #+ my_tau2
+            force_r = 10. * np.array([-1.0, -8., 1.0])
+            force_l = 10. * np.array([1.0, -8.0, -5.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
         # if self.curr_state.name == "state04":
         #     # jaco = skel.body("h_thigh_left").linear_jacobian()
@@ -559,6 +527,11 @@ class MyWorld(pydart.World):
         super(MyWorld, self).step()
 
         # skel.set_positions(q)
+
+    def add_JTC_force(self, jaco, force):
+        jaco_t = jaco.transpose()
+        tau = np.dot(jaco_t, force)
+        return tau
 
     def on_key_press(self, key):
         if key == '1':
