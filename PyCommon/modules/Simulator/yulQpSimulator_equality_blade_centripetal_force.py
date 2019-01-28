@@ -12,10 +12,10 @@ QP_PENETRATION_FACTOR = 0.01
 QP_RESTITUTION = 1.
 
 QP_CONE_DIM = 4
-MU_x = 1.
-MU_z = 1.
-# MU_x = 0.02
-# MU_z = 0.02
+# MU_x = 1.
+# MU_z = 1.
+MU_x = 0.02
+MU_z = 0.02
 
 LAMBDA_CONTAIN_NORMAL = False
 NON_HOLONOMIC = False
@@ -31,9 +31,6 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     :type ddq_des: np.ndarray
     :return:
     """
-
-    print("test!! : ", math.atan(1.33) * 180. / math.pi)
-
 
     # weight_map_vec = np.diagflat(
     #     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
