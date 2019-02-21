@@ -70,92 +70,112 @@ class MyWorld(pydart.World):
         # blade = skel.dof_indices(["j_heel_right_2"])
 
 
-        # #----------------------------------
-        # # pushing side to side new (180718)
-        # #----------------------------------
+        # ===========pushing side to side new===========
 
-        s0q = np.zeros(skel.ndofs)
-        # s0q[pelvis] = 0., -0.
-        # s0q[upper_body] = 0.0, -0.5
-        # s0q[left_leg] = 0., 0., 0.4, -1.1
-        # s0q[right_leg] = -0., -0., -0., -0.05
-        # s0q[leg_y] = -0.785, 0.785
-        # s0q[arms] = 1.5, -1.5
-        # s0q[foot] = -0.0, 0.0, 0., 0.0, -0., 0.
-        state0 = State("state0", 0.3, 0.0, 0.2, s0q)
+        s00q = np.zeros(skel.ndofs)
+        # s00q[pelvis] = 0., -0.
+        # s00q[upper_body] = 0.0, 0.0, -0.5
+        # s00q[right_leg] = -0., -0., -0.0, -0.0
+        # s00q[left_leg] = 0., 0., 0.0, -0.0
+        # s00q[leg_y] = -0.785, 0.785
+        s00q[arms] = 1.5, -1.5
+        s00q[foot] = -0., 0.785, 0., 0., -0.785, 0.
+        state00 = State("state00", 0.2, 0.0, 0.2, s00q)
 
         s01q = np.zeros(skel.ndofs)
         # s01q[pelvis] = 0., -0.3
         s01q[upper_body] = 0.0, 0., -0.5
         s01q[spine] = 0.0, 0., 0.5
         s01q[left_leg] = -0., 0., 0.3, -0.5
-        s01q[right_leg] = -0., -0., 0.3, -0.5
-        # s01q[arms] = 1.5, -1.5
-        # s01q[blade] = -0.3
-        s01q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state01 = State("state01", 0.5, 2.2, 0.0, s01q)
+        s01q[right_leg] = -0.0, -0., 0.3, -0.5
+        s01q[arms] = 1.5, -1.5
+        # # s01q[blade] = -0.3
+        s01q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state01 = State("state01", 0.2, 2.2, 0.0, s01q)
 
-        s1q = np.zeros(skel.ndofs)
-        # s1q[pelvis] = 0., -0.1
-        s1q[upper_body] = 0.0, 0., -0.5
-        s1q[spine] = 0.0, 0., 0.5
-        s1q[left_leg] = -0., 0., 0.3, -0.5
-        s1q[right_leg] = -0., -0., 0.3, -0.5
-        # s1q[arms] = 1.5, -1.5
-        # s1q[blade] = -0.3
-        s1q[foot] = -0.0, 0.0, 0.2, 0.0, -0., 0.2
-        state1 = State("state1", 0.5, 2.2, 0.0, s1q)
+        s02q = np.zeros(skel.ndofs)
+        # s02q[pelvis] = 0., -0.3
+        s02q[upper_body] = 0.0, 0., -0.5
+        s02q[spine] = 0.0, 0., 0.5
+        s02q[left_leg] = -0., 0., 0.3, -0.5
+        s02q[right_leg] = -0.0, -0., 0.3, -0.5
+        s02q[arms] = 1.5, -1.5
+        s02q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state02 = State("state02", 0.5, 2.2, 0.0, s02q)
+
+        s03q = np.zeros(skel.ndofs)
+        # s03q[pelvis] = 0., -0.1
+        s03q[upper_body] = 0., 0., -0.5
+        s03q[spine] = 0.0, 0., 0.5
+        s03q[left_leg] = -0.1, 0., 0.3, -0.5
+        # s03q[right_leg] = -0.0, -0.785, -0.66, -0.0
+        s03q[right_leg] = 0.1, -0., 0.9, -1.2
+        s03q[arms] = 1.5, -1.5
+        s03q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state03 = State("state03", 0.8, 2.2, 0.0, s03q)
+
+        s04q = np.zeros(skel.ndofs)
+        # s04q[pelvis] = -0.3, -0.0
+        s04q[upper_body] = -0., 0, -0.3
+        s04q[left_leg] = 0., 0., 0.3, -0.5
+        s04q[right_leg] = -0., -0.2, 0.3, -0.5
+        s04q[arms] = 1.5, -1.5
+        s04q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state04 = State("state04", 0.3, 0.0, 0.2, s04q)
+
+        s05q = np.zeros(skel.ndofs)
+        s05q[upper_body] = 0.0, 0., -0.3
+        s05q[spine] = 0.0, 0., 0.3
+        s05q[left_leg] = 0.1, -0., 0.9, -1.2
+        s05q[right_leg] = -0., -0., 0.3, -0.3
+        s05q[arms] = 1.5, -1.5
+        s05q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
+        state05 = State("state05", 0.8, 0.0, 0.2, s05q)
+
+
+        #=====================LEFT TURN=============
+
+        s10q = np.zeros(skel.ndofs)
+        # s10q[pelvis] = 0., -0.3
+        s10q[upper_body] = 0.0, 0., -0.5
+        s10q[spine] = 0.0, 0., 0.5
+        s10q[left_leg] = -0., 0., 0.3, -0.5
+        s10q[right_leg] = -0., -0., 0.3, -0.5
+        s10q[arms] = 1.5, -1.5
+        # s10q[blade] = -0.3
+        s10q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
+        state10 = State("state10", 0.5, 2.2, 0.0, s10q)
 
         roro_angle = 10.
 
-        s2q = np.zeros(skel.ndofs)
-        s2q[upper_body] = -0., 0., -0.5
-        s2q[spine] = -0., 0., 0.5
-        s2q[left_leg] = 0., 0., 0.5, -0.9
-        s2q[right_leg] = 0., -0., 0.5, -0.9
-        s2q[knee] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        # s2q[arms] = 1.5, -1.5
-        # s2q[arms] = -0.5, -0.5
-        s2q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        # s2q[foot] = 0., 0., 0.2, 0., 0., 0.2
-        s2q[foot] = -0., 0., 0.4, 0., 0., 0.4
-        state2 = State("state2", 2.0, 0.0, 0.2, s2q)
+        s11q = np.zeros(skel.ndofs)
+        s11q[upper_body] = -0., 0., -0.5
+        s11q[spine] = -0., 0., 0.5
+        s11q[left_leg] = 0., 0., 0.5, -0.9
+        s11q[right_leg] = 0., -0., 0.5, -0.9
+        s11q[knee] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
+        # s11q[arms] = 1.5, -1.5
+        # s11q[arms] = -0.5, -0.5
+        s11q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
+        # s11q[foot] = 0., 0., 0.2, 0., 0., 0.2
+        s11q[foot] = -0., 0., 0.4, 0., 0., 0.4
+        state11 = State("state11", 2.0, 0.0, 0.2, s11q)
 
-        s02q = np.zeros(skel.ndofs)
-        # s02q[pelvis_x] = -10. * math.pi/180.
-        s02q[upper_body] = 0., 0., -0.5
-        s02q[spine] = 0.0, 0., 0.5
-        s02q[left_leg] = -0., 0., 0.5, -0.9
-        s02q[right_leg] = 0., -0., 0.3, -0.5
-        s02q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # s02q[arms] = 1.5, -1.5
-        s02q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        s02q[foot] = -0., 0., 0.4, 0., -0., 0.2
-        # s02q[foot] = -roro_angle * math.pi / 180., 0., 0., -roro_angle * math.pi / 180., -0., 0.
-        state02 = State("state02", 1.0, 0.0, 0.2, s02q)
+        # s12q = np.zeros(skel.ndofs)
+        # # s12q[pelvis_x] = -10. * math.pi/180.
+        # s12q[upper_body] = 0., 0., -0.5
+        # s12q[spine] = 0.0, 0., 0.5
+        # s12q[left_leg] = -0., 0., 0.5, -0.9
+        # s12q[right_leg] = 0., -0., 0.3, -0.5
+        # s12q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
+        # # s12q[arms] = 1.5, -1.5
+        # s12q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
+        # s12q[foot] = -0., 0., 0.4, 0., -0., 0.2
+        # # s12q[foot] = -roro_angle * math.pi / 180., 0., 0., -roro_angle * math.pi / 180., -0., 0.
+        # state12 = State("state12", 1.0, 0.0, 0.2, s12q)
 
-        s3q = np.zeros(skel.ndofs)
-        # s3q[pelvis_x] = 10. * math.pi / 180.
-        s3q[upper_body] = 0.0, 0., -0.5
-        s3q[spine] = 0.0, 0., 0.5
-        s3q[left_leg] = -0., 0., 0.3, -0.5
-        s3q[right_leg] = -0., -0., 0.3, -0.5
-        # s3q[arms] = 1.5, -1.5
-        s3q[foot] = roro_angle * math.pi / 180., 0.0, 0.2, roro_angle * math.pi / 180., 0.0, 0.2
-        state3 = State("state3", 1.0, 2.2, 0.0, s3q)
 
-        s03q = np.zeros(skel.ndofs)
-        # s3q[pelvis_x] = 10. * math.pi / 180.
-        s03q[upper_body] = 0.0, 0., -0.5
-        s03q[spine] = 0.0, 0., 0.5
-        s03q[left_leg] = -0., 0., 0.5, -0.5
-        s03q[right_leg] = -0., -0., 0.3, -0.5
-        # s3q[arms] = 1.5, -1.5
-        s03q[foot] = 0., 0.0, 0.2, 0., 0.0, 0.2
-        state03 = State("state03", 1.0, 2.2, 0.0, s03q)
-
-        self.state_list = [state0, state01, state1, state2, state02, state01, state3, state03]
-        # self.state_list = [state0, state1, state2, state02, state01, state3, state03]
+        self.state_list = [state00, state01, state02, state03, state04, state05, state11]
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -332,46 +352,39 @@ class MyWorld(pydart.World):
 
         #Jacobian transpose control
 
-        # jaco_r = skel.body("h_blade_right").linear_jacobian()
-        # jaco_l = skel.body("h_blade_left").linear_jacobian()
-        # jaco_hip_r = skel.body("h_thigh_right").linear_jacobian()
-        jaco_pelvis = skel.body("h_pelvis").linear_jacobian()
+        jaco_r = skel.body("h_blade_right").linear_jacobian()
+        jaco_l = skel.body("h_blade_left").linear_jacobian()
+        jaco_hip_r = skel.body("h_thigh_right").linear_jacobian()
+        # jaco_pelvis = skel.body("h_pelvis").linear_jacobian()
 
-        # if self.curr_state.name == "state011":
-        #     force_r = 10. * np.array([-1.0, -8., 1.0])
-        #     force_l = 10. * np.array([1.0, -.0, -1.0])
-        #     t_r = self.add_JTC_force(jaco_r, force_r)
-        #     t_l = self.add_JTC_force(jaco_l, force_l)
-        #     _tau += t_r + t_l
+        if self.curr_state.name == "state02":
+            force_r = 10. * np.array([-1.0, -8., 1.0])
+            force_l = 10. * np.array([1.0, -.0, -1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
-        # if self.curr_state.name == "state1":
-        #     force_r = 30. * np.array([-0., 0., 1.0])
-        #     force_l = 70. * np.array([1.0, 0., -.0])
-        #     t_r = self.add_JTC_force(jaco_r, force_r)
-        #     t_l = self.add_JTC_force(jaco_l, force_l)
-        #     _tau += t_r + t_l
-        #
+        if self.curr_state.name == "state03":
+            force_r = 10. * np.array([1.0, -.0, .0])
+            force_l = 10. * np.array([-.0, 0., 1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
-        # print("centripetal_force_dir: ", centripetal_force_dir)
+        if self.curr_state.name == "state04":
+            force_r = 10. * np.array([1.0, -1., 1.0])
+            force_l = 10. * np.array([-1.0, -0., -1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            t_l = self.add_JTC_force(jaco_l, force_l)
+            _tau += t_r + t_l
 
-        # if self.curr_state.name == "state2":
-        #     # centripetal_force = math.tan(10*math.pi/180) * skel.m * 9.8 * np.array([0.0, 0., -1.0])
-        #     centripetal_force = math.tan(10 * math.pi / 180) * skel.m * 9.8 * centripetal_force_dir
-        #     tau = self.add_JTC_force(jaco_pelvis, centripetal_force)
-        #     _tau += tau
-        #
-        # if self.curr_state.name == "state3":
-        #     # centripetal_force = math.tan(10*math.pi/180) * skel.m * 9.8 * np.array([0.0, 0., 1.0])
-        #     centripetal_force = math.tan(10 * math.pi / 180) * skel.m * 9.8 * centripetal_force_dir
-        #     tau = self.add_JTC_force(jaco_pelvis, centripetal_force)
-        #     _tau += tau
-        #
-        # if self.curr_state.name == "state03":
-        #     force_r = 10. * np.array([-1.0, -8., 1.0])
-        #     force_l = 10. * np.array([1.0, -8.0, -5.0])
-        #     t_r = self.add_JTC_force(jaco_r, force_r)
-        #     t_l = self.add_JTC_force(jaco_l, force_l)
-        #     _tau += t_r + t_l
+        if self.curr_state.name == "state05":
+            force_r = 10. * np.array([1.0, -1., 1.0])
+            t_r = self.add_JTC_force(jaco_r, force_r)
+            force_hip_r = 3. * np.array([-.0, 0., -1.0])
+            t_hip_r = self.add_JTC_force(jaco_hip_r, force_hip_r)
+
+            _tau += t_r + t_hip_r
 
         skel.set_forces(_tau)
 
@@ -484,9 +497,11 @@ if __name__ == '__main__':
     # q["j_shin_left_z", "j_shin_right_z"] = -1.1, -0.05
     # q["j_heel_left_z", "j_heel_right_z"] = 0.2, 0.2
 
+    q["j_heel_left_y", "j_heel_right_y"] = 0.785, -0.785
+
     # # both arm T-pose
-    # q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
-    # q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
+    q["j_bicep_left_x", "j_bicep_left_y", "j_bicep_left_z"] = 1.5, 0.0, 0.0
+    q["j_bicep_right_x", "j_bicep_right_y", "j_bicep_right_z"] = -1.5, 0.0, 0.0
 
     skel.set_positions(q)
     print('skeleton position OK')

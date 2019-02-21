@@ -130,7 +130,7 @@ class GlWindow(Fl_Gl_Window):
         self.renderers = []
         self.invisibleRenderers = []
 
-        self.pOnPlaneshadow = [0, 0.001, 0]
+        self.pOnPlaneshadow = [0,0.001,0]
         self.normalshadow = [0,1,0]
 
     def setupLights(self):
@@ -232,53 +232,24 @@ class GlWindow(Fl_Gl_Window):
         else:
             glCallList(self.groundList)
         #'''
-        glColor3f(119./255., 138./255., 153./255.)
-        glColor3f(192. / 255., 192. / 255., 192. / 255.)
+        glColor3f(0.3,0.3,0.3)
         glBegin(GL_LINES)
-        l = 15
+        l = 20
         h = .1
 
         for i in range(-l, l+1):
-            glVertex3f(i, self.planeHeight-0.011, -l)
-            glVertex3f(i, self.planeHeight-0.011, l)
+            glVertex3f(i, self.planeHeight, -l)
+            glVertex3f(i, self.planeHeight, l)
         for i in range(-l, l+1):
-            glVertex3f(-l, self.planeHeight-0.011, i)
-            glVertex3f(l, self.planeHeight-0.011, i)
-        # for i in range(-l, l+1):
-        #     glVertex3f(i, self.planeHeight, 0)
-        #     glVertex3f(i, self.planeHeight-h, 0)
-        #     glVertex3f(0, self.planeHeight, i)
-        #     glVertex3f(0, self.planeHeight-h, i)
+            glVertex3f(-l, self.planeHeight, i)
+            glVertex3f(l, self.planeHeight, i)
+        for i in range(-l, l+1):
+            glVertex3f(i, self.planeHeight, 0)
+            glVertex3f(i, self.planeHeight-h, 0)
+            glVertex3f(0, self.planeHeight, i)
+            glVertex3f(0, self.planeHeight-h, i)
         glEnd()
 
-        white4 = [1., 1., 1., 1.]
-        white1 = [.1, .1, .1, 1.]
-        green5 = [0., .5, 0., 1.]
-        green2 = [0., .2, 0., 1.]
-        black = [0.5, 0.5, 0.5, 0.]
-
-        count = 0
-        glBegin(GL_QUADS)
-        for i in range(-15, 16):
-            for j in range(-15, 16):
-                if count % 2 == 0:
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, white4)
-                    # glColor3d(1.0, 1.0, 1.0)
-                    glColor4f(1.0, 1.0, 1.0, 0.7)
-                else:
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, green5)
-                    # glColor3d(1.0, 1.0, 1.0)
-                    glColor4f(1.0, 1.0, 1.0, 0.7)
-                glNormal3d(0.,0.,1.)
-
-                glVertex3f(j, self.planeHeight-0.011, i)
-                glVertex3f(j, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i)
-                count += 1
-        glEnd()
         
     def drawAxis(self):
         self.drawCoordinate((255,255,255), self.camera.distance*.08)
@@ -479,7 +450,7 @@ class GlWindow(Fl_Gl_Window):
         mat[7]  = -n[1]
         mat[11] = -n[2] 
         mat[15] = -d
-
+        
         glMultMatrixf(mat)
              
     def draw(self):
@@ -489,7 +460,7 @@ class GlWindow(Fl_Gl_Window):
             self.initGLFlag = False
 
         # glClearColor(.8, .8, .8, .8)
-        glClearColor(240/255, 255/255, 1.0, .8)
+        glClearColor(0.9, 0.9, 0.9, .8)
         # glClearColor(.3, .3, .3, .5)
         # glClearColor(1., 1., 1., .8)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -508,23 +479,14 @@ class GlWindow(Fl_Gl_Window):
 
         
         # lightPos = (-5000,20000,10000,0)
-        # lightPos = (-10000,20000,5000,0)
+        lightPos = (-10000,20000,5000,0)
         #lightPos = (.5,1.,.5,0 )
-        lightPos = (10000, 20000, -5000, 0)
         
         glLightfv(GL_LIGHT0, GL_POSITION, lightPos)
         
         glLightfv(GL_LIGHT0, GL_POSITION, (.5,1.,.5,0))
                 
         glLineWidth(1.)
-
-        self.drawScene()
-
-        glEnable(GL_STENCIL_TEST)
-        glColorMask(0, 0, 0, 0)
-        glDisable(GL_DEPTH_TEST)
-        glStencilFunc(GL_ALWAYS, 1, 1)
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE)
 
         self.drawGround()
         # self.drawAxis()
@@ -535,25 +497,18 @@ class GlWindow(Fl_Gl_Window):
         # self.drawGroundFilled()
         # self.drawGround_grey()
 
-        glEnable(GL_DEPTH_TEST)
-        glColorMask(1, 1, 1, 1)
-        glStencilFunc(GL_EQUAL, 1, 1)
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        '''
+        if self.sceneList:
+#            print '[FRAMELOG]calllist', self.parent.frame
+            glCallList(self.sceneList[0])
+        else:
+#            print '[FRAMELOG]draw', self.parent.frame
+            self.drawScene()
+        '''
 
-        glPushMatrix()
-        glCullFace(GL_FRONT)
+        self.drawScene()
 
-        glScalef(1, -1, 1)
-        glTranslatef(0., -2 * self.planeHeight, 0.)
-        self.drawScene(yr.RENDER_REFLECTION)
-        glCullFace(GL_BACK)
-        glPopMatrix()
-
-
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glColor4f(1, 1, 1, 0.3)
-        self.drawGround()
+        #glPopMatrix()
 
         #### SHADOW
         if FLAG_SHADOW:
@@ -568,8 +523,8 @@ class GlWindow(Fl_Gl_Window):
             # pOnPlaneshadow = [0,0.001,0]
             # pOnPlaneshadow = [0,0.001,0]
             # normalshadow = [0,1,0]
-
-
+       
+        
     #        self.glShadowProjectionPOINT(1,2,3)
             self.glShadowProjectionPOINT(lightshadow, self.pOnPlaneshadow, self.normalshadow)
               #human
@@ -582,16 +537,12 @@ class GlWindow(Fl_Gl_Window):
     #            print '[FRAMELOG]draw', self.parent.frame
                 self.drawScene(yr.RENDER_SHADOW)
             #'''
-
-            # self.drawScene(yr.RENDER_SHADOW)
+            self.drawScene(yr.RENDER_SHADOW)
 
             glPopMatrix()
             glDepthMask(GL_TRUE)
             glEnable(GL_LIGHTING)
-
-        glDisable(GL_BLEND)
-
-        glDisable(GL_STENCIL_TEST)
+        
 
         #glPopMatrix()
         glFlush()

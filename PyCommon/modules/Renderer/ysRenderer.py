@@ -468,7 +468,8 @@ class DartRenderer(Renderer):
         glLineWidth(self._lineWidth)
 
         if renderType == RENDER_SHADOW:
-            glColor3ubv(shadow_color)
+            # glColor3ubv(shadow_color)
+            glColor3ubv(self.totalColor)
         else:
             glColor3ubv(self.totalColor)
 
@@ -593,7 +594,8 @@ class DartRenderer(Renderer):
             if renderType != RENDER_SHADOW:
                 glColor3ubv(color)
             else:
-                glColor3ubv(shadow_color)
+                #glColor3ubv(shadow_color)
+                glColor4ub(shadow_color[0], shadow_color[1], shadow_color[2], 60)
 
             if geomType[0] == 'B':
                 glTranslatef(-data[0]/2., -data[1]/2., -data[2]/2.)

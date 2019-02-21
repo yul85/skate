@@ -710,7 +710,7 @@ if __name__ == '__main__':
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
-    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))

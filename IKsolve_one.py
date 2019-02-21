@@ -180,7 +180,7 @@ class IKsolver(object):
         else:
             res = minimize(self.f, x0=self.skel.q[6:18], jac=self.g, method="SLSQP")
         # res = minimize(self.f, x0=self.skel.q, jac=self.g, method="SLSQP")
-        # print(res)
+        # print("res: ", res)
         self.skel.set_positions(q_backup)
 
         return res['x']
