@@ -49,9 +49,11 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
          # .1, .1, .1, .1, .1, .1, .1, .1, .1,
          1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5,
          1.0, 1.0, 1.0, 1.0, 1.0, 1.0, .5, .5, .5,
-         1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-         1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-         1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+         10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+         2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
+         12.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
 
     solvers.options['show_progress'] = False
 
@@ -197,13 +199,13 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100. # + 1/skel.m * PJ.transpose().dot(PJ)
+    P[:num_dof, :num_dof] *= 100. * weight_map_vec# + 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
     # P[num_dof + num_tau:, num_dof + num_tau:] *= 0.01
     # P[num_dof:num_dof + num_tau, num_dof: num_dof + num_tau] *= 0.001
     q = np.zeros(num_variable)
-    q[:num_dof] = -100.*ddq_des #- 30. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
-
+    # q[:num_dof] = -100.*ddq_des#- 30. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
+    q[:num_dof] = -100. * np.dot(ddq_des, weight_map_vec)
     #####################################################
     # equality
     #####################################################
