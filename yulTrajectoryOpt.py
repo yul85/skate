@@ -13,7 +13,7 @@ from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 from PyCommon.modules.Simulator import hpDartQpSimulator as hqp
 
-np.set_printoptions(threshold=np.nan)
+np.set_printoptions(threshold=np.inf)
 
 offset_list = [[-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],
                [0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0],

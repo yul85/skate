@@ -93,7 +93,7 @@ class MyWorld(pydart.World):
         # s01q[arms] = 1.5, -1.5
         # s01q[blade] = -0.3
         s01q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state01 = State("state01", 0.5, 2.2, 0.0, s01q)
+        state01 = State("state01", 0.3, 2.2, 0.0, s01q)
 
         s1q = np.zeros(skel.ndofs)
         # s1q[pelvis] = 0., -0.1
@@ -111,37 +111,39 @@ class MyWorld(pydart.World):
         s2q = np.zeros(skel.ndofs)
         s2q[upper_body] = -0., 0., -0.5
         s2q[spine] = -0., 0., 0.5
-        s2q[left_leg] = 0., 0., 0.5, -0.9
-        s2q[right_leg] = 0., -0., 0.5, -0.9
-        s2q[knee] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
+        s2q[left_leg] = -0.2, 0., 0.3, -0.5
+        s2q[right_leg] = -0.2, -0., 0.3, -0.5
+        # s2q[knee] = roro_angle * math.pi/180., roro_angle * math.pi/180.
         # s2q[arms] = 1.5, -1.5
         # s2q[arms] = -0.5, -0.5
-        s2q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        # s2q[foot] = 0., 0., 0.2, 0., 0., 0.2
-        s2q[foot] = -0., 0., 0.4, 0., 0., 0.4
-        state2 = State("state2", 2.0, 0.0, 0.2, s2q)
+        # s2q[arms] = roro_angle * math.pi/180., roro_angle * math.pi/180.
+        s2q[foot] = 0.0, 0.2, 0.2, 0., 0.2, 0.2
+        # s2q[foot] = -0., 0., 0.4, 0., 0., 0.4
+        # s2q[foot] = -0., 0., 0.4, -0., roro_angle * math.pi/180., 0.2
+        state2 = State("state2", 1.0, 0.0, 0.2, s2q)
 
         s02q = np.zeros(skel.ndofs)
         # s02q[pelvis_x] = -10. * math.pi/180.
         s02q[upper_body] = 0., 0., -0.5
         s02q[spine] = 0.0, 0., 0.5
-        s02q[left_leg] = -0., 0., 0.5, -0.9
-        s02q[right_leg] = 0., -0., 0.3, -0.5
-        s02q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
+        s02q[left_leg] = -0., 0., 0.3, -0.5
+        s02q[right_leg] = -0., -0., 0.3, -0.5
+        # s02q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
         # s02q[arms] = 1.5, -1.5
-        s02q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        s02q[foot] = -0., 0., 0.4, 0., -0., 0.2
-        # s02q[foot] = -roro_angle * math.pi / 180., 0., 0., -roro_angle * math.pi / 180., -0., 0.
-        state02 = State("state02", 1.0, 0.0, 0.2, s02q)
+        # s02q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
+        s02q[foot] = -0., 0., 0.2, 0., -0., 0.2
+        # s02q[foot] = roro_angle * math.pi / 180., 0., 0.4, roro_angle * math.pi / 180., -0., 0.2
+        state02 = State("state02", 0.3, 0.0, 0.2, s02q)
 
         s3q = np.zeros(skel.ndofs)
         # s3q[pelvis_x] = 10. * math.pi / 180.
         s3q[upper_body] = 0.0, 0., -0.5
         s3q[spine] = 0.0, 0., 0.5
-        s3q[left_leg] = -0., 0., 0.3, -0.5
-        s3q[right_leg] = -0., -0., 0.3, -0.5
+        s3q[left_leg] = 0.2, 0., 0.3, -0.5
+        s3q[right_leg] = 0.2, -0., 0.3, -0.5
+        # s3q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
         # s3q[arms] = 1.5, -1.5
-        s3q[foot] = roro_angle * math.pi / 180., 0.0, 0.2, roro_angle * math.pi / 180., 0.0, 0.2
+        s3q[foot] = 0., -0.2, 0.2, 0., -0.2, 0.2
         state3 = State("state3", 1.0, 2.2, 0.0, s3q)
 
         s03q = np.zeros(skel.ndofs)
@@ -154,7 +156,8 @@ class MyWorld(pydart.World):
         s03q[foot] = 0., 0.0, 0.2, 0., 0.0, 0.2
         state03 = State("state03", 1.0, 2.2, 0.0, s03q)
 
-        self.state_list = [state0, state01, state1, state2, state02, state01, state3, state03]
+        self.state_list = [state0, state01, state1, state2, state02, state3, state03]
+        # self.state_list = [state0, state01, state1, state2, state3, state03]
         # self.state_list = [state0, state1, state2, state02, state01, state3, state03]
 
         state_num = len(self.state_list)
@@ -192,7 +195,7 @@ class MyWorld(pydart.World):
         # print("self.curr_state: ", self.curr_state.name)
 
         if self.curr_state.name == "state1":
-            self.force = np.array([50.0, 0.0, 0.0])
+            self.force = np.array([70.0, 0.0, 0.0])
         # elif self.curr_state.name == "state2":
         #     self.force = np.array([0.0, 0.0, -10.0])
         else:
@@ -272,18 +275,17 @@ class MyWorld(pydart.World):
             #
             # # print("time: ", round(ti, 2))
             # vec = np.array([1.0, 0.0, -round(ti, 2)])
-            #
-            # vec_norm = np.linalg.norm(vec)
-            # if vec_norm != 0:
-            #     vec = vec / vec_norm
-            #
-            # lf_tangent_vec = vec
-            # rf_tangent_vec = vec
+
+            vec_norm = np.linalg.norm(vec)
+            if vec_norm != 0:
+                vec = vec / vec_norm
+            lf_tangent_vec = vec
+            rf_tangent_vec = vec
 
             # self.last_vec = vec
 
-            lf_tangent_vec = character_dir
-            rf_tangent_vec = character_dir
+            # lf_tangent_vec = character_dir
+            # rf_tangent_vec = character_dir
 
         # if self.curr_state.name == "state02":
         #     print("last_vec: ", self.last_vec)
@@ -316,7 +318,7 @@ class MyWorld(pydart.World):
 
         empty_list = []
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces, _is_contact_list = hqp.calc_QP(
-            skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, empty_list, 1./self.time_step())
+            skel, des_accel, self.force, ddc, lf_tangent_vec, rf_tangent_vec, empty_list, 1./self.time_step())
 
         del self.contact_force[:]
         del self.bodyIDs[:]

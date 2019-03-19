@@ -312,39 +312,39 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
 
         V = np.zeros((3*num_contact, num_lambda))
 
-        for i in range(num_contact):
-            if LAMBDA_CONTAIN_NORMAL:
-                V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+0] = np.array((1., 0., 0.))
-                V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+1] = np.array((0., 0., -1.))
-                V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+2] = np.array((-1., 0., 0.))
-                V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+3] = np.array((0., 0., 1.))
-                V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+4] = np.array((0., 1., 0.))
-            else:
-                V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
-                # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-                V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = mm.normalize(np.array((0., 0., -MU_z)))
-                V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
-                # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-                V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = mm.normalize(np.array((0., 0., MU_z)))
+        # for i in range(num_contact):
+        #     if LAMBDA_CONTAIN_NORMAL:
+        #         V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+0] = np.array((1., 0., 0.))
+        #         V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+1] = np.array((0., 0., -1.))
+        #         V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+2] = np.array((-1., 0., 0.))
+        #         V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+3] = np.array((0., 0., 1.))
+        #         V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+4] = np.array((0., 1., 0.))
+        #     else:
+        #         V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
+        #         # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
+        #         V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = mm.normalize(np.array((0., 0., -MU_z)))
+        #         V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
+        #         # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
+        #         V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = mm.normalize(np.array((0., 0., MU_z)))
 
-        # i = 0
-        # for ii in range(8):
-        #     if is_contact[ii] == 1:
-        #         if vel_con_list[ii] == 0:
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = mm.normalize(np.array((0., 0., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = mm.normalize(np.array((0., 0., MU_z)))
-        #         else:
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = np.array((0., 1., 0.))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = np.array((0., 1., 0.))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = np.array((0., 1., 0.))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = np.array((0., 1., 0.))
-        #         i += 1
+        i = 0
+        for ii in range(8):
+            if is_contact[ii] == 1:
+                if vel_con_list[ii] == 0:
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
+                    V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
+                    # V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = mm.normalize(np.array((0., 0., -MU_z)))
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
+                    V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
+                    # V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = mm.normalize(np.array((0., 0., MU_z)))
+                else:
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = np.array((0., 1., 0.))
+                    # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = np.array((0., 1., 0.))
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = np.array((0., 1., 0.))
+                    # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
+                    V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = np.array((0., 1., 0.))
+                i += 1
 
         # print(V, i)
         # print(num_contact, i)

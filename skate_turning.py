@@ -424,8 +424,7 @@ class MyWorld(pydart.World):
         self.lf_ = lf_tangent_vec
         self.rf_ = rf_tangent_vec
 
-        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(
-            skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, vel_cone_list, 1./self.time_step())
+        _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = hqp.calc_QP(skel, des_accel, ddc, lf_tangent_vec, rf_tangent_vec, vel_cone_list, 1./self.time_step())
 
         # print("lf_normal: ", lf_tangent_vec_normal)
         # print("rf_normal: ", rf_tangent_vec_normal)

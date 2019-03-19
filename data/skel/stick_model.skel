@@ -1,0 +1,313 @@
+<?xml version="1.0" ?>
+<skel version="1.0">
+    <world name="world 1">
+        <physics>
+            <time_step>0.001</time_step>
+            <gravity>0 -9.81 0</gravity>
+            <collision_detector>fcl_mesh</collision_detector>
+        </physics>
+
+        <skeleton name="ground skeleton">
+            <mobile>false</mobile>
+            <body name="ground">
+                <!-- <transformation>0 -0.92 0 0 0 0</transformation> -->
+                <transformation>0 -0.98 0 0 0 0</transformation>
+                <!-- <transformation>0 -1.0 0 0 0 0</transformation> -->
+                <!--
+                <visualization_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>5.0 0.05 5.0</size>
+                        </box>
+                    </geometry>
+
+                    <color>1.0 1.0 1.0 0.0 </color>
+                </visualization_shape>
+                -->
+<!--                 <collision_shape>
+                    <transformation>0 0 0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>10.0 0.05 10.0</size>
+                        </box>
+                    </geometry>
+                </collision_shape> -->
+            </body>
+            <joint type="free" name="joint 1">
+                <parent>world</parent>
+                <child>ground</child>
+            </joint>
+        </skeleton>
+
+
+        <skeleton name="fullbody1">
+            <transformation>0 0 0 0 0 0</transformation>
+            <body name="h_pelvis">
+                <transformation>0 0 0 0 0 0</transformation>
+                <inertia>
+                    <mass>2.0</mass>
+                    <offset>0.0 0 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0 0 0.0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.093025 0.093025</size>
+                        </box>
+                    </geometry>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 0 0.0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.093025 0.093025</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+            <body name="h_leg">
+                <transformation>0.0 -0.05774016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>5.0</mass>
+                    <offset>0.0 -0.3729 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0 -0.3729 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.7458 0.093025</size>
+                        </box>
+                    </geometry>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.3729 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.7458 0.093025</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+
+            <body name="h_heel">
+                <transformation>0.01649408 -0.80354016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>1.0831</mass>
+                    <offset>0.0216 -0.0216 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>1.0000*0.108 0.5000*0.108 1.0000*0.108</size-->
+                            <size>0.2080 0.0540 0.1080</size>
+                        </box>
+                    </geometry>
+
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>1.0000*0.108 0.5000*0.108 1.0000*0.108</size-->
+                            <size>0.2080 0.0540 0.1080</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+            <body name="h_blade">
+                <transformation>0.01649408 -0.85754016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>1.0831</mass>
+                    <offset>0.0216 -0.0216 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.2080 0.0540 0.005</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.0 0.5</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+
+                            <size>0.2080 0.0540 0.005</size>
+                        </box>
+                    </geometry>
+                </collision_shape>                                
+            </body>
+
+
+            <!-- JOINT: Pelvis -->
+            <joint type="free" name="j_pelvis">
+                <parent>world</parent>
+                <child>h_pelvis</child>
+                <init_pos>0 0 0 0 0 0</init_pos>
+                <init_vel>0 0 0 0 0 0</init_vel>
+            </joint>
+
+            <joint type="weld" name="j_thigh">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_pelvis</parent>
+                <child>h_leg</child>
+            </joint>
+
+            <joint type="ball" name="j_heel">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_leg</parent>
+                <child>h_heel</child>
+            </joint>
+
+            <joint type="weld" name="j_blade">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_heel</parent>
+                <child>h_blade</child>
+            </joint>
+
+        </skeleton>
+
+
+        <skeleton name="fullbody1_ref">
+            <mobile>false</mobile>
+            <transformation>0.0 0 -1.2 0 0 0</transformation>
+            <body name="h_pelvis">
+                <transformation>0 0 0 0 0 0</transformation>
+                <inertia>
+                    <mass>40.0</mass>
+                    <offset>0.0 0 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0 0 0.0 0 0 0</transformation>
+                    <geometry>
+                    <color>0.76 0.81 0.96</color>
+                        <box>
+                            <size>0.093025 0.093025 0.093025</size>
+                        </box>
+                    </geometry>
+                    <color>0.76 0.81 0.96</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 0 0.0 0 0 0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.093025 0.093025</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+            <body name="h_leg">
+                <transformation>0.0 -0.05774016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>18.8556</mass>
+                    <offset>0.0 -0.3999 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0 -0.3999 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                    <color>0.76 0.81 0.96</color>
+                        <box>
+                            <size>0.093025 0.7998 0.093025</size>
+                        </box>
+                    </geometry>
+                    <color>0.76 0.81 0.96</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0 -0.3999 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.093025 0.7998 0.093025</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+            <body name="h_heel">
+                <transformation>0.01649408 -0.80354016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>1.0831</mass>
+                    <offset>0.0216 -0.0216 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>1.0000*0.108 0.5000*0.108 1.0000*0.108</size-->
+                            <size>0.2080 0.0540 0.1080</size>
+                        </box>
+                    </geometry>
+                    <color>0.76 0.81 0.96</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <!--size>1.0000*0.108 0.5000*0.108 1.0000*0.108</size-->
+                            <size>0.2080 0.0540 0.1080</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+            <body name="h_blade">
+                <transformation>0.01649408 -0.85754016 0.0 0.0 0.0 0.0</transformation>
+                <inertia>
+                    <mass>1.0831</mass>
+                    <offset>0.0216 -0.0216 0.0</offset>
+                </inertia>
+                <visualization_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.2080 0.0540 0.005</size>
+                        </box>
+                    </geometry>
+                    <color>1.0 0.0 0.5</color>
+                </visualization_shape>
+                <collision_shape>
+                    <transformation>0.0216 -0.0216 0.0 0.0 0.0 0.0</transformation>
+                    <geometry>
+                        <box>
+                            <size>0.2080 0.0540 0.005</size>
+                        </box>
+                    </geometry>
+                </collision_shape>
+            </body>
+
+            <!-- JOINT: Pelvis -->
+            <joint type="free" name="j_pelvis">
+                <parent>world</parent>
+                <child>h_pelvis</child>
+                <init_pos>0 0 0 0 0 0</init_pos>
+                <init_vel>0 0 0 0 0 0</init_vel>
+            </joint>
+
+            <joint type="weld" name="j_thigh">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_pelvis</parent>
+                <child>h_leg</child>
+            </joint>
+
+            <joint type="ball" name="j_heel">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_leg</parent>
+                <child>h_heel</child>
+            </joint>
+
+            <joint type="weld" name="j_blade">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
+                <parent>h_heel</parent>
+                <child>h_blade</child>
+            </joint>
+
+        </skeleton>
+    </world>
+</skel>
