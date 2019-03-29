@@ -37,8 +37,8 @@ class Model(nn.Module):
         self.policy_fc2 = nn.Linear(hidden_layer_size1, hidden_layer_size2)
         self.policy_fc3 = nn.Linear(hidden_layer_size2, num_actions)
         '''Policy Distributions'''
-        # self.log_std = nn.Parameter(torch.zeros(num_actions))
-        self.log_std = nn.Parameter(0.1 * torch.ones(num_actions))
+        self.log_std = nn.Parameter(torch.zeros(num_actions))        # add little noise
+        # self.log_std = nn.Parameter(0.1 * torch.ones(num_actions)) # add large noise
 
         '''Value'''
         self.value_fc1 = nn.Linear(num_states		  ,hidden_layer_size1)

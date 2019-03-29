@@ -9,9 +9,8 @@ import gym.spaces
 from gym.utils import seeding
 
 from rl.pd_controller import PDController
-from PyCommon.modules.Simulator import yulQpSimulator_penalty as yulqp
-# from PyCommon.modules.Simulator import yulQpSimulator as yulqp
-# from PyCommon.modules.Simulator import yulQpSimulator_noknifecon as yulqp
+from PyCommon.modules.Simulator import yulQpSimulator_equality_blade_centripetal_force as yulqp
+
 from multiprocessing import Pool
 
 debug = False
@@ -220,7 +219,7 @@ class YulDartEnv(gym.Env):
                 # _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulqp.calc_QP(
                 #     self.skel, des_accel, None, 1. / self.world.time_step())
 
-                _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces = yulqp.calc_QP(
+                _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces, _is_contact_list = yulqp.calc_QP(
                     self.skel, des_accel, None, None, None, None, None, 1. / self.world.time_step())
 
                 del self.contact_force[:]
@@ -258,9 +257,9 @@ class YulDartEnv(gym.Env):
                 print('ArithmeticError!')
                 return tuple([self.state(), self.reward(), True, dict()])
         except ValueError:
-            if debug:
-                print('ValueError!')
-            return tuple([self.state(), self.reward(), True, dict()])
+           if debug:
+               print('ValueError!')
+           return tuple([self.state(), self.reward(), True, dict()])
         return tuple([self.state(), self.reward(), self.is_done(), dict()])
 
     def continue_from_now_by_phase(self, phase):

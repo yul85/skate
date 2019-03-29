@@ -1,6 +1,5 @@
 import numpy as np
 import pydart2 as pydart
-import QPsolver
 import math
 import IKsolve_double_stance
 import momentum_con
@@ -89,7 +88,7 @@ class MyWorld(pydart.World):
         # s01q[upper_body] = 0., 0., -0.2
         # s01q[spine] = 0.0, 0., 0.5
         s01q[left_leg] = 0., 0., 0.3, -0.5
-        s01q[right_leg] = -0., -0., 0.3, -0.5
+        s01q[right_leg] = -0.1, -0., 0.3, -0.5
         s01q[leg_y] = 0.785, -0.785
         # s01q[knee] = 0.2, 0.
         s01q[arms] = 1.5, -1.5
@@ -100,49 +99,49 @@ class MyWorld(pydart.World):
 
         s02q = np.zeros(skel.ndofs)
         # s02q[pelvis] = 0., -0.3
-        # s02q[upper_body] = 0., 0., -0.2
+        s02q[upper_body] = 0., 0., -0.5
         # s02q[spine] = 0.5, 0.5, 0.
         s02q[left_leg] = 0., 0., 0.3, -0.5
-        s02q[right_leg] = -0., -0., 0.3, -0.5
+        s02q[right_leg] = -0., -0., 0.1, -0.5
         # s02q[right_leg] = -0.4, -0., 0.3, -0.7
         s02q[leg_y] = 0.785, -0.785
         s02q[arms] = 1.5, -1.5
-        s02q[knee] = 0., -0.2
+        # s02q[knee] = 0., -0.2
         # s02q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
         s02q[foot] = 0., 0., 0.2, -0., -0., 0.3
         state02 = State("state02", 1.0, 2.2, 0.0, s02q)
 
         s03q = np.zeros(skel.ndofs)
         # s03q[pelvis] = 0., -0.1
-        s03q[upper_body] = 0., 0., -0.2
+        s03q[upper_body] = 0., 0., -0.5
         # s03q[spine] = 0.5, 0.5, 0.
         s03q[left_leg] = 0., 0., 0.3, -0.5
-        s03q[right_leg] = -0.2, -0., -0., -0.1
+        s03q[right_leg] = -0., -0., 0.1, -0.5
         s03q[leg_y] = 0.785, -0.785
         # s03q[knee] = 0.2, 0.
         s03q[arms] = 1.5, -1.5
-        s03q[foot] = -0., 0., 0.2, 0., -0., 0.1
-        state03 = State("state03", 1., 2.2, 0.0, s03q)
+        s03q[foot] = -0., 0., 0.2, 0., -0., 0.4
+        state03 = State("state03", 2.0, 2.2, 0.0, s03q)
 
         s04q = np.zeros(skel.ndofs)
         # s04q[pelvis] = -0.3, -0.0
-        # s04q[upper_body] = -0., 0, -0.3
+        s04q[upper_body] = -0., 0, -0.5
         # s04q[spine] = -0.3, -0.3, -0.
-        s04q[left_leg] = -0.3, 0., 0.3, -0.5
-        s04q[right_leg] = 0.5, -0., 1.0, -0.2
+        s04q[left_leg] = -0., 0., 0.1, -0.3
+        s04q[right_leg] = -0.5, -0., -0.5, -0.
         s04q[arms] = 1.5, -1.5
-        # s04q[leg_y] = 0.785, -0.785
-        s04q[foot] = -0., 0.0, 0.2, 0., -0.0, 0.2
-        state04 = State("state04", 0.5, 0.0, 0.2, s04q)
+        s04q[leg_y] = 0.785, -0.785
+        s04q[foot] = -0., 0.0, 0.2, -0.2, -0.0, 0.
+        state04 = State("state04", 3.0, 0.0, 0.2, s04q)
 
         s05q = np.zeros(skel.ndofs)
         s05q[upper_body] = 0.0, 0., -0.3
         s05q[spine] = 0.0, 0., 0.3
-        s05q[left_leg] = 0.1, -0., 0.9, -1.2
-        s05q[right_leg] = -0., -0., 0.3, -0.3
+        s05q[left_leg] = 0., -0., 0.3, -0.5
+        s05q[right_leg] = -0., -0., 0.3, -0.5
         s05q[arms] = 1.5, -1.5
-        s05q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        state05 = State("state05", 0.8, 0.0, 0.2, s05q)
+        s05q[foot] = -0., 0., 0.2, 0., -0., 0.2
+        state05 = State("state05", 1.0, 0.0, 0.2, s05q)
 
 
         #=====================LEFT TURN=============
@@ -199,19 +198,9 @@ class MyWorld(pydart.World):
         # print("backup angle: ", backup_q)
         # print("cur angle: ", self.curr_state.angles)
 
-        self.controller = QPsolver.Controller(skel, self.skeletons[3], self.dt, self.curr_state.name)
-
-        self.skeletons[3].set_positions(self.curr_state.angles)
-
-        self.controller.target = self.curr_state.angles
-        # self.controller.target = skel.q
-        # skel.set_controller(self.controller)
-
         if ik_on:
             self.ik = IKsolve_double_stance.IKsolver(skel, self.skeletons[3], self.dt)
             print('IK ON')
-
-        print('create controller OK')
 
         self.contact_force = []
         self.contactPositionLocals = []
@@ -223,6 +212,8 @@ class MyWorld(pydart.World):
     def step(self):
         # print("self.curr_state: ", self.curr_state.name)
 
+        # apply external force
+
         # if self.curr_state.name == "state1":
         #     self.force = np.array([50.0, 0.0, 0.0])
         # # elif self.curr_state.name == "state2":
@@ -230,7 +221,6 @@ class MyWorld(pydart.World):
         # else:
         #     self.force = None
 
-        self.controller.cur_state = self.curr_state.name
         if self.force is not None:
             self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
 
@@ -284,69 +274,8 @@ class MyWorld(pydart.World):
         # HP QP solve
         lf_tangent_vec = np.array([1.0, 0.0, .0])
         rf_tangent_vec = np.array([1.0, 0.0, .0])
-
-        # character_dir = copy.deepcopy(skel.com_velocity())
-        character_dir = skel.com_velocity()
-        # print(character_dir, skel.com_velocity())
-        character_dir[1] = 0
-        if np.linalg.norm(character_dir) != 0:
-            character_dir = character_dir / np.linalg.norm(character_dir)
-
-        centripetal_force_dir = np.cross([0.0, 1.0, 0.0], character_dir)
-
-        # if self.curr_state.name == "state2" or self.curr_state.name == "state02":
-        #
-        #     vec = np.array([1.0, 0.0, -0.1])
-        #     # vec[0] = 1.0 -0.1
-        #     # vec[2] = 0.0 +0.1
-        #
-        #     # ti = self.time() - self.elapsedTime
-        #     #
-        #     # # print("time: ", round(ti, 2))
-        #     # vec = np.array([1.0, 0.0, -round(ti, 2)])
-        #     #
-        #     # vec_norm = np.linalg.norm(vec)
-        #     # if vec_norm != 0:
-        #     #     vec = vec / vec_norm
-        #     #
-        #     # lf_tangent_vec = vec
-        #     # rf_tangent_vec = vec
-        #
-        #     # self.last_vec = vec
-        #
-        #     lf_tangent_vec = character_dir
-        #     rf_tangent_vec = character_dir
-        #
-        # # if self.curr_state.name == "state02":
-        # #     print("last_vec: ", self.last_vec)
-        # #     lf_tangent_vec = self.last_vec
-        # #     rf_tangent_vec = self.last_vec
-
-
-        # if self.curr_state.name == "state1" or self.curr_state.name == "state1" or self.curr_state.name == "state2":
-        #     p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #
-        #     blade_direction_vec = p2 - p1
-        #     blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
-        #
-        #     if np.linalg.norm(blade_direction_vec) != 0:
-        #         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-        #
-        #     lf_tangent_vec = blade_direction_vec
-        #
-        #     p1 = skel.body("h_blade_right").to_world([-0.1040 + 0.0216, 0.0, 0.0])
-        #     p2 = skel.body("h_blade_right").to_world([0.1040 + 0.0216, 0.0, 0.0])
-        #
-        #     blade_direction_vec = p2 - p1
-        #     blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
-        #
-        #     if np.linalg.norm(blade_direction_vec) != 0:
-        #         blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
-        #
-        #     rf_tangent_vec = blade_direction_vec
-
         empty_list = []
+
         _ddq, _tau, _bodyIDs, _contactPositions, _contactPositionLocals, _contactForces, _is_contact_list = hqp.calc_QP(
             skel, des_accel, self.force, ddc, lf_tangent_vec, rf_tangent_vec, empty_list, 1./self.time_step())
 
@@ -378,33 +307,40 @@ class MyWorld(pydart.World):
             _tau += t_r + t_l
 
         if self.curr_state.name == "state02":
-            self.force_r = 10. * np.array([-1.0, -3.0, 1.0])
-            self.force_l = 20. * np.array([1.0, -0., -1.])
+            self.force_r = 10. * np.array([-1.0, -.0, 1.])
+            self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
 
         if self.curr_state.name == "state03":
-            self.force_r = 1. * np.array([-1.0, 0.2, 1.])
-            self.force_l = 5. * np.array([1.0, 0., -1.0])
+            self.force_r = 20. * np.array([-1.0, -.0, 1.])
+            self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
 
         if self.curr_state.name == "state04":
-            self.force_r = 0. * np.array([2.0, -0., -1.0])
-            self.force_l = 0. * np.array([-1.0, -0., -1.0])
+            self.force_r = 0. * np.array([-1.0, 0., 1.])
+            self.force_l = 10. * np.array([1.0, 0., -1.0])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
 
-        if self.curr_state.name == "state05":
-            self.force_r = 10. * np.array([1.0, -1., 1.0])
-            t_r = self.add_JTC_force(jaco_r, self.force_r)
-            self.force_hip_r = 3. * np.array([-.0, 0., -1.0])
-            t_hip_r = self.add_JTC_force(jaco_hip_r, self.force_hip_r)
+        # if self.curr_state.name == "state04":
+        #     self.force_r = 0. * np.array([2.0, -0., -1.0])
+        #     self.force_l = 0. * np.array([-1.0, -0., -1.0])
+        #     t_r = self.add_JTC_force(jaco_r, self.force_r)
+        #     t_l = self.add_JTC_force(jaco_l, self.force_l)
+        #     _tau += t_r + t_l
 
-            _tau += t_r + t_hip_r
+        # if self.curr_state.name == "state05":
+        #     self.force_r = 10. * np.array([1.0, -1., 1.0])
+        #     t_r = self.add_JTC_force(jaco_r, self.force_r)
+        #     self.force_hip_r = 3. * np.array([-.0, 0., -1.0])
+        #     t_hip_r = self.add_JTC_force(jaco_hip_r, self.force_hip_r)
+        #     _tau += t_r + t_hip_r
+
         _tau[0:6] = np.zeros(6)
         skel.set_forces(_tau)
 

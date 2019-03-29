@@ -191,43 +191,12 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
         v2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
 
         blade_direction_vec = v2 - v1
-
         blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
-
         if np.linalg.norm(blade_direction_vec) != 0:
             blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        # print(l_blade_dir, r_blade_dir, blade_direction_vec)
-        # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
+        theta = math.atan2(np.dot(mm.unitX(), blade_direction_vec), np.dot(mm.unitZ(), blade_direction_vec))
 
-        x_axis = np.array([1., 0., 0.])
-        if body_name == "h_blade_right":
-            blade_direction_vec = - blade_direction_vec
-        #
-        theta = math.acos(np.dot(x_axis, blade_direction_vec))
-
-        # if body_name == "h_blade_left":
-        #     theta = math.acos(np.dot(l_blade_dir, cur_blade_l))
-        #     if theta / math.pi * 180 > 90:
-        #         theta = math.pi - theta
-        #     # print("left theta: ", theta, theta / math.pi * 180)
-        # else:
-        #     theta = math.acos(np.dot(r_blade_dir, -cur_blade_r))
-        #     if theta / math.pi * 180 > 90:
-        #         theta = math.pi - theta
-
-        # if body_name == "h_blade_left":
-        #     theta = math.acos(np.dot(l_blade_dir, blade_direction_vec))
-        #     if theta / math.pi * 180 > 90:
-        #         theta = math.pi - theta
-        # else:
-        #     theta = math.acos(np.dot(r_blade_dir, blade_direction_vec))
-        #     # print(theta, theta / math.pi * 180)
-        #     if theta / math.pi * 180 > 90:
-        #         # print("Obtuse Angle: ", math.pi - theta)
-        #         theta = math.pi - theta
-        # print("theta: ", body_name, ", ", theta)
-        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
         # print("next_step_angle: ", next_step_angle)
         sa = math.sin(next_step_angle)
@@ -239,17 +208,13 @@ def calc_QP(skel, ddq_des, ddc, l_blade_dir, r_blade_dir, cur_blade_l, cur_blade
     jaco_L, jaco_der_L, sa_L, ca_L, blade_direction_L = get_foot_info("h_blade_left")
     jaco_R, jaco_der_R, sa_R, ca_R, blade_direction_R = get_foot_info("h_blade_right")
 
-    A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-    A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+    A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([ca_L, 0., -1 * sa_L]), jaco_L)
+    A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([ca_R, 0., -1 * sa_R]), jaco_R)
 
-    b[num_dof + 6:num_dof + 6 + 1] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
-                                         2] * ca_L - \
-                                     (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
-                                         0] * sa_L
-    b[num_dof + 6 + 1:num_dof + 6 + 2] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
-                                             2] * ca_R - \
-                                         (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
-                                             0] * sa_R
+    b[num_dof + 6:num_dof + 6 + 1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * ca_L \
+                                     + (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * sa_L
+    b[num_dof + 6 + 1:num_dof + 6 + 2] = -(np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * ca_R \
+                                         + (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * sa_R
 
     #####################################################
     # inequality

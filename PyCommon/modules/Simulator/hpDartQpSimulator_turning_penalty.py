@@ -97,22 +97,13 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
         p2 = skel.body(body_name).to_world([0.1040 + 0.0216, 0.0, 0.0])
 
         blade_direction_vec = p2 - p1
-
+        blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
         if np.linalg.norm(blade_direction_vec) != 0:
             blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        # blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
-        # print(blade_direction_vec)
-        # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
-        # print(blade_direction_vec)
-        if body_name == "h_blade_left":
-            # theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-            theta = math.acos(np.dot(np.array([1., 0., 0.]), lf_tangent))
-        else:
-            # theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-            theta = math.acos(np.dot(np.array([1., 0., 0.]), rf_tangent))
+        theta = math.atan2(np.dot(mm.unitX(), blade_direction_vec), np.dot(mm.unitZ(), blade_direction_vec))
+
         # print("theta: ", body_name, ", ", theta)
-        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
         # print("next_step_angle: ", body_name, next_step_angle)
         sa = math.sin(next_step_angle)
@@ -127,13 +118,13 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
     mat_a = np.zeros((2, num_dof))
     vec_b = np.zeros(2)
 
-    mat_a[0:1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-    mat_a[1:2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+    mat_a[0:1, :num_dof] = np.dot(_h * np.array([ca_L, 0., -1 * sa_L]), jaco_L)
+    mat_a[1:2, :num_dof] = np.dot(_h * np.array([ca_R, 0., -1 * sa_R]), jaco_R)
 
-    vec_b[0:1] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * ca_L - \
-                 (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * sa_L
-    vec_b[1:2] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * ca_R - \
-                 (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * sa_R
+    vec_b[0:1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * ca_L \
+                 + (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * sa_L
+    vec_b[1:2] = -(np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * ca_R \
+                 + (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * sa_R
 
     #--------------------------yul------------------------------------
     # tracking COM
@@ -261,11 +252,9 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, inv_h):
                 V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+4] = np.array((0., 1., 0.))
             else:
                 V[3*i:3*i+3, QP_CONE_DIM*i+0] = mm.normalize(np.array((MU_x, 1., 0.)))
-                # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-                V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 0., -MU_z)))
+                V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
                 V[3*i:3*i+3, QP_CONE_DIM*i+2] = mm.normalize(np.array((-MU_x, 1., 0.)))
-                # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-                V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 0., MU_z)))
+                V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
 
         #####################################################
         # equality

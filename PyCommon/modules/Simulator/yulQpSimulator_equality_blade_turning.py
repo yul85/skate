@@ -244,21 +244,10 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
         if np.linalg.norm(blade_direction_vec) != 0:
             blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
 
-        # blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
-        # print(blade_direction_vec)
-        # blade_direction_vec = np.dot(np.array([[1., 0., 0.], [0., 0., 0.], [0., 0., 1.]]), blade_direction_vec)
-        # print(blade_direction_vec)
-        if body_name == "h_blade_left":
-            # theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-            theta = math.acos(np.dot(np.array([1., 0., 0.]), lf_tangent))
-            theta = 2 * math.pi - theta
-        else:
-            # theta = math.acos(np.dot(np.array([1., 0., 0.]), blade_direction_vec))
-            theta = math.acos(np.dot(np.array([1., 0., 0.]), rf_tangent))
+        theta = math.atan2(np.dot(mm.unitX(), blade_direction_vec), np.dot(mm.unitZ(), blade_direction_vec))
 
         # print("theta: ", body_name, ", ", theta)
-        # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
-        # next_step_angle = theta_blade + skel.body(body_name).world_angular_velocity()[1] * _h
+
         next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
         # print("next_step_angle: ", body_name, next_step_angle)
 
@@ -273,25 +262,13 @@ def calc_QP(skel, ddq_des, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     jaco_R, jaco_der_R, sa_R, ca_R = get_foot_info("h_blade_right")
     # print("Angular vel_y: ", des_w_y_L, des_w_y_R )
     if num_contact > 0:
-        A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([sa_L, 0., -1 * ca_L]), jaco_L)
-        A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([sa_R, 0., -1 * ca_R]), jaco_R)
+        A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([ca_L, 0., -sa_L]), jaco_L)
+        A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([ca_R, 0., -sa_R]), jaco_R)
 
-        # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
-        # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
-        # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
-        # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
-
-        b[num_dof + 6:num_dof + 6 + 1] = (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
-                                             2] * ca_L - \
-                                         (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[
-                                             0] * sa_L
-        b[num_dof + 6 + 1:num_dof + 6 + 2] = (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
-                                                 2] * ca_R - \
-                                             (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[
-                                                 0] * sa_R
-
-
-
+        b[num_dof + 6:num_dof + 6 + 1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * ca_L \
+                                         + (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * sa_L
+        b[num_dof + 6 + 1:num_dof + 6 + 2] = -(np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[0] * ca_R \
+                                             + (np.dot(jaco_R, skel.dq) + _h * np.dot(jaco_der_R, skel.dq))[2] * sa_R
 
     #####################################################
     # inequality

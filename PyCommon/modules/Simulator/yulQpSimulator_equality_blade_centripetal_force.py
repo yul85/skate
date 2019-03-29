@@ -5,6 +5,7 @@ import itertools
 import math
 
 from PyCommon.modules.Math import mmMath as mm
+from PyCommon.modules.Optimization import csQPOASES
 
 QP_MAX_ITER = 100
 QP_EPS = 0.001
@@ -21,6 +22,9 @@ LAMBDA_CONTAIN_NORMAL = False
 NON_HOLONOMIC = False
 NON_HOLONOMIC = True
 
+# FRICTION_CONE_ROTATION = False
+FRICTION_CONE_ROTATION = True
+
 QPOASES = False
 
 
@@ -32,51 +36,13 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     :type ddq_des: np.ndarray
     :return:
     """
-
-    # weight_map_vec = np.diagflat(
-    #     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    #      0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
-    #      0.8, 0.8, 0.8, 0.2, 0.2, 0.2, 0.8, 0.8, 0.8,
-    #      # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
-    #      # 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
-    #      0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-    #      0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-    #      0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
-
     weight_map_vec = np.diagflat(
-        # [10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-        # [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
         [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-         # [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         # .1, .1, .1, .1, .1, .1, .1, .1, .1,
-         # .1, .1, .1, .1, .1, .1, .1, .1, .1,
          0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
          0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
          10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
          10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
          10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0])
-         # 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-         # 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
-         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-         # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-
-    # weight_map_vec = np.diagflat(
-    #     [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-    #      # [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    #      # .1, .1, .1, .1, .1, .1, .1, .1, .1,
-    #      # .1, .1, .1, .1, .1, .1, .1, .1, .1,
-    #      10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 1.0, 1.0, 1.0,
-    #      10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 1.0, 1.0, 1.0,
-    #      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    #      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    #      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-    # # 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-    # # 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
-    # # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    # # 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-
 
     solvers.options['show_progress'] = False
 
@@ -199,6 +165,7 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
         # print("w: ", skel.body(bi).world_angular_velocity())
         Vdot[:, 3 * bi:3 * (bi + 1)] = np.dot(body_w_m, skel.body(bi).inertia())
 
+
         J[3 * bi:3 * (bi + 1), :] = skel.body(bi).linear_jacobian([0, 0, 0])
         J[3 * skel.num_bodynodes() + 3 * bi: 3 * skel.num_bodynodes() + 3 * (bi + 1), :] = skel.body(
             bi).angular_jacobian()
@@ -222,13 +189,15 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     # objective
     #####################################################
     P = np.eye(num_variable)
-    P[:num_dof, :num_dof] *= 100. * weight_map_vec# + 1/skel.m * PJ.transpose().dot(PJ)
+    P[:num_dof, :num_dof] *= 100.
+    # P[:num_dof, :num_dof] *= 100. + 1/skel.m * PJ.transpose().dot(PJ)
     # P[:num_dof, :num_dof] *= 100. + weight_map_vec
     # P[num_dof + num_tau:, num_dof + num_tau:] *= 0.01
     # P[num_dof:num_dof + num_tau, num_dof: num_dof + num_tau] *= 0.001
     q = np.zeros(num_variable)
-    # q[:num_dof] = -100.*ddq_des#- 30. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
-    q[:num_dof] = -100. * np.dot(ddq_des, weight_map_vec)
+    # q[:num_dof] = -100.*ddq_des - 30. * (ddc - 1/skel.m * PdotJ_PJdot.dot(skel.dq)).transpose().dot(PJ)
+    # q[:num_dof] = -100. * np.dot(ddq_des, weight_map_vec)
+    q[:num_dof] = -100. * ddq_des
     #####################################################
     # equality
     #####################################################
@@ -275,6 +244,8 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
 
             theta = math.atan2(np.dot(mm.unitX(), blade_direction_vec), np.dot(mm.unitZ(), blade_direction_vec))
 
+            theta_x = math.acos(np.dot(np.array([1.0, 0.0, 0.0]), blade_direction_vec))
+
             # print("theta: ", body_name, ", ", theta)
             # print("omega: ", skel.body("h_blade_left").world_angular_velocity()[1])
             next_step_angle = theta + skel.body(body_name).world_angular_velocity()[1] * _h
@@ -283,21 +254,16 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
             sa = math.sin(next_step_angle)
             ca = math.cos(next_step_angle)
 
-            return jaco, jaco_der, sa, ca
+            return jaco, jaco_der, sa, ca, theta
 
             # FOR NON-HOLONOMIC CONSTRAINTS
 
-        jaco_L, jaco_der_L, sa_L, ca_L = get_foot_info("h_blade_left")
-        jaco_R, jaco_der_R, sa_R, ca_R = get_foot_info("h_blade_right")
+        jaco_L, jaco_der_L, sa_L, ca_L, theta_L_x = get_foot_info("h_blade_left")
+        jaco_R, jaco_der_R, sa_R, ca_R, theta_R_x = get_foot_info("h_blade_right")
         # print("Angular vel_y: ", des_w_y_L, des_w_y_R )
         if num_contact > 0:
             A[num_dof + 6:num_dof + 6 + 1, :num_dof] = np.dot(_h * np.array([ca_L, 0., -sa_L]), jaco_L)
             A[num_dof + 6 + 1:num_dof + 6 + 2, :num_dof] = np.dot(_h * np.array([ca_R, 0., -sa_R]), jaco_R)
-
-            # Am[ndofs + 6+2:ndofs + 6 + 3, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_L, 0., 0.]), pa_jaco_L)
-            # Am[ndofs + 6 + 3:, ndofs:2 * ndofs] = np.dot(np.array([pa_sa_R, 0., 0.]), pa_jaco_R)
-            # Am[ndofs + 6 + 2: ndofs + 6 + 3, skel.dof_indices(["j_heel_left_1"])] = np.ones(1)
-            # Am[ndofs + 6 + 3:, skel.dof_indices(["j_heel_right_1"])] = np.ones(1)
 
             b[num_dof+6  :num_dof+6+1] = -(np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[0] * ca_L \
                                     + (np.dot(jaco_L, skel.dq) + _h * np.dot(jaco_der_L, skel.dq))[2] * sa_L
@@ -333,38 +299,67 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
                 V[3*i:3*i+3, (QP_CONE_DIM + 1)*i+4] = np.array((0., 1., 0.))
             else:
                 V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
-                V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
+                V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 0.2, -MU_z)))
                 V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
-                V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
+                V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 0.2, MU_z)))
 
-        # i = 0
-        # for ii in range(8):
-        #     if is_contact[ii] == 1:
-        #         if vel_con_list[ii] == 0:
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = mm.normalize(np.array((MU_x, 1., 0.)))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = mm.normalize(np.array((0., 0., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = mm.normalize(np.array((-MU_x, 1., 0.)))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = mm.normalize(np.array((0., 0., MU_z)))
-        #         else:
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 0] = np.array((0., 1., 0.))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+1] = mm.normalize(np.array((0., 1., -MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 1] = np.array((0., 1., 0.))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 2] = np.array((0., 1., 0.))
-        #             # V[3*i:3*i+3, QP_CONE_DIM*i+3] = mm.normalize(np.array((0., 1., MU_z)))
-        #             V[3 * i:3 * i + 3, QP_CONE_DIM * i + 3] = np.array((0., 1., 0.))
-        #         i += 1
+        # friction cone rotation matrix
+        if FRICTION_CONE_ROTATION:
+            # print("Friction cone rotation ON!!")
+            R_c = np.zeros((3*num_contact, 3*num_contact))
 
-        # print(V, i)
-        # print(num_contact, i)
+            # p1 = skel.body("h_blade_left").to_world([-0.1040 + 0.0216, 0.0, 0.0])
+            # p2 = skel.body("h_blade_left").to_world([0.1040 + 0.0216, 0.0, 0.0])
+            #
+            # blade_direction_vec = p2 - p1
+            # blade_direction_vec = np.array([1, 0, 1]) * blade_direction_vec
+            # if np.linalg.norm(blade_direction_vec) != 0:
+            #     blade_direction_vec = blade_direction_vec / np.linalg.norm(blade_direction_vec)
+            #
+            # theta = math.acos(np.dot(np.array([1.0, 0.0, 0.0]), blade_direction_vec))
+
+            contact_foot_list = []
+            if is_contact[0] == 1:
+                contact_foot_list.append('h_blade_left')
+            if is_contact[1] == 1:
+                contact_foot_list.append('h_blade_left')
+            if is_contact[2] == 1:
+                contact_foot_list.append('h_blade_left')
+            if is_contact[3] == 1:
+                contact_foot_list.append('h_blade_left')
+            if is_contact[4] == 1:
+                contact_foot_list.append('h_blade_right')
+            if is_contact[5] == 1:
+                contact_foot_list.append('h_blade_right')
+            if is_contact[6] == 1:
+                contact_foot_list.append('h_blade_right')
+            if is_contact[7] == 1:
+                contact_foot_list.append('h_blade_right')
+
+            # print("contact_foot_list: ", contact_foot_list)
+
+            # print("friction_rotation_theta: ", theta_L_x/math.pi * 180., theta_R_x/math.pi * 180.)
+            for i in range(num_contact):
+                if contact_foot_list[i] == 'h_blade_left':
+                    _theta = theta_L_x
+                else:
+                    _theta = theta_R_x
+                R_c[3 * i + 0, 3 * i:3 * i + 3] = np.array((-math.cos(_theta), 0, math.sin(_theta)))
+                R_c[3 * i + 1, 3 * i:3 * i + 3] = np.array((0, 1, 0))
+                R_c[3 * i + 2, 3 * i:3 * i + 3] = np.array((-math.sin(_theta), 0, math.cos(_theta)))
 
         #####################################################
         # equality
         #####################################################
         JcT_V = np.dot(Jc.T, V)
+
         # ext force
         A[:num_dof, num_dof+num_tau:] = -JcT_V
+
+        if FRICTION_CONE_ROTATION:
+            RV = np.dot(R_c, V)
+            JcT_RV = np.dot(Jc.T, RV)
+            A[:num_dof, num_dof + num_tau:] = -JcT_RV
 
         # print(des_w_y_L, des_w_y_R)
         # if num_contact > 0:
@@ -385,10 +380,28 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
         # lambda > 0
         G[:num_lambda, num_dof+num_tau:] = -np.eye(num_lambda)
 
-        # TODO:friction cone
         G[num_lambda:num_lambda+num_lambda, :num_dof] = -JcT_V.T
         # h[num_lambda:num_lambda+num_lambda] = np.dot(V.T, np.dot(dJc, self.control_skel.dq))
         h[num_lambda:num_lambda+num_lambda] = QP_RESTITUTION * np.dot(V.T, np.dot(dJc, skel.dq) + inv_h*np.dot(Jc, skel.dq))
+
+        # friction cone rotation
+        if FRICTION_CONE_ROTATION:
+            G[num_lambda:num_lambda + num_lambda, :num_dof] = -JcT_RV.T
+            # h[num_lambda:num_lambda+num_lambda] = np.dot(V.T, np.dot(dJc, self.control_skel.dq))
+
+            #R_T * dR = [omega]
+            #dR = R[omega]
+            omega = np.zeros((3*num_contact, 3*num_contact))
+
+            for i in range(num_contact):
+                body_name = contact_foot_list[i]
+                omega[3 * i:3 * i + 3, 3 * i:3 * i + 3] = transformToSkewSymmetricMatrix(skel.body(body_name).world_angular_velocity())
+
+            dR = np.dot(R_c.T, omega)
+            VT_dRT = np.dot(V.T, dR.T)
+            h[num_lambda:num_lambda + num_lambda] = QP_RESTITUTION * \
+                                                    (np.dot(RV.T, np.dot(dJc, skel.dq) + inv_h * np.dot(Jc,skel.dq)) \
+                                                   + np.dot(VT_dRT, np.dot(Jc, skel.dq)))
 
         # friction coefficient
         if LAMBDA_CONTAIN_NORMAL:
@@ -404,7 +417,13 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     forces = list()
 
     if num_contact > 0:
-        result = solvers.qp(matrix(P), matrix(q), matrix(G), matrix(h), matrix(A), matrix(b))
+        zero_v = np.zeros(len(h))
+        lb = np.stack(zero_v, b)
+        ub = np.stack(h, b)
+        A_stack = np.stack(G, A)
+        result = dict()
+        # result = solvers.qp(matrix(P), matrix(q), matrix(G), matrix(h), matrix(A), matrix(b))
+        result['x'] = csQPOASES.qp(P, q, A_stack, None, None, lb, ub, 10, True, "HIGH")
         value_ddq = np.asarray(result['x']).flatten()[num_dof:]
         value_tau = np.asarray(result['x']).flatten()[num_dof:num_dof+num_tau]
         value_lambda = np.asarray(result['x']).flatten()[num_dof+num_tau:]
@@ -413,7 +432,10 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
         for i in range(num_contact):
             forces.append(force[3*i:3*i+3])
     else:
-        result = solvers.qp(matrix(P), matrix(q), None, None, matrix(A), matrix(b))
+        result = dict()
+        # result = solvers.qp(matrix(P), matrix(q), None, None, matrix(A), matrix(b))
+        # result['x'] = csQPOASES.qp(P, q, A, None, None, b, b, 10, True, "HIGH")
+        result['x'] = csQPOASES.qp(P, q, A, None, None, b, b, 10, True, "HIGH")
         value_ddq = np.asarray(result['x']).flatten()[num_dof:]
         value_tau = np.asarray(result['x']).flatten()[num_dof:num_dof+num_tau]
     value_tau[:6] = np.zeros(6)
