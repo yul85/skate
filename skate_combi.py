@@ -236,8 +236,9 @@ class MyWorld(pydart.World):
             # print(self.curr_state.angles)
 
         # ground_height = -0.98 + 0.0251
-        ground_height = -0.98 + 0.05
+        # ground_height = -0.98 + 0.05
         # ground_height = -0.98
+        ground_height = 0.05
         if ik_on:
             ik_res = copy.deepcopy(self.curr_state.angles)
             if self.curr_state.name == "state2":
@@ -464,7 +465,8 @@ if __name__ == '__main__':
     viewer.motionViewWnd.glWindow.pOnPlaneshadow = (0., -0.99+0.0251, 0.)
 
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
-    viewer.motionViewWnd.glWindow.planeHeight = -0.98 + 0.0251
+    # viewer.motionViewWnd.glWindow.planeHeight = -0.98 + 0.0251
+    viewer.motionViewWnd.glWindow.planeHeight = 0.
     def simulateCallback(frame):
         for i in range(10):
             world.step()

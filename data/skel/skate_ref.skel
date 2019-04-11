@@ -9,7 +9,7 @@
         
         <skeleton name="fullbody1_ref">
             <mobile>false</mobile>
-            <transformation>0.0 0.0 0 0 0 0</transformation>
+            <transformation>0.0 0 0 0 0 0</transformation>
             <body name="h_pelvis">
                 <transformation>0 0 0 0 0 0</transformation>
                 <inertia>

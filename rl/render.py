@@ -100,8 +100,7 @@ def main():
         viewer.setSimulateCallback(simulateCallback)
         viewer.setMaxFrame(3000)
 
-    # viewer.motionViewWnd.glWindow.planeHeight = 0.98
-    viewer.motionViewWnd.glWindow.planeHeight = 0.0 + 0.025
+    viewer.motionViewWnd.glWindow.planeHeight = 0.025
     viewer.startTimer(1./30.)
     viewer.show()
 

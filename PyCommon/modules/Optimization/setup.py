@@ -83,6 +83,21 @@ else:
 m.depends = ['stdafx.h']
 modules.append(m)
 
+m = setupmodule('QuadProg')
+if isMAC:
+    m.libraries = [boost_lib, 'quadprog', 'clapack', 'cblas', ompLib]
+else:
+    m.libraries = [boost_lib, 'quadprog', 'lapack', 'blas', ompLib]
+m.include_dirs.append('../usr/include/QuadProg')
+if isMAC and isOMP:
+    m.extra_compile_args = ['-Xpreprocessor', '-fopenmp', '-D __APPLE_OMP__']
+elif isOMP:
+    m.extra_compile_args = ['-fopenmp']
+else:
+    m.libraries.pop()
+m.depends = ['stdafx.h']
+modules.append(m)
+
 '''
 m = setupmodule('csEQP')
 m.libraries = ['boost_python', 'LinearMath', ompLib]

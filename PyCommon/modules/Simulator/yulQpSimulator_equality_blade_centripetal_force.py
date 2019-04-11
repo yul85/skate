@@ -5,7 +5,7 @@ import itertools
 import math
 
 from PyCommon.modules.Math import mmMath as mm
-from PyCommon.modules.Optimization import csQPOASES
+from PyCommon.modules.Optimization import QuadProg
 
 QP_MAX_ITER = 100
 QP_EPS = 0.001
@@ -75,7 +75,8 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
                     position_global = body.to_world(position_local)
 
                     # if position_global[1] < -0.98 + 0.05:
-                    if position_global[1] < -0.98 + 0.0251:
+                    # if position_global[1] < -0.98 + 0.0251:
+                    if position_global[1] < 0.0:
                         bodies.append(body)
                         position_locals.append(position_local)
                         position_globals.append(position_global)
@@ -108,6 +109,8 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
                             if perm == (-1, -1, -1):
                             #     vel_con_list[7] = 0
                                 is_contact[7] = 1
+
+    # print(bodies)
     num_contact = len(position_globals)
 
     num_lambda = (1 + QP_CONE_DIM) * num_contact if LAMBDA_CONTAIN_NORMAL else QP_CONE_DIM * num_contact
@@ -337,9 +340,10 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
                 contact_foot_list.append('h_blade_right')
 
             # print("contact_foot_list: ", contact_foot_list)
+            # print("num_contact:", num_contact)
 
             # print("friction_rotation_theta: ", theta_L_x/math.pi * 180., theta_R_x/math.pi * 180.)
-            for i in range(num_contact):
+            for i in range(len(contact_foot_list)):
                 if contact_foot_list[i] == 'h_blade_left':
                     _theta = theta_L_x
                 else:
@@ -393,7 +397,7 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
             #dR = R[omega]
             omega = np.zeros((3*num_contact, 3*num_contact))
 
-            for i in range(num_contact):
+            for i in range(len(contact_foot_list)):
                 body_name = contact_foot_list[i]
                 omega[3 * i:3 * i + 3, 3 * i:3 * i + 3] = transformToSkewSymmetricMatrix(skel.body(body_name).world_angular_velocity())
 
@@ -417,13 +421,10 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     forces = list()
 
     if num_contact > 0:
-        zero_v = np.zeros(len(h))
-        lb = np.stack(zero_v, b)
-        ub = np.stack(h, b)
-        A_stack = np.stack(G, A)
         result = dict()
         # result = solvers.qp(matrix(P), matrix(q), matrix(G), matrix(h), matrix(A), matrix(b))
-        result['x'] = csQPOASES.qp(P, q, A_stack, None, None, lb, ub, 10, True, "HIGH")
+        result['x'] = QuadProg.qp(P, q, A, -b, -G, h)
+        # print("res: ", result['x'])
         value_ddq = np.asarray(result['x']).flatten()[num_dof:]
         value_tau = np.asarray(result['x']).flatten()[num_dof:num_dof+num_tau]
         value_lambda = np.asarray(result['x']).flatten()[num_dof+num_tau:]
@@ -434,8 +435,7 @@ def calc_QP(skel, ddq_des, ext_f, ddc, lf_tangent, rf_tangent, vc_list, inv_h):
     else:
         result = dict()
         # result = solvers.qp(matrix(P), matrix(q), None, None, matrix(A), matrix(b))
-        # result['x'] = csQPOASES.qp(P, q, A, None, None, b, b, 10, True, "HIGH")
-        result['x'] = csQPOASES.qp(P, q, A, None, None, b, b, 10, True, "HIGH")
+        result['x'] = QuadProg.qp(P, q, A, -b, -G, h)
         value_ddq = np.asarray(result['x']).flatten()[num_dof:]
         value_tau = np.asarray(result['x']).flatten()[num_dof:num_dof+num_tau]
     value_tau[:6] = np.zeros(6)

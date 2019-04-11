@@ -12,7 +12,7 @@
             <mobile>false</mobile>
             <body name="ground">
                 <!-- <transformation>0 -0.92 0 0 0 0</transformation> -->
-                <transformation>0 -0.98 0 0 0 0</transformation>
+                <transformation>0 -0.025 0 0 0 0</transformation>
                 <!-- <transformation>0 -1.0 0 0 0 0</transformation> -->
                 <!--
                 <visualization_shape>
@@ -108,7 +108,7 @@
         </skeleton>	
 
         <skeleton name="fullbody1">
-            <transformation>0 0 0 0 0 0</transformation>
+            <transformation>0 0.98 0 0 0 0</transformation>
             <body name="h_pelvis">
                 <transformation>0 0 0 0 0 0</transformation>
                 <inertia>
@@ -770,7 +770,7 @@
 
         <skeleton name="fullbody1_ref">
             <mobile>false</mobile>
-            <transformation>0.0 0 -1.8 0 0 0</transformation>
+            <transformation>0.0 0.98 -1.8 0 0 0</transformation>
             <body name="h_pelvis">
                 <transformation>0 0 0 0 0 0</transformation>
                 <inertia>

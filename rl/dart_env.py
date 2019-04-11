@@ -28,7 +28,8 @@ class YulDartEnv(gym.Env):
         self.ground = pydart.World(1. / 1200., "../data/skel/ground.skel")
         # self.world.control_skel = self.world.skeletons[0]
         self.skel = self.world.skeletons[0]
-        self.Kp, self.Kd = 400., 40.
+        # self.Kp, self.Kd = 400., 40.
+        self.Kp, self.Kd = 50., 5.
         self.pdc = PDController(self.skel, self.world.time_step(), 400., 40.)
 
         self.env_name = env_name
@@ -229,6 +230,7 @@ class YulDartEnv(gym.Env):
                 self.bodyIDs = _bodyIDs
 
                 for i in range(len(_bodyIDs)):
+                    # print(self.skel.body(_bodyIDs[i]).name)
                     self.skel.body(_bodyIDs[i]).add_ext_force(_contactForces[i], _contactPositionLocals[i])
                     self.contact_force.append(_contactForces[i])
                     self.contactPositionLocals.append(_contactPositionLocals[i])
