@@ -74,7 +74,7 @@ class MyWorld(pydart.World):
         # ===========pushing side to side new===========
 
         s00q = np.zeros(skel.ndofs)
-        s00q[pelvis_pos_y] = 0.98
+        # s00q[pelvis_pos_y] = 0.98
         # s00q[pelvis] = 0., -0.
         # s00q[upper_body] = 0.0, 0.0, -0.5
         # s00q[right_leg] = -0., -0., -0.0, -0.0
@@ -82,7 +82,7 @@ class MyWorld(pydart.World):
         s00q[leg_y] = 0.785, -0.785
         s00q[arms] = 1.5, -1.5
         # s00q[foot] = -0., 0.785, 0., 0., -0.785, 0.
-        state00 = State("state00", 3., 0.0, 0.2, s00q)
+        state00 = State("state00", 0.3, 0.0, 0.2, s00q)
 
         s01q = np.zeros(skel.ndofs)
         # s01q[upper_body] = 0., 0., -0.2
@@ -213,7 +213,7 @@ class MyWorld(pydart.World):
 
         # nonholonomic constraint initial setting
         _th = 1. * math.pi / 180.
-        pydart.constraints.BallJointConstraint(skel.body(0), skel.body(1), np.array((0., 1., 0.))).add_to_world(self)
+
         self.nh0 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216+0.104, -0.0216-0.027, 0.)))
         self.nh1 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216-0.104, -0.0216-0.027, 0.)))
         self.nh2 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_left'), np.array((0.0216+0.104, -0.0216-0.027, 0.)))
@@ -293,7 +293,7 @@ class MyWorld(pydart.World):
 
         right_blade_front_point = self.skeletons[2].body("h_blade_right").to_world((0.0216+0.104, -0.0216-0.027, 0.))
         right_blade_rear_point = self.skeletons[2].body("h_blade_right").to_world((0.0216-0.104, -0.0216-0.027, 0.))
-        if right_blade_front_point[1] < 0.005 and right_blade_rear_point[1] < 0.005:
+        if right_blade_front_point[1] < 0.005+self.ground_height and right_blade_rear_point[1] < 0.005+self.ground_height:
             self.nh0.activate(True)
             self.nh1.activate(True)
             self.nh0.set_joint_pos(right_blade_front_point)
@@ -306,7 +306,7 @@ class MyWorld(pydart.World):
 
         left_blade_front_point = self.skeletons[2].body("h_blade_left").to_world((0.0216+0.104, -0.0216-0.027, 0.))
         left_blade_rear_point = self.skeletons[2].body("h_blade_left").to_world((0.0216-0.104, -0.0216-0.027, 0.))
-        if left_blade_front_point[1] < 0.005 and left_blade_rear_point[1] < 0.005:
+        if left_blade_front_point[1] < 0.005 +self.ground_height and left_blade_rear_point[1] < 0.005+self.ground_height:
             self.nh2.activate(True)
             self.nh3.activate(True)
             self.nh2.set_joint_pos(left_blade_front_point)
@@ -317,9 +317,9 @@ class MyWorld(pydart.World):
             self.nh2.activate(False)
             self.nh3.activate(False)
 
-        tau = skel.get_spd(self.curr_state.angles, self.time_step(), 400., 40.)
+        _tau = skel.get_spd(self.curr_state.angles, self.time_step(), 50., 5.)
 
-        '''
+
         #Jacobian transpose control
 
         jaco_r = skel.body("h_blade_right").linear_jacobian()
@@ -354,7 +354,7 @@ class MyWorld(pydart.World):
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
-        #'''
+
         _tau[0:6] = np.zeros(6)
 
         skel.set_forces(_tau)
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     skel = world.skeletons[2]
     q = skel.q
 
-    q["j_pelvis_pos_y"] = 0.98
+    # q["j_pelvis_pos_y"] = 0.98
 
     # q["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z"] = 0., 0., 0.4
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = 0., 0., 0.
@@ -481,9 +481,10 @@ if __name__ == '__main__':
     viewer.startTimer(1/25.)
 
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
+    viewer.motionViewWnd.glWindow.planeHeight = 0.
 
     def simulateCallback(frame):
-        for i in range(1):
+        for i in range(40):
             world.step()
         world.render_with_ys()
 
