@@ -46,7 +46,7 @@ def main():
     if not MOTION_ONLY:
         viewer.doc.addRenderer('controlModel', yr.DartRenderer(dart_world, (255,240,255), yr.POLYGON_FILL))
         viewer.doc.addRenderer('contact', yr.VectorsRenderer(rd_contact_forces, rd_contact_positions, (255,0,0)))
-        # viewer.doc.addRenderer('ground', yr.DartRenderer(ppo.env.ground, (255, 255, 255), yr.POLYGON_FILL))
+        viewer.doc.addRenderer('ground', yr.DartRenderer(ppo.env.ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
         viewer.doc.addRenderer('zero_point', yr.PointsRenderer(zero_point))
 
     def postCallback(frame):
@@ -100,7 +100,7 @@ def main():
         viewer.setSimulateCallback(simulateCallback)
         viewer.setMaxFrame(3000)
 
-    viewer.motionViewWnd.glWindow.planeHeight = 0.025
+    viewer.motionViewWnd.glWindow.planeHeight = 0.0
     viewer.startTimer(1./30.)
     viewer.show()
 

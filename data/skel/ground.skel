@@ -23,14 +23,14 @@
                     <!-- <color>1.0 0.9999 0.99 1.0 </color> -->
                     <color>1.0 1.0 1.0 1.0 </color>
                 </visualization_shape>
-<!--                 <collision_shape>
+                <collision_shape>
                     <transformation>0 0 0 0 0 0</transformation>
                     <geometry>
                         <box>
                             <size>10.0 0.05 10.0</size>
                         </box>
                     </geometry>
-                </collision_shape> -->                                
+                </collision_shape>
             </body>
             <joint type="free" name="joint 1">
                 <parent>world</parent>

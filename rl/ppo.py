@@ -2,7 +2,8 @@
 import numpy as np
 
 import pydart2 as pydart
-from rl.dart_env import YulDartEnv
+# from rl.dart_env import YulDartEnv
+from rl.dart_env_dart import YulDartEnv
 
 from collections import namedtuple
 from collections import deque

@@ -76,51 +76,51 @@ class MyWorld(pydart.World):
         s00q = np.zeros(skel.ndofs)
         # s00q[pelvis_pos_y] = 0.98
         # s00q[pelvis] = 0., -0.
-        # s00q[upper_body] = 0.0, 0.0, -0.5
+        s00q[upper_body] = 0.0, 0.0, -0.07
         # s00q[right_leg] = -0., -0., -0.0, -0.0
         # s00q[left_leg] = 0., 0., 0.0, -0.0
         s00q[leg_y] = 0.785, -0.785
         s00q[arms] = 1.5, -1.5
         # s00q[foot] = -0., 0.785, 0., 0., -0.785, 0.
-        state00 = State("state00", 0.3, 0.0, 0.2, s00q)
+        state00 = State("state00", 2.0, 0.0, 0.2, s00q)
 
         s01q = np.zeros(skel.ndofs)
-        # s01q[upper_body] = 0., 0., -0.2
-        # s01q[spine] = 0.0, 0., 0.5
-        s01q[left_leg] = 0., 0., 0.3, -0.5
-        s01q[right_leg] = -0., -0., 0.3, -0.5
+        s01q[upper_body] = 0., 0., -0.07
+        # s01q[spine] = 0.0, 0., 0.2
+        s01q[left_leg] = 0.2, 0., 0.3, -0.7
+        s01q[right_leg] = -0.1, -0., 0.1, -0.5
         s01q[leg_y] = 0.785, -0.785
-        # s01q[knee] = 0.2, 0.
+        # s01q[knee] = 0., -0.1
         s01q[arms] = 1.5, -1.5
         # # s01q[blade] = -0.3
         # s01q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s01q[foot] = -0., 0., 0.2, -0., -0., 0.2
-        state01 = State("state01", 0.5, 2.2, 0.0, s01q)
+        s01q[foot] = -0., 0., 0.4, -0., -0., 0.4
+        state01 = State("state01", 1.0, 2.2, 0.0, s01q)
 
         s02q = np.zeros(skel.ndofs)
         # s02q[pelvis] = 0., -0.3
-        s02q[upper_body] = 0., 0., -0.5
+        s02q[upper_body] = 0., 0., -0.2
         # s02q[spine] = 0.5, 0.5, 0.
-        s02q[left_leg] = 0., 0., 0.3, -0.5
-        s02q[right_leg] = -0., -0., 0.1, -0.5
+        s02q[left_leg] = 0.2, 0., 0.3, -0.7
+        s02q[right_leg] = -0.5, -0., -0.2, -0.1
         # s02q[right_leg] = -0.4, -0., 0.3, -0.7
         s02q[leg_y] = 0.785, -0.785
         s02q[arms] = 1.5, -1.5
-        # s02q[knee] = 0., -0.2
+        # s02q[knee] = 0., -0.1
         # s02q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s02q[foot] = 0., 0., 0.2, -0., -0., 0.3
-        state02 = State("state02", 1.0, 2.2, 0.0, s02q)
+        s02q[foot] = 0., 0., 0.4, -0., -0., 0.
+        state02 = State("state02", 3.0, 2.2, 0.0, s02q)
 
         s03q = np.zeros(skel.ndofs)
         # s03q[pelvis] = 0., -0.1
         s03q[upper_body] = 0., 0., -0.5
         # s03q[spine] = 0.5, 0.5, 0.
-        s03q[left_leg] = 0., 0., 0.3, -0.5
-        s03q[right_leg] = -0., -0., 0.1, -0.5
+        s03q[left_leg] = 0.2, 0., 0.3, -0.3
+        s03q[right_leg] = -0.3, -0., -0., -0.5
         s03q[leg_y] = 0.785, -0.785
         # s03q[knee] = 0.2, 0.
         s03q[arms] = 1.5, -1.5
-        s03q[foot] = -0., 0., 0.2, 0., -0., 0.4
+        s03q[foot] = -0., 0., 0., 0., -0., 0.3
         state03 = State("state03", 2.0, 2.2, 0.0, s03q)
 
         s04q = np.zeros(skel.ndofs)
@@ -204,12 +204,10 @@ class MyWorld(pydart.World):
 
         print('create controller OK')
 
-        self.contact_force = []
-        self.contactPositionLocals = []
-        self.bodyIDs = []
-        # print("dof: ", skel.ndofs)
+        self.rd_contact_forces = []
+        self.rd_contact_positions = []
 
-        self.last_vec = np.zeros(3)
+        # print("dof: ", skel.ndofs)
 
         # nonholonomic constraint initial setting
         _th = 1. * math.pi / 180.
@@ -285,10 +283,6 @@ class MyWorld(pydart.World):
 
         empty_list = []
 
-        del self.contact_force[:]
-        del self.bodyIDs[:]
-        del self.contactPositionLocals[:]
-
         # nonholonomic constraint
 
         right_blade_front_point = self.skeletons[2].body("h_blade_right").to_world((0.0216+0.104, -0.0216-0.027, 0.))
@@ -317,9 +311,21 @@ class MyWorld(pydart.World):
             self.nh2.activate(False)
             self.nh3.activate(False)
 
-        _tau = skel.get_spd(self.curr_state.angles, self.time_step(), 50., 5.)
+        _tau = skel.get_spd(self.curr_state.angles, self.time_step(), 400., 40.)
 
+        # print("friction: ", world.collision_result.contacts)
 
+        contacts = world.collision_result.contacts
+        del self.rd_contact_forces[:]
+        del self.rd_contact_positions[:]
+        for contact in contacts:
+            if contact.skel_id1 == 0:
+                self.rd_contact_forces.append(-contact.f / 1000.)
+            else:
+                self.rd_contact_forces.append(contact.f / 1000.)
+            self.rd_contact_positions.append(contact.p)
+
+        # print("contact num: ", len(self.rd_contact_forces))
         #Jacobian transpose control
 
         jaco_r = skel.body("h_blade_right").linear_jacobian()
@@ -328,21 +334,22 @@ class MyWorld(pydart.World):
         # jaco_pelvis = skel.body("h_pelvis").linear_jacobian()
 
         if self.curr_state.name == "state01":
-            self.force_r = 0. * np.array([1.0, -2., -1.])
+            self.force_r = 0. * np.array([-1.0, -0., 1.])
             self.force_l = 0. * np.array([1.0, -0.5, -1.0])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
 
         if self.curr_state.name == "state02":
-            self.force_r = 10. * np.array([-1.0, -.0, 1.])
+            self.force_r = 10. * np.array([0.0, 5.0, 5.])
+            # self.force_r = 2. * np.array([-1.0, -5.0, 1.])
             self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
 
         if self.curr_state.name == "state03":
-            self.force_r = 20. * np.array([-1.0, -.0, 1.])
+            self.force_r = 10. * np.array([1.0, 3.0, -1.])
             self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
@@ -350,7 +357,7 @@ class MyWorld(pydart.World):
 
         if self.curr_state.name == "state04":
             self.force_r = 0. * np.array([-1.0, 0., 1.])
-            self.force_l = 10. * np.array([1.0, 0., -1.0])
+            self.force_l = 0. * np.array([1.0, 0., -1.0])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
             _tau += t_r + t_l
@@ -379,7 +386,6 @@ class MyWorld(pydart.World):
 
     def render_with_ys(self):
         # render contact force --yul
-        contact_force = self.contact_force
         del render_vector[:]
         del render_vector_origin[:]
         del push_force[:]
@@ -389,7 +395,8 @@ class MyWorld(pydart.World):
         del rd_footCenter[:]
 
         com = self.skeletons[2].C
-        com[1] = -0.99 +0.05
+        com[1] = 0.
+        # com[1] = -0.99 +0.05
 
         # com = self.skeletons[2].body('h_blade_left').to_world(np.array([0.1040 + 0.0216, +0.80354016 - 0.85354016, -0.054]))
 
@@ -408,30 +415,11 @@ class MyWorld(pydart.World):
         if self.force is not None:
             push_force.append(self.force*0.05)
             push_force_origin.append(self.skeletons[2].body('h_pelvis').to_world())
-        if len(self.bodyIDs) != 0:
-            print(len(self.bodyIDs))
-            for ii in range(len(self.contact_force)):
-                if self.bodyIDs[ii] == 4:
-                    body = self.skeletons[2].body('h_blade_left')
-                else:
-                    body = self.skeletons[2].body('h_blade_right')
 
-                render_vector.append(contact_force[ii] / 100.)
-                render_vector_origin.append(body.to_world(self.contactPositionLocals[ii]))
-            #             render_vector_origin.append(body.to_world(contact_offset))
-        # if len(contact_force) != 0:
-        #     # print(len(contact_force), len(self.controller.contact_list))
-        #     # print("contact_force.size?", contact_force.size, len(contact_force))
-        #     # ri.set_color(1.0, 0.0, 0.0)
-        #     for ii in range(len(contact_force)):
-        #         if 2 * len(contact_force) == len(self.controller.contact_list):
-        #             body = self.skeletons[2].body(self.controller.contact_list[2*ii])
-        #             contact_offset = self.controller.contact_list[2*ii+1]
-        #             # print("contact force : ", contact_force[ii])
-        #             # ri.render_line(body.to_world(contact_offset), contact_force[ii]/100.)
-        #             render_vector.append(contact_force[ii]/100.)
-        #             render_vector_origin.append(body.to_world(contact_offset))
-
+        if len(self.rd_contact_forces) != 0:
+            for ii in range(len(self.rd_contact_forces)):
+                render_vector.append(self.rd_contact_forces[ii] * 10.)
+                render_vector_origin.append(self.rd_contact_positions[ii])
 
 if __name__ == '__main__':
     print('Example: Skating -- pushing side to side')
