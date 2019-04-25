@@ -8,7 +8,7 @@
         </physics>
         
         <skeleton name="fullbody1">
-            <transformation>0 0 0 0 0 0</transformation>
+            <transformation>0 -0.05 0 0 0 0</transformation>
             <body name="h_pelvis">
                 <transformation>0 0 0 0 0 0</transformation>
                 <inertia>

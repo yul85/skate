@@ -34,12 +34,15 @@ class YulDartEnv(gym.Env):
         self.pdc = PDController(self.skel, self.world.time_step(), 400., 40.)
 
         self.env_name = env_name
-
         self.ref_motion = []
 
+
+
+        self.world.skeletons[1].body('ground').set_friction_coeff(0.02)
+
         if env_name == 'spin':
-            with open('../data/mocap/skate_spin.txt') as f:
-            # with open('data/mocap/skate_spin_cut.txt') as f:
+            # with open('../data/mocap/skate_spin.txt') as f:
+            with open('../data/mocap/skate_spin_cut.txt') as f:
                 # lines = f.read().splitlines()
                 for line in f:
                     q_temp = []
@@ -102,7 +105,7 @@ class YulDartEnv(gym.Env):
         self.bodyIDs = []
 
         # nonholonomic constraint initial setting
-        _th = 1. * math.pi / 180.
+        _th = 5. * math.pi / 180.
 
         self.nh0 = pydart.constraints.NonHolonomicContactConstraint(self.skel.body('h_blade_right'),
                                                                     np.array((0.0216 + 0.104, -0.0216 - 0.027, 0.)))
