@@ -3,7 +3,7 @@ import pydart2 as pydart
 import math
 import IKsolve_double_stance
 import copy
-
+from scipy import interpolate
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
@@ -17,8 +17,21 @@ blade_force_origin = []
 
 rd_footCenter = []
 
+lf_trajectory = []
+rf_trajectory = []
+
+lft = []
+lft_origin = []
+rft = []
+rft_origin = []
+
+e_t_vec = []
+e_n_vec = []
+e_b_vec = []
+coordinate_origin = []
+
 ik_on = True
-# ik_on = False
+ik_on = False
 
 
 class State(object):
@@ -42,6 +55,23 @@ class MyWorld(pydart.World):
         self.duration = 0
         self.skeletons[0].body('ground').set_friction_coeff(0.02)
         self.ground_height = self.skeletons[0].body(0).to_world((0., 0.025, 0.))[1]
+
+        self.radius = 1.0
+        x = [0, 0.2, 0.5, 0.8, 1.0]
+        y = []
+        plist = []
+        for i in range(len(x)):
+            y.append(math.sqrt(self.radius**2 - x[i]**2))
+            plist.append((x[i], -y[i]))
+
+        # print(plist)
+        # print(y)
+
+        # plist = [(0, 0), (0.2, 0), (0.5, -0.15), (1.0, -0.25), (1.5, -0.15), (1.8, 0), (2.0, 0.0)]
+        # plist = [(0, 0), (0.2, 0.), (0.5, 0.4), (1.0, 0.7), (1.5, 1.0), (1.8, 1.2), (2.0, 1.5)]
+        self.left_foot_traj, self.left_der = self.generate_spline_trajectory(plist)
+        plist = [(0, 0), (0.2, 0), (0.5, 0.15), (1.0, 0.25), (1.5, 0.15), (1.8, 0), (2.0, 0.0)]
+        self.right_foot_traj, self.right_der = self.generate_spline_trajectory(plist)
 
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
@@ -76,147 +106,42 @@ class MyWorld(pydart.World):
         # ===========pushing side to side new===========
 
         s00q = np.zeros(skel.ndofs)
-
-        s00q[upper_body] = 0.0, -0., -0.2
+        # s00q[upper_body] = 0.0, -0., -0.2
         # s00q[spine] = 0.0, 0.0, 0.2
-        s00q[left_leg] = 0., 0., 0.3, -0.5
-        s00q[right_leg] = -0., -0., 0., -0.35
-        s00q[leg_y] = 0., -0.4
+        # s00q[left_leg] = 0., 0., 0.3, -0.5
+        # s00q[right_leg] = -0.3, -0., 0., -0.5
+        # s00q[leg_y] = 0., -0.785
         # s00q[arms] = 1.5, -1.5
         # s00q[arms_y] = -1.5, 1.5
         # s00q[arms_z] = 3., 3.
-        s00q[foot] = 0., 0., 0.2, -0., -0., 0.35
+        # s00q[foot] = 0., 0., 0.2, -0.3, -0., 0.3
         state00 = State("state00", 1.0, 0.0, 0.2, s00q)
 
         s01q = np.zeros(skel.ndofs)
-        s01q[upper_body] = 0., 0., -0.5
-        # s01q[spine] = 0.0, 0., -0.2
-        s01q[left_leg] = 0., 0., 0.7, -0.9
-        s01q[right_leg] = -0.3, -0., 0.1, -0.7
-        s01q[leg_y] = 0., -0.4
-        # s01q[knee] = 0.05, -0.
-        # s01q[arms] = 1.5, -1.5
-        # # s01q[blade] = -0.3
-        # s01q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s01q[foot] = 0., 0., 0.2, -0.3, -0., 0.6
-        state01 = State("state01", 1.0, 2.2, 0.0, s01q)
+        s01q[upper_body] = 0., 0., -0.4
+        s01q[spine] = 0.0, 0., 0.4
+        s01q[left_leg] = 0., 0., 0.3, -0.5
+        s01q[right_leg] = -0., -0., 0.3, -0.5
+        s01q[foot] = 0., 0., 0.2, -0., -0., 0.2
+        state01 = State("state01", 3.0, 2.2, 0.0, s01q)
 
-        s012q = np.zeros(skel.ndofs)
-        s012q[upper_body] = 0., 0., -0.5
-        # s012q[spine] = 0.0, 0., -0.2
-        s012q[left_leg] = -0.0, 0., 0.5, -0.7
-        s012q[right_leg] = -0.5, -0., 0.1, -0.5
-        s012q[leg_y] = 0., -0.785
-        # s012q[knee] = 0.2, -0.
-        # s012q[arms] = 1.5, -1.5
-        # # s012q[blade] = -0.3
-        # s012q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s012q[foot] = 0., 0., 0.2, -0., -0., 0.3
-        state012 = State("state012", 1.0, 2.2, 0.0, s012q)
+        s2q = np.zeros(skel.ndofs)
+        s2q[upper_body] = 0., 0., -0.4
+        s2q[spine] = 0.0, 0., 0.4
+        s2q[left_leg] = 0., 0., 0.3, -0.5
+        s2q[right_leg] = -0., -0., 0.3, -0.5
+        s2q[foot] = 0., 0., 0.2, -0., -0., 0.2
+        state2 = State("state2", 5., 2.2, 0.0, s2q)
 
-        s02q = np.zeros(skel.ndofs)
-        # s02q[pelvis] = 0., -0.3
-        s02q[upper_body] = 0., -0.2, -0.3
-        # s02q[spine] = 0., 0., 0.5
-        s02q[left_leg] = 0.1, 0., 0.3, -0.7
-        s02q[right_leg] = -0.3, -0., -0., -1.5
-        # s02q[right_leg] = -0.4, -0., 0.3, -0.7
-        s02q[leg_y] = 0., -0.4
-        # s02q[arms] = 1.5, -1.5
-        # s02q[knee] = 0.4, -0.
-        # s02q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s02q[foot] = 0.2, 0., 0.4, -0., -0., 0.5
-        state02 = State("state02", 0.5, 2.2, 0.0, s02q)
+        s3q = np.zeros(skel.ndofs)
+        s3q[upper_body] = 0., 0., -0.4
+        s3q[spine] = 0.0, 0., 0.4
+        s3q[left_leg] = 0., 0., 0.3, -0.5
+        s3q[right_leg] = -0., -0., 0.3, -0.5
+        s3q[foot] = 0., 0., 0.2, -0., -0., 0.2
+        state3 = State("state3", 100.0, 2.2, 0.0, s3q)
 
-        s022q = np.zeros(skel.ndofs)
-        # s022q[pelvis] = 0., -0.3
-        s022q[upper_body] = 0., -0.2, -0.3
-        # s022q[spine] = 0., 0., 0.5
-        s022q[left_leg] = 0.1, 0., 0.3, -0.7
-        s022q[right_leg] = -0.3, -0., 0.5, -0.7
-        # s022q[right_leg] = -0.4, -0., 0.3, -0.7
-        s022q[leg_y] = 0., -0.4
-        # s022q[arms] = 1.5, -1.5
-        # s022q[knee] = 0.4, -0.
-        # s022q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s022q[foot] = 0., 0., 0.4, -0., -0., 0.2
-        state022 = State("state022", 0.5, 2.2, 0.0, s022q)
-
-        s03q = np.zeros(skel.ndofs)
-        # s03q[pelvis] = 0., -0.1
-        s03q[upper_body] = 0., 0., -0.2
-        # s03q[spine] = 0., 0., 0.5
-        s03q[left_leg] = 0.3, 0., -0.1, -2.
-        s03q[right_leg] = -0.3, -0., 0.5, -0.7
-        s03q[leg_y] = 0., -0.4
-        # s03q[knee] = 0.2, 0.
-        # s03q[arms] = 1.5, -1.5
-        s03q[foot] = 0.2, 0., 0.5, -0.2, -0., 0.2
-        state03 = State("state03", 1., 2.2, 0.0, s03q)
-
-        s04q = np.zeros(skel.ndofs)
-        # s04q[pelvis] = -0.3, -0.0
-        s04q[upper_body] = -0., 0, -0.5
-        # s04q[spine] = -0.3, -0.3, -0.
-        s04q[left_leg] = -0., 0., 0.1, -0.3
-        s04q[right_leg] = -0.5, -0., -0.5, -0.
-        s04q[arms] = 1.5, -1.5
-        s04q[leg_y] = 0.785, -0.785
-        s04q[foot] = -0., 0.0, 0.2, -0.2, -0.0, 0.
-        state04 = State("state04", 3.0, 0.0, 0.2, s04q)
-
-        s05q = np.zeros(skel.ndofs)
-        s05q[upper_body] = 0.0, 0., -0.3
-        s05q[spine] = 0.0, 0., 0.3
-        s05q[left_leg] = 0., -0., 0.3, -0.5
-        s05q[right_leg] = -0., -0., 0.3, -0.5
-        s05q[arms] = 1.5, -1.5
-        s05q[foot] = -0., 0., 0.2, 0., -0., 0.2
-        state05 = State("state05", 1.0, 0.0, 0.2, s05q)
-
-        # =====================LEFT TURN=============
-
-        s10q = np.zeros(skel.ndofs)
-        # s10q[pelvis] = 0., -0.3
-        s10q[upper_body] = 0.0, 0., -0.5
-        s10q[spine] = 0.0, 0., 0.5
-        s10q[left_leg] = -0., 0., 0.3, -0.5
-        s10q[right_leg] = -0., -0., 0.3, -0.5
-        s10q[arms] = 1.5, -1.5
-        # s10q[blade] = -0.3
-        s10q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state10 = State("state10", 0.5, 2.2, 0.0, s10q)
-
-        roro_angle = 10.
-
-        s11q = np.zeros(skel.ndofs)
-        s11q[upper_body] = -0., 0., -0.5
-        s11q[spine] = -0., 0., 0.5
-        s11q[left_leg] = 0., 0., 0.5, -0.9
-        s11q[right_leg] = 0., -0., 0.5, -0.9
-        s11q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # s11q[arms] = 1.5, -1.5
-        # s11q[arms] = -0.5, -0.5
-        s11q[arms] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # s11q[foot] = 0., 0., 0.2, 0., 0., 0.2
-        s11q[foot] = -0., 0., 0.4, 0., 0., 0.4
-        state11 = State("state11", 2.0, 0.0, 0.2, s11q)
-
-        # s12q = np.zeros(skel.ndofs)
-        # # s12q[pelvis_x] = -10. * math.pi/180.
-        # s12q[upper_body] = 0., 0., -0.5
-        # s12q[spine] = 0.0, 0., 0.5
-        # s12q[left_leg] = -0., 0., 0.5, -0.9
-        # s12q[right_leg] = 0., -0., 0.3, -0.5
-        # s12q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # # s12q[arms] = 1.5, -1.5
-        # s12q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        # s12q[foot] = -0., 0., 0.4, 0., -0., 0.2
-        # # s12q[foot] = -roro_angle * math.pi / 180., 0., 0., -roro_angle * math.pi / 180., -0., 0.
-        # state12 = State("state12", 1.0, 0.0, 0.2, s12q)
-        self.state_list = [state00, state01, state012, state02, state022, state03, state04, state05, state11]
-        # self.state_list = [state00, state01, state02, state03, state04, state05, state11]
-        # self.state_list = [state00, state01, state012, state02, state03, state04, state05, state11]
+        self.state_list = [state00, state01, state2, state3]
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -242,7 +167,7 @@ class MyWorld(pydart.World):
         # print("dof: ", skel.ndofs)
 
         # nonholonomic constraint initial setting
-        _th = 5. * math.pi / 180.
+        _th = 10. * math.pi / 180.
 
         self.nh0 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216+0.104, -0.0216-0.027, 0.)))
         self.nh1 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216-0.104, -0.0216-0.027, 0.)))
@@ -262,18 +187,140 @@ class MyWorld(pydart.World):
 
         self.step_count = 0
 
+        self.trajUpdateTime = 0
+        self.tangent_index = 0
+
+        self.e_t = np.array([1.0, 0.0, 0.0])
+        self.e_n = np.array([0.0, 1.0, 0.0])
+        self.e_b = np.array([0.0, 0.0, 1.0])
+
+        self.old_lf_tangent_vec = np.array([1.0, 0.0, 0.0])
+
+
+    def generate_spline_trajectory(self, plist):
+        ctr = np.array(plist)
+
+        x = ctr[:, 0]
+        y = ctr[:, 1]
+
+        l = len(x)
+        t = np.linspace(0, 1, l - 2, endpoint=True)
+        t = np.append([0, 0, 0], t)
+        t = np.append(t, [1, 1, 1])
+        tck = [t, [x, y], 3]
+        u3 = np.linspace(0, 1, (500), endpoint=True)
+
+        # tck, u = interpolate.splprep([x, y], k=3, s=0)
+        # u = np.linspace(0, 1, num=50, endpoint=True)
+        out = interpolate.splev(u3, tck)
+        # print("out: ", out)
+        der = interpolate.splev(u3, tck, der = 1)
+        # print("der: ", der)
+
+        # print("x", out[0])
+        # print("y", out[1])
+
+        return out, der
+
     def step(self):
 
         # print("self.curr_state: ", self.curr_state.name)
 
-        # if self.curr_state.name == "state1":
-        #     self.force = np.array([50.0, 0.0, 0.0])
-        # # elif self.curr_state.name == "state2":
-        # #     self.force = np.array([0.0, 0.0, -10.0])
+        # if self.curr_state.name == "state01":
+        #     self.force = np.array([0.0, 0.0, 20.0])
         # else:
         #     self.force = None
+
+        if self.curr_state.name == "state2":
+            self.force = np.array([20.0, 0.0, 0.0])
+        # elif self.curr_state.name == "state2":
+        #     self.force = np.array([0.0, 0.0, -10.0])
+        else:
+            self.force = None
         if self.force is not None:
             self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
+
+        # turning
+        # lf_tangent_vec = np.array([1.0, 0.0, .0])
+        # rf_tangent_vec = np.array([1.0, 0.0, .0])
+
+        skel = self.skeletons[2]
+        # print(skel.com_velocity()[1])
+        if self.curr_state.name == "state3":
+            skel = self.skeletons[2]
+            m = skel.mass()
+            r = self.radius  # radius = 2.0
+
+            # make ski track
+
+            # lf_tangent_vec_normal = np.array([0.0, 0.0, -1.0])
+            # rf_tangent_vec_normal = np.array([0.0, 0.0, 1.0])
+
+            # calculate tangent vector
+
+            # print("time: ", self.time())
+            if 0.01 > self.time() - self.trajUpdateTime:
+                # print("in loop", self.tangent_index)
+                lf_tangent_vec = np.asarray([self.left_der[0][self.tangent_index], 0.0, self.left_der[1][self.tangent_index]])
+
+                if np.linalg.norm(lf_tangent_vec) != 0:
+                    lf_tangent_vec = lf_tangent_vec / np.linalg.norm(lf_tangent_vec)
+            else:
+                lf_tangent_vec = self.old_lf_tangent_vec
+                if self.tangent_index < len(self.left_foot_traj[0])-1:
+                    self.tangent_index += 1
+                else:
+                    print("over?")
+                    self.tangent_index = 0
+                self.trajUpdateTime = self.time()
+            # print("left foot traj: ", lf_tangent_vec)
+            # print("right_foot_traj: ", rf_tangent_vec)
+
+            # e_t = np.array([1, 0, 0])
+            # e_n = np.array([0, 1, 0])
+            # e_b = np.array([0, 0, 1])
+
+            self.old_lf_tangent_vec = lf_tangent_vec
+
+            e_t = lf_tangent_vec
+            e_n = np.array([0, 1, 0])
+            e_b = np.cross(e_t, e_n)
+            # print(e_b, np.linalg.norm(e_b))
+
+            self.e_t = e_t
+            self.e_n = e_n
+            self.e_b = e_b
+
+            f_n = m * np.array([0, -9.8, 0])
+            f_b = -m * skel.com_acceleration()[0] * e_t
+            f_centrifugal = 1 * m * skel.com_velocity()[0] * skel.com_velocity()[0] * e_b / r
+            f_load = f_n + f_b + f_centrifugal
+
+            val = np.dot(f_load, e_b) / np.dot(f_load, e_n)
+            inclined_angle = math.atan(val)
+
+            # print(e_t)
+            # print(inclined_angle * 180 / math.pi)
+
+            # q = skel.q
+            # q["j_heel_left_x", "j_heel_right_x"] = inclined_angle, inclined_angle
+            # self.curr_state.angles = q
+
+            self.curr_state.angles[12] = inclined_angle
+            self.curr_state.angles[21] = inclined_angle
+
+            # get foot y rotation angle
+            # rfpoint = skel.body("h_blade_right").to_world((0.0216 + 0.104, -0.0216 - 0.027, 0.))
+            # rrpoint = skel.body("h_blade_right").to_world((0.0216 - 0.104, -0.0216 - 0.027, 0.))
+            #
+            # blade_vec = rfpoint-rrpoint
+            # blade_vec = blade_vec/np.linalg.norm(blade_vec)
+            # y_angle = math.acos(blade_vec.dot(e_t))
+            # print(y_angle*180/math.pi)
+            # self.curr_state.angles[13] = y_angle
+            # self.curr_state.angles[22] = y_angle
+
+        # print(skel.dof_indices(["j_heel_left_x", "j_heel_right_x"]))
 
         self.skeletons[3].set_positions(self.curr_state.angles)
 
@@ -292,11 +339,12 @@ class MyWorld(pydart.World):
         # ground_height = -0.98
         if ik_on:
             ik_res = copy.deepcopy(self.curr_state.angles)
-            if self.curr_state.name != "state02":
+            if self.curr_state.name == "state2":
                 # print("ik solve!!-------------------")
                 self.ik.update_target(ground_height)
                 ik_res[6:] = self.ik.solve()
 
+            if self.curr_state.name == "state2":
                 self.skeletons[3].set_positions(ik_res)
 
         # HP QP solve
@@ -425,6 +473,24 @@ class MyWorld(pydart.World):
         del blade_force_origin[:]
         del rd_footCenter[:]
 
+        del lf_trajectory[:]
+        del rf_trajectory[:]
+
+        del lft[:]
+        del lft_origin[:]
+        del rft[:]
+        del rft_origin[:]
+
+        del e_t_vec[:]
+        del e_n_vec[:]
+        del e_b_vec[:]
+        del coordinate_origin[:]
+
+        e_t_vec.append(self.e_t)
+        e_n_vec.append(self.e_n)
+        e_b_vec.append(self.e_b)
+        coordinate_origin.append(self.skeletons[2].C)
+
         com = self.skeletons[2].C
         com[1] = 0.
         # com[1] = -0.99 +0.05
@@ -452,6 +518,14 @@ class MyWorld(pydart.World):
                 render_vector.append(self.rd_contact_forces[ii] * 10.)
                 render_vector_origin.append(self.rd_contact_positions[ii])
 
+        for ctr_n in range(0, len(self.left_foot_traj[0])-1, 10):
+            lf_trajectory.append(np.array([self.left_foot_traj[0][ctr_n], 0., self.left_foot_traj[1][ctr_n]]))
+            rf_trajectory.append(np.array([self.right_foot_traj[0][ctr_n], 0., self.right_foot_traj[1][ctr_n]]))
+            lft.append(np.array([self.left_der[0][ctr_n+1], -0., self.left_der[1][ctr_n+1]]))
+            lft_origin.append(np.array([self.left_foot_traj[0][ctr_n], -0., self.left_foot_traj[1][ctr_n]]))
+            rft.append(np.array([self.right_foot_traj[0][ctr_n + 1], -0., self.right_foot_traj[1][ctr_n + 1]]))
+            rft_origin.append(np.array([self.right_foot_traj[0][ctr_n], -0., self.right_foot_traj[1][ctr_n]]))
+
 if __name__ == '__main__':
     print('Example: Skating -- pushing side to side')
 
@@ -465,7 +539,7 @@ if __name__ == '__main__':
     skel = world.skeletons[2]
     q = skel.q
 
-    q["j_pelvis_pos_y"] = -0.07
+    # q["j_pelvis_pos_y"] = -0.07
 
     # q["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z"] = 0., 0., 0.1
     # q["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"] = -0.2, 0., -0.1
@@ -492,10 +566,18 @@ if __name__ == '__main__':
     viewer = hsv.hpSimpleViewer(viewForceWnd=False)
     viewer.setMaxFrame(1000)
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
-    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL),visible=False)
+    viewer.doc.addRenderer('ground', yr.DartRenderer(ground, (255, 255, 255), yr.POLYGON_FILL), visible=False)
     viewer.doc.addRenderer('contactForce', yr.VectorsRenderer(render_vector, render_vector_origin, (255, 0, 0)))
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))
+    viewer.doc.addRenderer('lf_traj', yr.PointsRenderer(lf_trajectory, (200, 0, 0)), visible=False)
+    viewer.doc.addRenderer('rf_traj', yr.PointsRenderer(rf_trajectory, (200, 200, 200)), visible=False)
+    viewer.doc.addRenderer('lf_tangent', yr.VectorsRenderer(lft, lft_origin, (0, 255, 0)), visible=False)
+    viewer.doc.addRenderer('rf_tangent', yr.VectorsRenderer(rft, rft_origin, (0, 0, 255)), visible=False)
+
+    viewer.doc.addRenderer('e_t', yr.VectorsRenderer(e_t_vec, coordinate_origin, (255, 0, 0)))
+    viewer.doc.addRenderer('e_n', yr.VectorsRenderer(e_n_vec, coordinate_origin, (0, 255, 0)))
+    viewer.doc.addRenderer('e_b', yr.VectorsRenderer(e_b_vec, coordinate_origin, (0, 0, 255)))
 
     viewer.startTimer(1/25.)
 
