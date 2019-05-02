@@ -105,8 +105,8 @@ class MyWorld(pydart.World):
         s012q = np.zeros(skel.ndofs)
         s012q[upper_body] = 0., -0., -0.5
         # s012q[spine] = 0.0, 0., -0.2
-        s012q[left_leg] = 0.3, 0., 0.5, -1.
-        s012q[right_leg] = -0.3, -0., 0.5, -2.0
+        s012q[left_leg] = 0.1, 0., 0.5, -1.
+        s012q[right_leg] = -0.5, -0., 1.0, -2.0
         s012q[leg_y] = 0.4, -0.
         # s012q[knee] = 0.2, -0.
         # s012q[arms] = 1.5, -1.5
@@ -116,21 +116,21 @@ class MyWorld(pydart.World):
         state012 = State("state012", 0.5, 2.2, 0.0, s012q)
 
         s02q = np.zeros(skel.ndofs)
-        s02q[upper_body] = 0., -0., -0.3
+        s02q[upper_body] = 0., -0.2, -0.5
         # s02q[spine] = 0., 0., 0.5
-        s02q[left_leg] = 0.3, 0., 0.5, -2.0
-        s02q[right_leg] = -0.3, -0., 0.5, -1.0
+        s02q[left_leg] = 0.5, 0., 1.0, -2.0
+        s02q[right_leg] = -0.1, -0., 0.3, -1.0
         # s02q[right_leg] = -0.4, -0., 0.3, -0.7
         s02q[leg_y] = 0., -0.4
         # s02q[arms] = 1.5, -1.5
         # s02q[knee] = 0.4, -0.
-        s02q[foot] = 0.1, 0., 0.2, -0., -0.4, 0.5
+        s02q[foot] = 0., 0., 1.0, -0.1, -0.4, 0.5
         state02 = State("state02", 0.5, 2.2, 0.0, s02q)
 
         s022q = np.zeros(skel.ndofs)
-        s022q[upper_body] = 0., -0., -0.3
-        s022q[left_leg] = 0.3, 0., 0.9, -0.9
-        s022q[right_leg] = -0.3, -0., 0.5, -2.0
+        s022q[upper_body] = 0., 0., -0.5
+        s022q[left_leg] = 0.5, 0., 0.5, -0.7
+        s022q[right_leg] = -0., -0., 1.0, -2.0
         # s022q[right_leg] = -0.4, -0., 0.3, -0.7
         s022q[leg_y] = 0.4, -0.
         s022q[foot] = 0.1, 0.4, 0.2, -0., -0., 1.0
