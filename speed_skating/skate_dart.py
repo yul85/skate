@@ -1,12 +1,12 @@
 import numpy as np
 import pydart2 as pydart
 import math
-import IKsolve_double_stance
-import copy
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
+
+from speed_skating.make_skate_keyframe import make_keyframe, revise_pose
 
 render_vector = []
 render_vector_origin = []
@@ -21,18 +21,10 @@ ik_on = True
 # ik_on = False
 
 
-class State(object):
-    def __init__(self, name, dt, c_d, c_v, angles):
-        self.name = name
-        self.dt = dt
-        self.c_d = c_d
-        self.c_v = c_v
-        self.angles = angles
-
-
 class MyWorld(pydart.World):
     def __init__(self, ):
-        pydart.World.__init__(self, 1.0 / 1000.0, '../data/skel/cart_pole_blade_3dof_with_ground.skel')
+        super(MyWorld, self).__init__(1.0 / 1200.0, '../data/skel/cart_pole_blade_3dof_with_ground.skel')
+        # pydart.World.__init__(self, 1.0 / 1000.0, '../data/skel/cart_pole_blade_3dof_with_ground.skel')
         # pydart.World.__init__(self, 1.0 / 1000.0, '../data/skel/cart_pole_blade.skel')
         # pydart.World.__init__(self, 1.0 / 2000.0, '../data/skel/cart_pole.skel')
         self.force = None
@@ -44,179 +36,13 @@ class MyWorld(pydart.World):
         self.ground_height = self.skeletons[0].body(0).to_world((0., 0.025, 0.))[1]
 
         skel = self.skeletons[2]
-        # print("mass: ", skel.m, "kg")
 
-        # print('[Joint]')
-        # for joint in skel.joints:
-        #     print("\t" + str(joint))
-        #     print("\t\tparent = " + str(joint.parent_bodynode))
-        #     print("\t\tchild = " + str(joint.child_bodynode))
-        #     print("\t\tdofs = " + str(joint.dofs))
-
-        # skel.joint("j_abdomen").set_position_upper_limit(10, 0.0)
-
-        # skel.joint("j_heel_left").set_position_upper_limit(0, 0.0)
-        # skel.joint("j_heel_left").set_position_lower_limit(0, -0.0)
-        pelvis_pos_y = skel.dof_indices(["j_pelvis_pos_y"])
-        pelvis_x = skel.dof_indices(["j_pelvis_rot_x"])
-        pelvis = skel.dof_indices(["j_pelvis_rot_y", "j_pelvis_rot_z"])
-        upper_body = skel.dof_indices(["j_abdomen_x", "j_abdomen_y", "j_abdomen_z"])
-        spine = skel.dof_indices(["j_spine_x", "j_spine_y", "j_spine_z"])
-        right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"])
-        left_leg = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z", "j_shin_left_z"])
-        knee = skel.dof_indices(["j_shin_left_x", "j_shin_right_x"])
-        arms = skel.dof_indices(["j_bicep_left_x", "j_bicep_right_x"])
-        arms_y = skel.dof_indices(["j_bicep_left_y", "j_bicep_right_y"])
-        arms_z = skel.dof_indices(["j_bicep_left_z", "j_bicep_right_z"])
-        foot = skel.dof_indices(["j_heel_left_x", "j_heel_left_y", "j_heel_left_z", "j_heel_right_x", "j_heel_right_y", "j_heel_right_z"])
-        leg_y = skel.dof_indices(["j_thigh_left_y", "j_thigh_right_y"])
-        # blade = skel.dof_indices(["j_heel_right_2"])
-
-
-        # ===========pushing side to side new===========
-
-        s00q = np.zeros(skel.ndofs)
-
-        s00q[upper_body] = 0.0, -0., -0.5
-        # s00q[spine] = 0.0, 0.0, 0.2
-        s00q[left_leg] = 0.05, 0., 0.5, -0.7
-        s00q[right_leg] = -0.5, -0., 0.5, -0.9
-        s00q[leg_y] = 0., -0.785
-        # s00q[arms] = 1.5, -1.5
-        # s00q[arms_y] = -1.5, 1.5
-        # s00q[arms_z] = 3., 3.
-        s00q[foot] = 0.03, 0., 0.2, -0., -0., 0.4
-        state00 = State("state00", 2.0, 0.0, 0.2, s00q)
-
-        s01q = np.zeros(skel.ndofs)
-        s01q[upper_body] = 0., 0.2, -0.3
-        # s01q[spine] = 0.0, 0., -0.2
-        s01q[left_leg] = 0.3, 0., 1.5, -1.7
-        s01q[right_leg] = -0.3, -0., 0.5, -0.9
-        s01q[leg_y] = 0.4, -0.4
-        # s01q[arms_y] = -0.7, -0.7
-        # s01q[knee] = 0.05, -0.
-        # s01q[arms] = 1.5, -1.5
-        # # s01q[blade] = -0.3
-        # s01q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s01q[foot] = 0., 0.4, 0.5, -0.1, -0.4, 0.4
-        state01 = State("state01", 0.5, 2.2, 0.0, s01q)
-
-        s012q = np.zeros(skel.ndofs)
-        s012q[upper_body] = 0., -0., -0.5
-        # s012q[spine] = 0.0, 0., -0.2
-        s012q[left_leg] = 0.1, 0., 0.5, -1.
-        s012q[right_leg] = -0.5, -0., 1.0, -2.0
-        s012q[leg_y] = 0.4, -0.
-        # s012q[knee] = 0.2, -0.
-        # s012q[arms] = 1.5, -1.5
-        # # s012q[blade] = -0.3
-        # s012q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s012q[foot] = 0.1, 0.4, 0.5, -0., -0., 1.0
-        state012 = State("state012", 0.5, 2.2, 0.0, s012q)
-
-        s02q = np.zeros(skel.ndofs)
-        s02q[upper_body] = 0., -0.2, -0.5
-        # s02q[spine] = 0., 0., 0.5
-        s02q[left_leg] = 0.5, 0., 1.0, -2.0
-        s02q[right_leg] = -0.1, -0., 0.3, -1.0
-        # s02q[right_leg] = -0.4, -0., 0.3, -0.7
-        s02q[leg_y] = 0., -0.4
-        # s02q[arms] = 1.5, -1.5
-        # s02q[knee] = 0.4, -0.
-        s02q[foot] = 0., 0., 1.0, -0.1, -0.4, 0.5
-        state02 = State("state02", 0.5, 2.2, 0.0, s02q)
-
-        s022q = np.zeros(skel.ndofs)
-        s022q[upper_body] = 0., 0., -0.5
-        s022q[left_leg] = 0.5, 0., 0.5, -0.7
-        s022q[right_leg] = -0., -0., 1.0, -2.0
-        # s022q[right_leg] = -0.4, -0., 0.3, -0.7
-        s022q[leg_y] = 0.4, -0.
-        s022q[foot] = 0.1, 0.4, 0.2, -0., -0., 1.0
-        state022 = State("state022", 0.5, 2.2, 0.0, s022q)
-
-        s_terminal_q = np.zeros(skel.ndofs)
-
-        state_t = State("state_t", 50., 2.0, 2.0, s_terminal_q)
-
-        #=======================END ===============================================
-
-        s03q = np.zeros(skel.ndofs)
-        # s03q[pelvis] = 0., -0.1
-        s03q[upper_body] = 0., 0., -0.2
-        # s03q[spine] = 0., 0., 0.5
-        s03q[left_leg] = 0.3, 0., -0.1, -2.
-        s03q[right_leg] = -0.3, -0., 0.5, -0.7
-        s03q[leg_y] = 0., -0.4
-        # s03q[knee] = 0.2, 0.
-        # s03q[arms] = 1.5, -1.5
-        s03q[foot] = 0.2, 0., 0.5, -0.2, -0., 0.2
-        state03 = State("state03", 1., 2.2, 0.0, s03q)
-
-        s04q = np.zeros(skel.ndofs)
-        # s04q[pelvis] = -0.3, -0.0
-        s04q[upper_body] = -0., 0, -0.5
-        # s04q[spine] = -0.3, -0.3, -0.
-        s04q[left_leg] = -0., 0., 0.1, -0.3
-        s04q[right_leg] = -0.5, -0., -0.5, -0.
-        s04q[arms] = 1.5, -1.5
-        s04q[leg_y] = 0.785, -0.785
-        s04q[foot] = -0., 0.0, 0.2, -0.2, -0.0, 0.
-        state04 = State("state04", 3.0, 0.0, 0.2, s04q)
-
-        s05q = np.zeros(skel.ndofs)
-        s05q[upper_body] = 0.0, 0., -0.3
-        s05q[spine] = 0.0, 0., 0.3
-        s05q[left_leg] = 0., -0., 0.3, -0.5
-        s05q[right_leg] = -0., -0., 0.3, -0.5
-        s05q[arms] = 1.5, -1.5
-        s05q[foot] = -0., 0., 0.2, 0., -0., 0.2
-        state05 = State("state05", 1.0, 0.0, 0.2, s05q)
-
-        # =====================LEFT TURN=============
-
-        s10q = np.zeros(skel.ndofs)
-        # s10q[pelvis] = 0., -0.3
-        s10q[upper_body] = 0.0, 0., -0.5
-        s10q[spine] = 0.0, 0., 0.5
-        s10q[left_leg] = -0., 0., 0.3, -0.5
-        s10q[right_leg] = -0., -0., 0.3, -0.5
-        s10q[arms] = 1.5, -1.5
-        # s10q[blade] = -0.3
-        s10q[foot] = -0.0, 0.0, 0.2, 0.0, 0.0, 0.2
-        state10 = State("state10", 0.5, 2.2, 0.0, s10q)
-
-        roro_angle = 10.
-
-        s11q = np.zeros(skel.ndofs)
-        s11q[upper_body] = -0., 0., -0.5
-        s11q[spine] = -0., 0., 0.5
-        s11q[left_leg] = 0., 0., 0.5, -0.9
-        s11q[right_leg] = 0., -0., 0.5, -0.9
-        s11q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # s11q[arms] = 1.5, -1.5
-        # s11q[arms] = -0.5, -0.5
-        s11q[arms] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # s11q[foot] = 0., 0., 0.2, 0., 0., 0.2
-        s11q[foot] = -0., 0., 0.4, 0., 0., 0.4
-        state11 = State("state11", 2.0, 0.0, 0.2, s11q)
-
-        # s12q = np.zeros(skel.ndofs)
-        # # s12q[pelvis_x] = -10. * math.pi/180.
-        # s12q[upper_body] = 0., 0., -0.5
-        # s12q[spine] = 0.0, 0., 0.5
-        # s12q[left_leg] = -0., 0., 0.5, -0.9
-        # s12q[right_leg] = 0., -0., 0.3, -0.5
-        # s12q[knee] = -roro_angle * math.pi / 180., -roro_angle * math.pi / 180.
-        # # s12q[arms] = 1.5, -1.5
-        # s12q[arms] = -roro_angle * math.pi/180., -roro_angle * math.pi/180.
-        # s12q[foot] = -0., 0., 0.4, 0., -0., 0.2
-        # # s12q[foot] = -roro_angle * math.pi / 180., 0., 0., -roro_angle * math.pi / 180., -0., 0.
-        # state12 = State("state12", 1.0, 0.0, 0.2, s12q)
-        self.state_list = [state00, state01, state012, state02, state012, state02, state022, state02, state_t] #state022, state03, state04, state05, state11]
-        # self.state_list = [state00, state01, state02, state03, state04, state05, state11]
-        # self.state_list = [state00, state01, state012, state02, state03, state04, state05, state11]
+        root_state = make_keyframe(skel)
+        state = root_state
+        self.state_list = []
+        for i in range(10):
+            self.state_list.append(state)
+            state = state.get_next()
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -229,20 +55,8 @@ class MyWorld(pydart.World):
         # print("cur angle: ", self.curr_state.angles)
 
         if ik_on:
-            self.ik = IKsolve_double_stance.IKsolver(skel, self.skeletons[3], self.dt)
+            revise_pose(self.skeletons[3], self.state_list[0])
             print('IK ON')
-
-        # print("after:", state00.angles)
-
-        self.revise_pose(state00)
-        # self.revise_pose(state01)
-        # self.revise_pose(state012)
-        # self.revise_pose(state02)
-
-        # debug_rf1 = self.skeletons[3].body("h_blade_right").to_world([-0.1040 + 0.0216, -0.027 - 0.0216, 0.0])[1]
-        # debug_rf2 = self.skeletons[3].body("h_blade_right").to_world([-0.1040 - 0.0216, -0.027 - 0.0216, 0.0])[1]
-        # print("check: ", debug_rf1, debug_rf2)
-        # print('create controller OK')
 
         self.skeletons[3].set_positions(self.curr_state.angles)
 
@@ -271,20 +85,6 @@ class MyWorld(pydart.World):
         self.nh3.add_to_world()
 
         self.step_count = 0
-
-    def revise_pose(self, pose):
-
-        self.skeletons[3].set_positions(pose.angles)
-        ground_height = max(self.skeletons[3].body('h_blade_right').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            self.skeletons[3].body('h_blade_right').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            self.skeletons[3].body('h_blade_left').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            self.skeletons[3].body('h_blade_left').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1]
-                            )
-
-        ik_res = copy.deepcopy(pose.angles)
-        self.ik.update_target(ground_height)
-        ik_res[6:] = self.ik.solve()
-        pose.angles = ik_res
 
     def step(self):
 
@@ -395,7 +195,7 @@ class MyWorld(pydart.World):
             self.force_l = 0. * np.array([1.0, -0.5, -1.0])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
+            # _tau += t_r + t_l
 
         if self.curr_state.name == "state02":
             self.force_r = 0. * np.array([0.0, 5.0, 5.])
@@ -403,28 +203,27 @@ class MyWorld(pydart.World):
             self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
+            # _tau += t_r + t_l
 
         if self.curr_state.name == "state03":
             self.force_r = 0. * np.array([1.0, 3.0, -1.])
             self.force_l = 0. * np.array([1.0, -0., -1.])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
+            # _tau += t_r + t_l
 
         if self.curr_state.name == "state04":
             self.force_r = 0. * np.array([-1.0, 0., 1.])
             self.force_l = 0. * np.array([1.0, 0., -1.0])
             t_r = self.add_JTC_force(jaco_r, self.force_r)
             t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
+            # _tau += t_r + t_l
 
         _tau[0:6] = np.zeros(6)
 
         skel.set_forces(_tau)
 
         super(MyWorld, self).step()
-
 
     def add_JTC_force(self, jaco, force):
         jaco_t = jaco.transpose()
@@ -525,7 +324,7 @@ if __name__ == '__main__':
     viewer.doc.addRenderer('pushForce', yr.WideArrowRenderer(push_force, push_force_origin, (0, 255,0)))
     viewer.doc.addRenderer('rd_footCenter', yr.PointsRenderer(rd_footCenter))
 
-    viewer.startTimer(1/25.)
+    viewer.startTimer(1/30.)
 
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
     viewer.motionViewWnd.glWindow.planeHeight = 0.
