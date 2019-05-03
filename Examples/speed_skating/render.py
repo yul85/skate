@@ -1,6 +1,6 @@
 from fltk import Fl
 import torch
-from speed_skating.ppo_mp import PPO
+from Examples.speed_skating.ppo_mp import PPO
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 import numpy as np

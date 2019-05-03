@@ -2,7 +2,7 @@
 import numpy as np
 
 import pydart2 as pydart
-from speed_skating.skate_env import SkateDartEnv
+from Examples.speed_skating.skate_env import SkateDartEnv
 
 from collections import namedtuple
 from collections import deque

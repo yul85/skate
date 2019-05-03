@@ -6,7 +6,7 @@ from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 
-from speed_skating.make_skate_keyframe import make_keyframe, revise_pose
+from Examples.speed_skating.make_skate_keyframe import make_keyframe
 
 render_vector = []
 render_vector_origin = []
