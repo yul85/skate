@@ -30,7 +30,7 @@
                     <transformation>0 0 0 0 0 0</transformation>
                     <geometry>
                         <box>
-                            <size>10.0 0.05 10.0</size>
+                            <size>30.0 0.05 30.0</size>
                         </box>
                     </geometry>
                 </collision_shape>
