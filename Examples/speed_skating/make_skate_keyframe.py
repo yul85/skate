@@ -34,7 +34,7 @@ def make_keyframe(skel):
     s00q[right_leg] = -0.5, -0., 0.5, -0.9
     s00q[leg_y] = 0., -0.785
     s00q[foot] = 0.03, 0., 0.2, -0., -0., 0.4
-    state00 = State(0, "state00", 2.0, 0.0, 0.2, s00q)
+    state00 = State("State0", 2.0, 0.0, 0.2, s00q)
 
     s01q = np.zeros(skel.ndofs)
     s01q[upper_body] = 0., 0.2, -0.3
@@ -42,42 +42,44 @@ def make_keyframe(skel):
     s01q[right_leg] = -0.3, -0., 0.5, -0.9
     s01q[leg_y] = 0.4, -0.4
     s01q[foot] = 0., 0.4, 0.5, -0.1, -0.4, 0.4
-    state01 = State(1, "state01", 0.5, 2.2, 0.0, s01q)
-
-    s012q = np.zeros(skel.ndofs)
-    s012q[upper_body] = 0., -0., -0.5
-    s012q[left_leg] = 0.1, 0., 0.5, -1.
-    s012q[right_leg] = -0.5, -0., 1.0, -2.0
-    s012q[leg_y] = 0.4, -0.
-    s012q[foot] = 0.1, 0.4, 0.5, -0., -0., 1.0
-    state012 = State(2, "state012", 0.5, 2.2, 0.0, s012q)
+    state01 = State("State1", 0.5, 2.2, 0.0, s01q)
 
     s02q = np.zeros(skel.ndofs)
-    s02q[upper_body] = 0., -0.2, -0.5
-    s02q[left_leg] = 0.5, 0., 1.0, -2.0
-    s02q[right_leg] = -0.1, -0., 0.3, -1.0
-    s02q[leg_y] = 0., -0.4
-    s02q[foot] = 0., 0., 1.0, -0.1, -0.4, 0.5
-    state02 = State(3, "state02", 0.5, 2.2, 0.0, s02q)
+    s02q[upper_body] = 0., -0., -0.5
+    s02q[left_leg] = 0.1, 0., 0.5, -1.
+    s02q[right_leg] = -0.5, -0., 1.0, -2.0
+    s02q[leg_y] = 0.4, -0.
+    s02q[foot] = 0.1, 0.4, 0.5, -0., -0., 1.0
+    state02 = State("State2", 0.5, 2.2, 0.0, s02q)
 
-    s022q = np.zeros(skel.ndofs)
-    s022q[upper_body] = 0., 0., -0.5
-    s022q[left_leg] = 0.5, 0., 0.5, -0.7
-    s022q[right_leg] = -0., -0., 1.0, -2.0
-    s022q[leg_y] = 0.4, -0.
-    s022q[foot] = 0.1, 0.4, 0.2, -0., -0., 1.0
-    state022 = State(4, "state022", 0.5, 2.2, 0.0, s022q)
-
-    s_terminal_q = np.zeros(skel.ndofs)
-
-    state_t = State(5, "state_t", 50., 2.0, 2.0, s_terminal_q)
+    s03q = np.zeros(skel.ndofs)
+    s03q[upper_body] = 0., -0.2, -0.5
+    s03q[left_leg] = 0.5, 0., 1.0, -2.0
+    s03q[right_leg] = -0.1, -0., 0.3, -1.0
+    s03q[leg_y] = 0., -0.4
+    s03q[foot] = 0., 0., 1.0, -0.1, -0.4, 0.5
+    state03 = State("State3", 0.5, 2.2, 0.0, s03q)
 
     state00.set_next(state01)
-    state01.set_next(state012)
-    state012.set_next(state02)
-    state02.set_next(state012)
+    state01.set_next(state02)
+    state02.set_next(state03)
+    state03.set_next(state02)
 
-    # return [state00, state01, state012, state02, state012, state02, state012, state02, state_t]
     return state00
 
+
+if __name__ == '__main__':
+    import pydart2 as pydart
+    import pickle
+
+    pydart.init()
+    world = pydart.World(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
+    state = make_keyframe(world.skeletons[1])
+    states = [state]
+    for i in range(3):
+        states.append(state.get_next())
+        state = state.get_next()
+
+    with open('speed_skating.skkey', 'wb') as f:
+        pickle.dump(states, f)
 
