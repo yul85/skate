@@ -615,6 +615,8 @@ class GlWindow(Fl_Gl_Window):
 
             if not hasattr(renderer, 'renderFrame'):
                 renderer.render(renderType)
+            elif not self.parent.recording:
+                renderer.render(renderType)
             else:
                 renderer.renderFrame(frame, renderType)
 

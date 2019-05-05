@@ -1143,6 +1143,8 @@ class JointPosture(Posture):
     def blendPosture(self, otherPosture, t, update=True):
         p = JointPosture(self.skeleton)
         p.rootPos = mm.linearInterpol(self.rootPos, otherPosture.rootPos, t)
+        for i in range(len(self.local_ts)):
+            p.local_ts[i] = (1.-t) * self.local_ts[i] + t * otherPosture.local_ts[i]
         for i in range(len(self.localRs)):
             p.localRs[i] = mm.slerp(self.localRs[i], otherPosture.localRs[i], t)
             # p.localRs[i] = cm.slerp(self.localRs[i], otherPosture.localRs[i], t)

@@ -465,36 +465,39 @@ class DartRenderer(Renderer):
         self.savable = save_state
 
     def render(self, renderType=RENDER_OBJECT):
-        glLineWidth(self._lineWidth)
-
-        if renderType == RENDER_SHADOW:
-            # glColor3ubv(shadow_color)
-            glColor3ubv(self.totalColor)
+        if True:
+            self.renderState(self.getState(), renderType)
         else:
-            glColor3ubv(self.totalColor)
+            glLineWidth(self._lineWidth)
 
-        for skeleton in self.world.skeletons:
-            for body in skeleton.bodynodes:
-                glPushMatrix()
-                glMultMatrixd(body.world_transform().transpose())
-                for shapeNode in body.shapenodes:
-                    if shapeNode.has_visual_aspect():
-                        # print(body.name, shapeNode)
-                        if renderType != RENDER_SHADOW:
-                            color = numpy.array(shapeNode.visual_aspect_rgba())*255
-                            # if color[0] != 0 or color[1] != 0 or color[2] != 0:
-                            if sum(self.totalColor) == 765:
-                                c = [int(color[0]), int(color[1]), int(color[2]), int(color[3])]
-                                glColor4ubv(c)
-                            else:
-                                glColor3ubv(self.totalColor)
+            if renderType == RENDER_SHADOW:
+                # glColor3ubv(shadow_color)
+                glColor3ubv(self.totalColor)
+            else:
+                glColor3ubv(self.totalColor)
 
-                            self.renderShapeNode(shapeNode)
-                        elif body.name != 'ground':
-                            glColor3ub(90, 90, 90)
-                            self.renderShapeNode(shapeNode)
-                glPopMatrix()
-        self.world.render_contacts()
+            for skeleton in self.world.skeletons:
+                for body in skeleton.bodynodes:
+                    glPushMatrix()
+                    glMultMatrixd(body.world_transform().transpose())
+                    for shapeNode in body.shapenodes:
+                        if shapeNode.has_visual_aspect():
+                            # print(body.name, shapeNode)
+                            if renderType != RENDER_SHADOW:
+                                color = numpy.array(shapeNode.visual_aspect_rgba())*255
+                                # if color[0] != 0 or color[1] != 0 or color[2] != 0:
+                                if sum(self.totalColor) == 765:
+                                    c = [int(color[0]), int(color[1]), int(color[2]), int(color[3])]
+                                    glColor4ubv(c)
+                                else:
+                                    glColor3ubv(self.totalColor)
+
+                                self.renderShapeNode(shapeNode)
+                            elif body.name != 'ground':
+                                glColor3ub(90, 90, 90)
+                                self.renderShapeNode(shapeNode)
+                    glPopMatrix()
+            self.world.render_contacts()
 
     def renderShapeNode(self, shapeNode):
         """
