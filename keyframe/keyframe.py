@@ -6,7 +6,7 @@ from PyCommon.modules.GUI import ysBaseUI as ybu
 
 import pydart2 as pydart
 from SkateUtils.NonHolonomicWorld import NHWorld
-from SkateUtils.KeyPoseState import State, revise_pose
+from SkateUtils.KeyPoseState import State, revise_pose, IKType
 import math
 import numpy as np
 import pickle
@@ -54,12 +54,16 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         del_state_btn.hide()
         renew_name_btn.hide()
 
-        ik_btn = fltk.Fl_Button(550, self.valObjOffset, 80, 20, 'ik ground')
+        ik_btn = fltk.Fl_Button(550, self.valObjOffset, 30, 20, 'ik d')
+        ik_btn.callback(self.ikState)
+        ik_btn = fltk.Fl_Button(590, self.valObjOffset, 30, 20, 'ik l')
+        ik_btn.callback(self.ikState)
+        ik_btn = fltk.Fl_Button(630, self.valObjOffset, 30, 20, 'ik r')
         ik_btn.callback(self.ikState)
 
-        saveBtn = fltk.Fl_Button(640, self.valObjOffset, 80, 20, 'save')
+        saveBtn = fltk.Fl_Button(680, self.valObjOffset, 80, 20, 'save')
         saveBtn.callback(self.save)
-        loadBtn = fltk.Fl_Button(730, self.valObjOffset, 80, 20, 'load')
+        loadBtn = fltk.Fl_Button(770, self.valObjOffset, 80, 20, 'load')
         loadBtn.callback(self.load)
 
         self.end()
@@ -137,6 +141,10 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         for i in range(self.num_dof):
             self.valObjects[self.skel.dof(i).name].value(selected_state.angles[i])
 
+        self.valObjects['ext_force_x'].value(selected_state.ext_force[0])
+        self.valObjects['ext_force_y'].value(selected_state.ext_force[1])
+        self.valObjects['ext_force_z'].value(selected_state.ext_force[2])
+
         if selected_state.next is None:
             self.next_state_choice.value(self.next_state_choice.find_index('None'))
         else:
@@ -145,6 +153,7 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         self.valObjects['dt'].value(selected_state.dt)
         self.ref_skel.set_positions(selected_state.angles)
         self.viewer.motionViewWnd.glWindow.redraw()
+        self.redraw()
 
     def changeNextState(self, ptr):
         """
@@ -160,7 +169,15 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
             selected_state.set_next(self.states[ptr.value()])
 
     def ikState(self, ptr):
-        revise_pose(self.ref_skel, self.getSelectedState())
+        ik_type = IKType.DOUBLE
+        if ptr.label()[-1] == 'd':
+            ik_type = IKType.DOUBLE
+        elif ptr.label()[-1] == 'l':
+            ik_type = IKType.LEFT
+        elif ptr.label()[-1] == 'r':
+            ik_type = IKType.RIGHT
+
+        revise_pose(self.ref_skel, self.getSelectedState(), ik_type)
         self.changeState(self.state_name_choice)
 
     def add1DSlider(self, name, minVal, maxVal, valStep, initVal):
@@ -224,8 +241,12 @@ if __name__ == '__main__':
     viewer.objectInfoWnd.skel = skel
     viewer.objectInfoWnd.ref_skel = ref_world.skeletons[1]
 
+    rd_ext_force_vec = []
+    rd_ext_force_ori = []
+
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(ref_world, (194,207,245), yr.POLYGON_FILL))
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('Ext force', yr.VectorsRenderer(rd_ext_force_vec,rd_ext_force_ori, (0, 255, 0)))
 
     viewer.startTimer(1/30.)
 
@@ -246,6 +267,19 @@ if __name__ == '__main__':
         sliders[dof.name] = slider
         dof_names.append(dof.name)
 
+    def onForceSliderChange(ptr):
+        selected_state = viewer.objectInfoWnd.getSelectedState()
+        selected_state.ext_force[0] = sliders['ext_force_x'].value()
+        selected_state.ext_force[1] = sliders['ext_force_y'].value()
+        selected_state.ext_force[2] = sliders['ext_force_z'].value()
+
+    sliders['ext_force_x'] = viewer.objectInfoWnd.add1DSlider('ext_force_x', -200., 200., 1., 0.)
+    sliders['ext_force_y'] = viewer.objectInfoWnd.add1DSlider('ext_force_y', -200., 200., 1., 0.)
+    sliders['ext_force_z'] = viewer.objectInfoWnd.add1DSlider('ext_force_z', -200., 200., 1., 0.)
+    sliders['ext_force_x'].callback(onForceSliderChange)
+    sliders['ext_force_y'].callback(onForceSliderChange)
+    sliders['ext_force_z'].callback(onForceSliderChange)
+
     state = [viewer.objectInfoWnd.root_state]
     time = [0.]
 
@@ -264,11 +298,16 @@ if __name__ == '__main__':
     Kd = 40.
     h = world.time_step()
 
+    viewer.motionViewWnd.panel.last.hide()
+    viewer.motionViewWnd.panel.prev.hide()
+    viewer.motionViewWnd.panel.next.hide()
+
     def simulateCallback(frame):
         if frame == 0:
             state[0] = viewer.objectInfoWnd.root_state
             skel.set_positions(state[0].angles)
         for i in range(40):
+            skel.body('h_pelvis').add_ext_force(state[0].ext_force)
             skel.set_forces(skel.get_spd(state[0].angles, h, Kp, Kd))
             world.step()
             time[0] += h
@@ -281,6 +320,11 @@ if __name__ == '__main__':
                 viewer.objectInfoWnd.state_name_choice.value(viewer.objectInfoWnd.state_name_choice.find_index(state[0].name))
                 viewer.objectInfoWnd.changeState(viewer.objectInfoWnd.state_name_choice)
                 print('Transition: ', prev_state_name, ' -> ', state[0].name)
+
+        del rd_ext_force_vec[:]
+        del rd_ext_force_ori[:]
+        rd_ext_force_vec.append(state[0].ext_force/100.)
+        rd_ext_force_ori.append(skel.body('h_pelvis').to_world())
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()

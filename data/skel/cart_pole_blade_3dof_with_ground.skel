@@ -43,13 +43,14 @@
 
         <skeleton name="left_leg">
             <transformation>0 -0.92 0 0 0 0</transformation>
+            <mobile>false</mobile>
             <body name="h_cart">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <inertia>
                     <mass>1</mass>
                     <offset>0.0 -0.0 0.0</offset>
                 </inertia>
-                <visualization_shape>
+<!--                <visualization_shape>
                     <transformation>0.0 -0.0 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
@@ -57,7 +58,7 @@
                         </box>
                     </geometry>
                 </visualization_shape>
-<!--                 <collision_shape>
+                 <collision_shape>
                     <transformation>0.0 -0.0 0.0 0.0 0.0 0.0</transformation>
                     <geometry>
                         <box>
