@@ -24,6 +24,8 @@ class DartSkelMotion(object):
 
     def save(self, filename):
         with open(filename, 'w') as f:
+            f.write('Frame Times: '+str(1./self.fps))
+            f.write('\n')
             for frame in range(len(self.qs)):
                 f.write(str([d for d in np.asarray(self.qs[frame])]))
                 f.write(str([d for d in np.asarray(self.dqs[frame])]))
@@ -49,14 +51,22 @@ class DartSkelMotion(object):
             self.qs[frame+i][5] += offset_z
 
     def translate_by_offset(self, offset):
-        self.qs[3] += offset[0]
-        self.qs[5] += offset[2]
+        for i in range(len(self.qs)):
+            self.qs[i][3] += offset[0]
+            self.qs[i][5] += offset[2]
 
     def get_q(self, frame):
         return self.qs[frame]
 
     def get_dq(self, frame):
         return self.dqs[frame]
+
+    def refine_dqs(self, skel, start_frame=0):
+        for frame in range(start_frame, len(self.dqs)):
+            if frame == len(self.dqs)-1:
+                self.dqs[frame] = np.asarray(skel.position_differences(self.qs[frame], self.qs[frame-1])) * self.fps
+            else:
+                self.dqs[frame] = np.asarray(skel.position_differences(self.qs[frame+1], self.qs[frame])) * self.fps
 
 
 if __name__ == '__main__':

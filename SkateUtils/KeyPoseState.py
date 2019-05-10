@@ -119,31 +119,48 @@ class IKSolver(object):
 
 
 def _revise_pose(ik, ref_skel, pose, ground_height):
-    ref_skel.set_positions(pose.angles)
-    ik_res = copy.deepcopy(pose.angles)
+    ik_res = np.asarray(ref_skel.q)
+    if pose is not None:
+        ref_skel.set_positions(pose.angles)
+        ik_res = copy.deepcopy(pose.angles)
+
     ik.update_target(ground_height)
     ik_res[6:] = ik.solve()
-    pose.angles = ik_res
+    if pose is not None:
+        pose.angles = ik_res
+    else:
+        ref_skel.set_positions(ik_res)
 
 
-def revise_pose(ref_skel, pose, ik_type=IKType.DOUBLE):
+def revise_pose(ref_skel, pose, ik_type=IKType.DOUBLE, ground_height=None):
+    """
+
+    :param ref_skel:
+    :type ref_skel: pydart.Skeleton
+    :param pose:
+    :type pose: State | None
+    :param ik_type:
+    :type ik_type: IKType
+    :param ground_height:
+    :return:
+    """
     ik = IKSolver(ref_skel, ik_type)
-    ground_height = 0.
 
-    if ik_type == IKType.DOUBLE:
-        ground_height = max(ref_skel.body('h_blade_right').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            ref_skel.body('h_blade_right').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            ref_skel.body('h_blade_left').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            ref_skel.body('h_blade_left').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1]
-                            )
-    elif ik_type == IKType.LEFT:
-        ground_height = max(
-            ref_skel.body('h_blade_left').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-            ref_skel.body('h_blade_left').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1]
-        )
-    elif ik_type == IKType.RIGHT:
-        ground_height = max(ref_skel.body('h_blade_right').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            ref_skel.body('h_blade_right').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
-                            )
+    if ground_height is None:
+        if ik_type == IKType.DOUBLE:
+            ground_height = max(ref_skel.body('h_blade_right').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                                ref_skel.body('h_blade_right').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                                ref_skel.body('h_blade_left').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                                ref_skel.body('h_blade_left').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1]
+                                )
+        elif ik_type == IKType.LEFT:
+            ground_height = max(
+                ref_skel.body('h_blade_left').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                ref_skel.body('h_blade_left').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1]
+            )
+        elif ik_type == IKType.RIGHT:
+            ground_height = max(ref_skel.body('h_blade_right').to_world((-0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                                ref_skel.body('h_blade_right').to_world((+0.104 + 0.0216, -0.027 - 0.0216, 0.))[1],
+                                )
 
     _revise_pose(ik, ref_skel, pose, ground_height)
