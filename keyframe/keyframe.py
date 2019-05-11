@@ -5,7 +5,7 @@ from PyCommon.modules.GUI import ysSimpleViewer_ori as ysvOri
 from PyCommon.modules.GUI import ysBaseUI as ybu
 
 import pydart2 as pydart
-from SkateUtils.NonHolonomicWorld import NHWorld
+from SkateUtils.NonHolonomicWorld import NHWorld, NHWorldV2
 from SkateUtils.KeyPoseState import State, revise_pose, IKType
 import math
 import numpy as np
@@ -227,8 +227,8 @@ if __name__ == '__main__':
     pydart.init()
     print('pydart initialization OK')
 
-    world = NHWorld(1./1200., '../data/skel/skater_3dof_with_ground.skel')
-    ref_world = NHWorld(1./1200., '../data/skel/skater_3dof_with_ground.skel')
+    world = NHWorldV2(1./1200., '../data/skel/skater_3dof_with_ground.skel')
+    ref_world = NHWorldV2(1./1200., '../data/skel/skater_3dof_with_ground.skel')
     print('World OK')
 
     skel = world.skeletons[1]
