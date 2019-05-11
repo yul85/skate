@@ -256,9 +256,9 @@ class PPO(object):
         self.total_episodes = []
 
         self.model = Model(self.num_state, self.num_action).float()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=7E-4)
+        # self.optimizer = optim.Adam(self.model.parameters(), lr=7E-4)
         # self.optimizer_old = optim.Adam(self.model.parameters(), lr=1E-4)
-        # self.optimizer = optim.Adam(self.model.parameters(), lr=2E-4)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=2E-4)
         self.w_entropy = 0.0
 
         self.sum_return = 0.
@@ -383,13 +383,7 @@ class PPO(object):
             for epi in self.total_episodes:
                 data = epi.get_data()
                 size = len(data)
-                try:
-                    states, actions, rewards, values, logprobs = zip(*data)
-                except ValueError:
-                    print(len(self.total_episodes))
-                    print(self.total_episodes)
-                    print(self.total_episodes.index(epi))
-                    raise ValueError
+                states, actions, rewards, values, logprobs = zip(*data)
 
                 values = np.concatenate((values, np.zeros(1)), axis=0)
                 advantages = np.zeros(size)

@@ -60,7 +60,8 @@ class SkateDartEnv(gym.Env):
         self.time_offset = 0.
 
         state_num = 1 + (3*3 + 4) * self.body_num
-        action_num = self.skel.num_dofs() - 6 + 1
+        # action_num = self.skel.num_dofs() - 6 + 1
+        action_num = self.skel.num_dofs() - 6
 
         state_high = np.array([np.finfo(np.float32).max] * state_num)
         action_high = np.array([pi*10./2.] * action_num)
@@ -130,21 +131,23 @@ class SkateDartEnv(gym.Env):
             done (boolean): Whether the episode has ended, in which case further step() calls will return undefined results.
             info (dict): Contains auxiliary diagnostic information (helpful for debugging, and sometimes learning).
         """
-        action = np.hstack((np.zeros(6), _action[:-1]/10.))
+        # action = np.hstack((np.zeros(6), _action[:-1]/10.))
+        action = np.hstack((np.zeros(6), _action/10.))
 
         next_frame_time = self.world.time() + self.time_offset + self.world.time_step() * self.step_per_frame
         next_frame = min(len(self.ref_motion)-1, int(next_frame_time * self.ref_motion.fps))
         self.ref_skel.set_positions(self.ref_motion.qs[next_frame])
         self.ref_skel.set_velocities(self.ref_motion.dqs[next_frame])
-        Kp = self.Kp * exp(log(self.Kp) * _action[-1]/10.)
-        Kd = self.Kd * exp(log(self.Kd) * _action[-1]/20.)
+        # Kp = self.Kp * exp(log(self.Kp) * _action[-1]/10.)
+        # Kd = self.Kd * exp(log(self.Kd) * _action[-1]/20.)
+        Kp = self.Kp
+        Kd = self.Kd
         h = self.world.time_step()
         for i in range(self.step_per_frame):
             self.skel.set_forces(self.skel.get_spd(self.ref_skel.q + action, h, Kp, Kd))
             self.world.step()
 
         return tuple([self.state(), self.reward(), self.is_done(), dict()])
-        # return tuple([[np.nan for iii in range(1 + (3*3 + 4) * self.body_num)], self.reward(), self.is_done(), dict()])
 
     def continue_from_now_by_phase(self, phase):
         self.phase_frame = round(phase * (self.motion_len-1))
