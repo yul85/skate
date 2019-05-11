@@ -5,7 +5,7 @@ from PyCommon.modules.GUI import ysSimpleViewer_ori as ysvOri
 from PyCommon.modules.GUI import ysBaseUI as ybu
 
 import pydart2 as pydart
-from SkateUtils.NonHolonomicWorld import NHWorld, NHWorldV2
+from SkateUtils.NonHolonomicWorld import NHWorld
 from SkateUtils.KeyPoseState import State, revise_pose, IKType
 import math
 import numpy as np
@@ -227,8 +227,8 @@ if __name__ == '__main__':
     pydart.init()
     print('pydart initialization OK')
 
-    world = NHWorldV2(1./1200., '../data/skel/skater_3dof_with_ground.skel')
-    ref_world = NHWorldV2(1./1200., '../data/skel/skater_3dof_with_ground.skel')
+    world = NHWorld(1./1200., '../data/skel/skater_3dof_with_ground.skel')
+    ref_world = NHWorld(1./1200., '../data/skel/skater_3dof_with_ground.skel')
     print('World OK')
 
     skel = world.skeletons[1]
@@ -310,7 +310,11 @@ if __name__ == '__main__':
             skel.set_positions(state[0].angles)
         for i in range(40):
             skel.body('h_pelvis').add_ext_force(state[0].ext_force)
-            skel.set_forces(skel.get_spd(state[0].angles, h, Kp, Kd))
+            if state[0].name == "state_air":
+                skel.set_forces(skel.get_spd(state[0].angles, h, 1200., Kd))
+            else:
+                skel.set_forces(skel.get_spd(state[0].angles, h, Kp, Kd))
+
             world.step()
             time[0] += h
             if time[0] >= state[0].dt and state[0].next is not None:
@@ -333,6 +337,7 @@ if __name__ == '__main__':
         y = skel.com()[1]
         com_after = com_init - np.array([0.0, y, 0.0])
         com.append(com_after)
+
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()
