@@ -139,17 +139,17 @@ class MyWorld(pydart.World):
         state_low = State("state_low", 0.5, 2.2, 0.0, s_low_q)
 
         s01q = np.zeros(skel.ndofs)
-        s01q[upper_body] = 0., -0.6, -1.5
+        s01q[upper_body] = 0., -0.3, -0.9
         # s01q[spine] = 0.0, 0., 0.4
-        s01q[left_leg] = -0.1, 0., 0.2, -1.5
+        s01q[left_leg] = -0.1, 0., 0.5, -1.5
         s01q[right_leg] = 0.3, -0., -1.2, -0.5
         # s01q[leg_y] = 0.4, -0.4
         s01q[arms] = 0.5, -2.0
         s01q[arms_y] = -1.0, -0.2
         # s01q[knee] = 0.05, -0.
         # s01q[foot] = -0., 0.785, 0.2, 0., -0.785, 0.2
-        s01q[foot] = 0.1, 0., 0.5, -0., -0., 0.
-        state01 = State("state01", 1.0, 2.2, 0.0, s01q)
+        s01q[foot] = 0., 0., 1.0, -0., -0., -0.5
+        state01 = State("state01", 0.2, 2.2, 0.0, s01q)
 
         # s012q = np.zeros(skel.ndofs)
         # # s012q[upper_body] = 0., -0., -0.5
@@ -186,13 +186,13 @@ class MyWorld(pydart.World):
         # state022 = State("state022", 0.5, 2.2, 0.0, s022q)
 
         s_air_q = np.zeros(skel.ndofs)
-        s_air_q[upper_body] = 0., 0.3, -0.0
-        s_air_q[left_leg] = -0.2, 0.0, -0.1, 0.
-        s_air_q[right_leg] = 0.2, 0.0, 0.2, -0.4
+        s_air_q[upper_body] = 0., 0.3, 0.5
+        s_air_q[left_leg] = -0.2, 0.3, 0.5, -0.5
+        s_air_q[right_leg] = 0.2, 0.3, -0.1, 0.
         # s4[arms] = -0.5, -0.5
         s_air_q[arms_z] = 0.7, 0.7
         s_air_q[elbows] = -2.0, 2.0
-        s_air_q[foot] = 0.0, 0.0, 0.1, 0.0, 0.0, -0.5
+        s_air_q[foot] = 0.0, 0.0, 0., 0.0, 0.0, -0.5
         state_air = State("state_air", 1.0, 2.0, 0.0, s_air_q)
 
         s_terminal_q = np.zeros(skel.ndofs)
@@ -224,7 +224,7 @@ class MyWorld(pydart.World):
         s04q[foot] = -0., 0.0, 0.2, -0.2, -0.0, 0.
         state04 = State("state04", 3.0, 0.0, 0.2, s04q)
 
-        self.state_list = [state00, state_stable, state_force, state011, state1, state_lift, state_low, state_air, state_t]
+        self.state_list = [state00, state_stable, state_force, state011, state1, state_lift, state_low, state01, state_air, state_t]
         # self.state_list = [state00, state01, state02, state03, state04, state05, state11]
         # self.state_list = [state00, state01, state012, state02, state03, state04, state05, state11]
 
@@ -417,6 +417,9 @@ class MyWorld(pydart.World):
         _tau[0:6] = np.zeros(6)
 
         skel.set_forces(_tau)
+
+        if self.curr_state.name == "state_air":
+            print("COM Vel_y: ", skel.body("h_pelvis").com_linear_velocity()[1])
 
         super(MyWorld, self).step()
 
