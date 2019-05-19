@@ -1,0 +1,7 @@
+gym
+torch
+torchvision
+cma
+cvxopt
+numpy
+scipy
