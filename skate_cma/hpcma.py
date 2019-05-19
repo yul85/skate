@@ -5,8 +5,8 @@ import time
 import numpy as np
 from multiprocessing import Pool
 
-from test_cma.skate_env2 import SkateDartEnv
-from test_cma.PenaltyType import PenaltyType
+from skate_cma.skate_env2 import SkateDartEnv
+from skate_cma.PenaltyType import PenaltyType
 
 
 def f(x):
@@ -105,7 +105,6 @@ class HpCma(object):
     def run(self):
         q = self.skkey_states[0].angles.copy()
         dq = np.zeros_like(q)
-        dq[3] = -1.5
         x0t = np.zeros_like(q[6:])
 
         self.env.reset()

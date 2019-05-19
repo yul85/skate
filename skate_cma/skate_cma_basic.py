@@ -2,8 +2,8 @@ import sys
 import pydart2 as pydart
 import numpy as np
 
-from test_cma.hpcma import HpCma
-from test_cma.PenaltyType import PenaltyType
+from skate_cma.hpcma import HpCma
+from skate_cma.PenaltyType import PenaltyType
 
 
 def objective(i, penalty_option0, penalty_option1):

@@ -4,8 +4,8 @@ import numpy as np
 import gym
 import gym.spaces
 import copy
-from test_cma.BSpline import BSpline
-from test_cma.PenaltyType import PenaltyType
+from skate_cma.BSpline import BSpline
+from skate_cma.PenaltyType import PenaltyType
 from PyCommon.modules.Math import mmMath as mm
 
 

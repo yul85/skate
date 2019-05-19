@@ -1,6 +1,6 @@
 import os
 from fltk import Fl
-from test_cma.skate_env2 import SkateDartEnv
+from skate_cma.skate_env2 import SkateDartEnv
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 import numpy as np
