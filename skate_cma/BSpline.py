@@ -6,7 +6,7 @@ class BSpline:
         self.ctrlPoint = dict()
 
     def generate_control_point(self, points, points_offset=None):
-        assert(len(points) > 2)
+        assert(len(points) >= 2)
         if points_offset is not None:
             assert(len(points) == len(points_offset))
         num_points = len(points)

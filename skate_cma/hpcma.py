@@ -94,6 +94,12 @@ class HpCma(object):
 
         self.cma_timeout = cma_timeout
 
+        self.init_dq = np.zeros_like(self.skkey_states[0].angles.copy())
+
+    def set_init_dq(self, dq):
+        assert(len(self.init_dq) == len(dq))
+        self.init_dq = np.asarray(dq)
+
     def save_solution(self, i, solution):
         filename = self.log_dir + 'xbest.skcma'
         with open(filename, 'a') as file:
@@ -104,7 +110,7 @@ class HpCma(object):
 
     def run(self):
         q = self.skkey_states[0].angles.copy()
-        dq = np.zeros_like(q)
+        dq = self.init_dq
         x0t = np.zeros_like(q[6:])
 
         self.env.reset()
