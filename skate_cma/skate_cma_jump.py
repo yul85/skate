@@ -1,5 +1,6 @@
 import sys
 import pydart2 as pydart
+import numpy as np
 
 from skate_cma.hpcma import HpCma
 from skate_cma.PenaltyType import PenaltyType
@@ -83,8 +84,8 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
 if __name__ == '__main__':
     pydart.init()
     if len(sys.argv) == 1:
-        # cma = HpCma('jump0507_2', 4, sigma=0.1, max_time=2., cma_timeout=1)
-        cma = HpCma('jump0507_2', 4, sigma=0.1, max_time=2., start_state_num=4, start_state_sol_dir='jump0507_2_model_201905192040/', cma_timeout=1)
+        cma = HpCma('jump0507_2', 4, sigma=0.1, max_time=2., cma_timeout=1)
+        # cma = HpCma('jump0507_2', 4, sigma=0.1, max_time=2., start_state_num=4, start_state_sol_dir='jump0507_2_model_201905192040/', cma_timeout=1)
     elif len(sys.argv) == 5:
         cma = HpCma(sys.argv[1], int(sys.argv[2]), sigma=float(sys.argv[3]), max_time=float(sys.argv[4]))
     elif len(sys.argv) == 8:
@@ -92,5 +93,8 @@ if __name__ == '__main__':
     else:
         cma = HpCma('jump0507_2', 1)
 
+    dq = np.zeros(57)
+    dq[3] = -1.5
+    cma.set_init_dq(dq)
     cma.objective = objective
     cma.run()
