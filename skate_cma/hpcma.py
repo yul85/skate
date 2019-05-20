@@ -97,6 +97,16 @@ class HpCma(object):
         self.init_q = None
         self.init_dq = np.zeros_like(self.skkey_states[0].angles.copy())
 
+        print('Start CMA')
+        print('Motion name: ', self.env_name)
+        print('Max motion time: ', self.max_time)
+        print('Parallel with process #: ', self.num_slaves)
+        print('CMA initial sigma: ', self.sigma)
+        print('CMA time out: ', self.cma_timeout)
+        print('Start motion state #:', self.start_state_num)
+        if self.start_state_num > 0:
+            print('Load previous solution from ', self.start_state_sol_dir)
+
     def set_init_dq(self, dq):
         assert(len(self.init_dq) == len(dq))
         self.init_dq = np.asarray(dq)
