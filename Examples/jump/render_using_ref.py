@@ -21,10 +21,9 @@ def main():
         # ppo.LoadModel('jump_model_201905091411/' + '1070' + '.pt')
         # if os.path.exists('model/'+env_name+'.pt'):
         #     ppo.LoadModel('model/' + env_name + '.pt')
-        ppo.LoadModel('model/' + 'param' + '.pt')
         pass
 
-    ppo.env.Resets(False)
+    ppo.env.Resets(True)
     ppo.env.ref_skel.set_positions(ppo.env.ref_motion.qs[ppo.env.phase_frame])
 
     # viewer settings

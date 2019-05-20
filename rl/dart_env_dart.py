@@ -10,7 +10,7 @@ import gym.spaces
 from gym.utils import seeding
 
 from rl.pd_controller import PDController
-# from PyCommon.modules.Simulator import yulQpSimulator_equality_blade_centripetal_force as yulqp
+from PyCommon.modules.Simulator import yulQpSimulator_equality_blade_centripetal_force as yulqp
 
 from multiprocessing import Pool
 
@@ -30,8 +30,7 @@ class YulDartEnv(gym.Env):
         # self.world.control_skel = self.world.skeletons[0]
         self.skel = self.world.skeletons[0]
         # self.Kp, self.Kd = 400., 40.
-        # self.Kp, self.Kd = 50., 5.
-        self.Kp, self.Kd = 200., 20.
+        self.Kp, self.Kd = 50., 5.
         self.pdc = PDController(self.skel, self.world.time_step(), 400., 40.)
 
         self.env_name = env_name
@@ -63,8 +62,8 @@ class YulDartEnv(gym.Env):
 
         self.w_p = 0.65
         self.w_v = 0.1
-        self.w_e = 0.15
-        # self.w_e = 2.
+        # self.w_e = 0.15
+        self.w_e = 2.
         self.w_c = 0.1
 
         self.exp_p = 2.

@@ -408,7 +408,7 @@ if __name__ == "__main__":
             if max_avg_steps < step:
                 max_avg_steps = step
 
-        # Plot(np.asarray(rewards),'reward',1,False)
+        Plot(np.asarray(rewards),'reward',1,False)
         print("Elapsed time : {:.2f}s".format(time.time() - tic))
         ppo.log_file.write("Elapsed time : {:.2f}s".format(time.time() - tic) + "\n")
         ppo.log_file.flush()

@@ -244,13 +244,11 @@ if __name__ == '__main__':
     rd_ext_force_vec = []
     rd_ext_force_ori = []
     com = []
-    com_ref = []
 
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(ref_world, (194,207,245), yr.POLYGON_FILL))
     viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
     viewer.doc.addRenderer('Ext force', yr.VectorsRenderer(rd_ext_force_vec,rd_ext_force_ori, (0, 255, 0)))
     viewer.doc.addRenderer('COM', yr.PointsRenderer(com))
-    viewer.doc.addRenderer('COM_ref', yr.PointsRenderer(com_ref, (0, 255, 0)))
 
     viewer.startTimer(1/30.)
 
@@ -298,8 +296,8 @@ if __name__ == '__main__':
         time[0] = 0.
 
     viewer.motionViewWnd.panel.first.callback(onClickFirst)
-    Kp = 1000.
-    Kd = 50.
+    Kp = 400.
+    Kd = 40.
     h = world.time_step()
 
     viewer.motionViewWnd.panel.last.hide()
@@ -310,7 +308,6 @@ if __name__ == '__main__':
         if frame == 0:
             state[0] = viewer.objectInfoWnd.root_state
             skel.set_positions(state[0].angles)
-        print(skel.com()[1])
         for i in range(40):
             skel.body('h_pelvis').add_ext_force(state[0].ext_force)
             skel.set_forces(skel.get_spd(state[0].angles, h, Kp, Kd))
@@ -329,7 +326,6 @@ if __name__ == '__main__':
         del rd_ext_force_vec[:]
         del rd_ext_force_ori[:]
         del com[:]
-        del com_ref[:]
         rd_ext_force_vec.append(state[0].ext_force/100.)
         rd_ext_force_ori.append(skel.body('h_pelvis').to_world())
 
@@ -337,8 +333,6 @@ if __name__ == '__main__':
         y = skel.com()[1]
         com_after = com_init - np.array([0.0, y, 0.0])
         com.append(com_after)
-        com_ref.append(ref_world.skeletons[1].com())
-        com_ref[0][1] = 0.
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()

@@ -20,8 +20,7 @@ def main():
 
     ppo = PPO(env_name, 1, visualize_only=True)
     if not MOTION_ONLY:
-        # ppo.LoadModel('model/' + env_name + '.pt')
-        ppo.LoadModel('spin_model_04291653/' + '123' + '.pt')
+        ppo.LoadModel('model/' + env_name + '.pt')
     ppo.env.Resets(False)
     ppo.env.ref_skel.set_positions(ppo.env.ref_motion[ppo.env.phase_frame])
     #yul : set initial velocities

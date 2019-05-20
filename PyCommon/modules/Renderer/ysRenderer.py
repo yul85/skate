@@ -99,10 +99,6 @@ class Renderer:
     def get_max_saved_frame(self):
         return len(self.savedState) - 1
 
-    def resetSavedState(self):
-        if self.savable:
-            del self.savedState[:]
-
 
 class SelectedGeomRenderer(Renderer):
     def __init__(self, color):

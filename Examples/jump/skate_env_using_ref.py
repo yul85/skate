@@ -1,5 +1,5 @@
 # from rl.core import Env
-from SkateUtils.NonHolonomicWorld import NHWorld, NHWorldV2
+from SkateUtils.NonHolonomicWorld import NHWorld
 from SkateUtils.DartMotionEdit import DartSkelMotion
 import numpy as np
 from math import exp, pi, log
@@ -10,25 +10,24 @@ import gym.spaces
 from gym.utils import seeding
 
 
-def exp_reward_term(w, exp_w, v):
-    norm = np.linalg.norm(v)
+def exp_reward_term(w, exp_w, v0, v1):
+    norm = np.linalg.norm(v0 - v1)
     return w * exp(-exp_w * norm * norm)
 
 
 class SkateDartEnv(gym.Env):
     def __init__(self, env_name='walk', env_slaves=1):
-        self.world = NHWorldV2(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
+        self.world = NHWorld(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
         self.world.control_skel = self.world.skeletons[1]
         self.skel = self.world.skeletons[1]
-        # self.Kp, self.Kd = 400., 40.
-        self.Kp, self.Kd = 1000., 50.
+        self.Kp, self.Kd = 400., 40.
 
         self.env_name = env_name
 
-        self.ref_world = NHWorldV2(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
+        self.ref_world = NHWorld(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
         self.ref_skel = self.ref_world.skeletons[1]
         self.ref_motion = DartSkelMotion()
-        self.ref_motion.load('jump_ref_v2.skmo')
+        self.ref_motion.load('jump_ref.skmo')
         # self.ref_motion.refine_dqs(self.ref_skel, 73)
         self.ref_motion.refine_dqs(self.ref_skel)
         # self.step_per_frame = round((1./self.world.time_step()) / self.ref_motion.fps)
@@ -102,12 +101,10 @@ class SkateDartEnv(gym.Env):
         p_e_hat = np.asarray([body.world_transform()[:3, 3] for body in self.ref_body_e]).flatten()
         p_e = np.asarray([body.world_transform()[:3, 3] for body in self.body_e]).flatten()
 
-        r_p = exp_reward_term(self.w_p, self.exp_p, self.skel.position_differences(self.skel.q, self.ref_skel.q))
-        r_v = exp_reward_term(self.w_v, self.exp_v, self.skel.velocity_differences(self.skel.dq, self.ref_skel.dq))
-        r_e = exp_reward_term(self.w_e, self.exp_e, p_e - p_e_hat)
-        r_com = exp_reward_term(self.w_c, self.exp_c, self.skel.com() - self.ref_skel.com())
-
-        return r_p + r_v + r_e + r_com
+        return exp_reward_term(self.w_p, self.exp_p, self.skel.q, self.ref_skel.q) \
+               + exp_reward_term(self.w_v, self.exp_v, self.skel.dq, self.ref_skel.dq) \
+               + exp_reward_term(self.w_e, self.exp_e, p_e, p_e_hat) \
+               + exp_reward_term(self.w_c, self.exp_c, self.skel.com(), self.ref_skel.com())
 
     def is_done(self):
         if self.skel.com()[1] < 0.2:
@@ -118,8 +115,6 @@ class SkateDartEnv(gym.Env):
             return True
         elif self.world.time() + self.time_offset > self.motion_time:
             # print('timeout')
-            return True
-        elif self.skel.body('h_head') in self.world.collision_result.contacted_bodies:
             return True
         return False
 
@@ -177,7 +172,7 @@ class SkateDartEnv(gym.Env):
         return self.state()
 
     def hard_reset(self):
-        self.world = NHWorldV2(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
+        self.world = NHWorld(1./1200., '../../data/skel/skater_3dof_with_ground.skel')
         self.world.control_skel = self.world.skeletons[1]
         self.skel = self.world.skeletons[1]
         return self.reset()
