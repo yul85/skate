@@ -20,7 +20,7 @@ class State(object):
         self.next = next
 
     def get_next(self):
-        return self.next
+        return self.next if self.next is not None else self
 
 
 class IKType(IntEnum):
