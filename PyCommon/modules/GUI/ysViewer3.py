@@ -24,7 +24,8 @@ VIEW_TOP = 2
 VIEW_PERSPECTIVE = 3
 
 # Define
-FLAG_SHADOW = 1
+FLAG_SHADOW = False
+FLAG_REFLECTION = True
 
 #class StateObject:
 #    def getState(self):
@@ -204,6 +205,7 @@ class GlWindow(Fl_Gl_Window):
                 glVertex3f(j+1, self.planeHeight, i)
                 count += 1
         glEnd()
+
     def drawGround(self):
         '''
         if self.groundList is None:
@@ -232,23 +234,18 @@ class GlWindow(Fl_Gl_Window):
         else:
             glCallList(self.groundList)
         #'''
+        l = 15
+        h = .1
         glColor3f(119./255., 138./255., 153./255.)
         glColor3f(192. / 255., 192. / 255., 192. / 255.)
         glBegin(GL_LINES)
-        l = 15
-        h = .1
 
         for i in range(-l, l+1):
-            glVertex3f(i, self.planeHeight-0.011, -l)
-            glVertex3f(i, self.planeHeight-0.011, l)
+            glVertex3f(i, self.planeHeight, -l)
+            glVertex3f(i, self.planeHeight, l)
         for i in range(-l, l+1):
-            glVertex3f(-l, self.planeHeight-0.011, i)
-            glVertex3f(l, self.planeHeight-0.011, i)
-        # for i in range(-l, l+1):
-        #     glVertex3f(i, self.planeHeight, 0)
-        #     glVertex3f(i, self.planeHeight-h, 0)
-        #     glVertex3f(0, self.planeHeight, i)
-        #     glVertex3f(0, self.planeHeight-h, i)
+            glVertex3f(-l, self.planeHeight, i)
+            glVertex3f(l, self.planeHeight, i)
         glEnd()
 
         white4 = [1., 1., 1., 1.]
@@ -257,29 +254,18 @@ class GlWindow(Fl_Gl_Window):
         green2 = [0., .2, 0., 1.]
         black = [0.5, 0.5, 0.5, 0.]
 
-        count = 0
         glBegin(GL_QUADS)
-        for i in range(-15, 16):
-            for j in range(-15, 16):
-                if count % 2 == 0:
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, white4)
-                    # glColor3d(1.0, 1.0, 1.0)
-                    glColor4f(1.0, 1.0, 1.0, 0.7)
-                else:
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
-                    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, green5)
-                    # glColor3d(1.0, 1.0, 1.0)
-                    glColor4f(1.0, 1.0, 1.0, 0.7)
-                glNormal3d(0.,0.,1.)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, white4)
+        glColor4f(1.0, 1.0, 1.0, 0.7)
+        glNormal3d(0.,0.,1.)
 
-                glVertex3f(j, self.planeHeight-0.011, i)
-                glVertex3f(j, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i)
-                count += 1
+        glVertex3f(-l, self.planeHeight, -l)
+        glVertex3f(-l, self.planeHeight, l)
+        glVertex3f(l, self.planeHeight, l)
+        glVertex3f(l, self.planeHeight, -l)
         glEnd()
-        
+
     def drawAxis(self):
         self.drawCoordinate((255,255,255), self.camera.distance*.08)
         
@@ -526,7 +512,7 @@ class GlWindow(Fl_Gl_Window):
         glStencilFunc(GL_ALWAYS, 1, 1)
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE)
 
-        self.drawGround()
+        # self.drawGround()
         # self.drawAxis()
         # self.drawCoordinate((0, 0, 0))
         # self.drawGround_color()
@@ -545,10 +531,10 @@ class GlWindow(Fl_Gl_Window):
 
         glScalef(1, -1, 1)
         glTranslatef(0., -2 * self.planeHeight, 0.)
-        self.drawScene(yr.RENDER_REFLECTION)
+        if FLAG_REFLECTION:
+            self.drawScene(yr.RENDER_REFLECTION)
         glCullFace(GL_BACK)
         glPopMatrix()
-
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -583,7 +569,7 @@ class GlWindow(Fl_Gl_Window):
                 self.drawScene(yr.RENDER_SHADOW)
             #'''
 
-            # self.drawScene(yr.RENDER_SHADOW)
+            self.drawScene(yr.RENDER_SHADOW)
 
             glPopMatrix()
             glDepthMask(GL_TRUE)
