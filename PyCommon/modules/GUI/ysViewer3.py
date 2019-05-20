@@ -26,6 +26,8 @@ VIEW_PERSPECTIVE = 3
 # Define
 FLAG_SHADOW = False
 FLAG_REFLECTION = True
+FOG_ON = True
+GRID_ON = False
 
 #class StateObject:
 #    def getState(self):
@@ -236,17 +238,18 @@ class GlWindow(Fl_Gl_Window):
         #'''
         l = 15
         h = .1
-        glColor3f(119./255., 138./255., 153./255.)
-        glColor3f(192. / 255., 192. / 255., 192. / 255.)
-        glBegin(GL_LINES)
+        if GRID_ON:
+            glColor3f(119./255., 138./255., 153./255.)
+            glColor3f(192. / 255., 192. / 255., 192. / 255.)
+            glBegin(GL_LINES)
 
-        for i in range(-l, l+1):
-            glVertex3f(i, self.planeHeight, -l)
-            glVertex3f(i, self.planeHeight, l)
-        for i in range(-l, l+1):
-            glVertex3f(-l, self.planeHeight, i)
-            glVertex3f(l, self.planeHeight, i)
-        glEnd()
+            for i in range(-l, l+1):
+                glVertex3f(i, self.planeHeight, -l)
+                glVertex3f(i, self.planeHeight, l)
+            for i in range(-l, l+1):
+                glVertex3f(-l, self.planeHeight, i)
+                glVertex3f(l, self.planeHeight, i)
+            glEnd()
 
         white4 = [1., 1., 1., 1.]
         white1 = [.1, .1, .1, 1.]
@@ -254,6 +257,7 @@ class GlWindow(Fl_Gl_Window):
         green2 = [0., .2, 0., 1.]
         black = [0.5, 0.5, 0.5, 0.]
 
+        l = 50.
         glBegin(GL_QUADS)
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, black)
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, white4)
@@ -578,6 +582,18 @@ class GlWindow(Fl_Gl_Window):
         glDisable(GL_BLEND)
 
         glDisable(GL_STENCIL_TEST)
+
+        ### FOG
+        if FOG_ON:
+            fogColor = [240/255, 255/255, 1.0, .8]
+            glFogi(GL_FOG_MODE, GL_LINEAR)
+            glFogfv(GL_FOG_COLOR, fogColor)
+            glFogf(GL_FOG_DENSITY, 0.3)
+            glHint(GL_FOG_HINT, GL_NICEST)
+            glFogf(GL_FOG_START, 20.)
+            glFogf(GL_FOG_END, 25.0)
+            glEnable(GL_FOG)
+
 
         #glPopMatrix()
         glFlush()

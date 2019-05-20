@@ -48,7 +48,7 @@ def f(x):
         obj_1 /= 3*duration1
         obj_1 += env.penalty_final()
 
-    obj_reg = np.sum(np.square(np.asarray(x[1]))) / (duration0+duration1)
+    obj_reg = weight[PenaltyType.REGULARIZE] * np.sum(np.square(np.asarray(x[1]))) / (duration0+duration1)
 
     return obj_0 + obj_1 + obj_reg
 
@@ -94,11 +94,16 @@ class HpCma(object):
 
         self.cma_timeout = cma_timeout
 
+        self.init_q = None
         self.init_dq = np.zeros_like(self.skkey_states[0].angles.copy())
 
     def set_init_dq(self, dq):
         assert(len(self.init_dq) == len(dq))
         self.init_dq = np.asarray(dq)
+
+    def set_init_q(self, q):
+        assert(len(self.init_dq) == len(q))
+        self.init_q = np.asarray(q)
 
     def save_solution(self, i, solution):
         filename = self.log_dir + 'xbest.skcma'
@@ -109,7 +114,7 @@ class HpCma(object):
             file.write('\n')
 
     def run(self):
-        q = self.skkey_states[0].angles.copy()
+        q = self.skkey_states[0].angles.copy() if self.init_q is None else self.init_q
         dq = self.init_dq
         x0t = np.zeros_like(q[6:])
 
@@ -141,6 +146,7 @@ class HpCma(object):
             penalty_option0 = [None] * len(PenaltyType)
             penalty_option1 = [None] * len(PenaltyType)
             penalty_weight = [1.] * len(PenaltyType)
+            penalty_weight[PenaltyType.TORQUE] = 0.
             self.objective(i, penalty_option0, penalty_option1, penalty_weight)
 
             x0 = self.angles[sum(self.state_duration[:i]):sum(self.state_duration[:i+2])+1]

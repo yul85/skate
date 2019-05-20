@@ -70,7 +70,7 @@ class SkateDartEnv(gym.Env):
 
     def penalty_instant(self):
         E = 0.
-        # E += 1e-8 * self.recent_torque_sum
+        E += self.penalty_type_weight[PenaltyType.TORQUE] * self.recent_torque_sum
         # E += 1e-4 * np.sum(np.square(self.skel.position_differences(self.skel.q, self.recent_ori_q)[6:]))
         if self.penalty_type_on[PenaltyType.COM_HEIGHT] is not None:
             E += self.penalty_type_weight[PenaltyType.COM_HEIGHT] \

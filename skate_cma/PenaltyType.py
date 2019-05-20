@@ -2,7 +2,7 @@ import enum
 
 
 class PenaltyType(enum.IntEnum):
-    TORQUE = 0
+    REGULARIZE = 0
     LEFT_FOOT_CONTACT = 1
     RIGHT_FOOT_CONTACT = 2
     COM_HEIGHT = 3
@@ -27,6 +27,4 @@ class PenaltyType(enum.IntEnum):
 
     MAX_Y_POS_DIFF_END = 18
 
-
-
-
+    TORQUE = 19
