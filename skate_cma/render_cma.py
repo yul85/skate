@@ -42,7 +42,7 @@ def main():
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    # dq[0][3] = -1.
+    dq[0][3] = -1.5
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -51,6 +51,7 @@ def main():
     x = [x0t]
 
     file_path = 'jump_solution2/xbest.skcma'
+    file_path = 'jump_solution3/xbest.skcma'
     # file_path = 'jump0507_2_model_201905192102/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()

@@ -24,7 +24,8 @@ VIEW_TOP = 2
 VIEW_PERSPECTIVE = 3
 
 # Define
-FLAG_SHADOW = 1
+FLAG_SHADOW = True
+FLAG_REFLECTION = True
 
 #class StateObject:
 #    def getState(self):
@@ -239,11 +240,11 @@ class GlWindow(Fl_Gl_Window):
         h = .1
 
         for i in range(-l, l+1):
-            glVertex3f(i, self.planeHeight-0.011, -l)
-            glVertex3f(i, self.planeHeight-0.011, l)
+            glVertex3f(i, self.planeHeight, -l)
+            glVertex3f(i, self.planeHeight, l)
         for i in range(-l, l+1):
-            glVertex3f(-l, self.planeHeight-0.011, i)
-            glVertex3f(l, self.planeHeight-0.011, i)
+            glVertex3f(-l, self.planeHeight, i)
+            glVertex3f(l, self.planeHeight, i)
         # for i in range(-l, l+1):
         #     glVertex3f(i, self.planeHeight, 0)
         #     glVertex3f(i, self.planeHeight-h, 0)
@@ -273,10 +274,10 @@ class GlWindow(Fl_Gl_Window):
                     glColor4f(1.0, 1.0, 1.0, 0.7)
                 glNormal3d(0.,0.,1.)
 
-                glVertex3f(j, self.planeHeight-0.011, i)
-                glVertex3f(j, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i+1)
-                glVertex3f(j+1, self.planeHeight-0.011, i)
+                glVertex3f(j, self.planeHeight, i)
+                glVertex3f(j, self.planeHeight, i+1)
+                glVertex3f(j+1, self.planeHeight, i+1)
+                glVertex3f(j+1, self.planeHeight, i)
                 count += 1
         glEnd()
         
@@ -545,7 +546,8 @@ class GlWindow(Fl_Gl_Window):
 
         glScalef(1, -1, 1)
         glTranslatef(0., -2 * self.planeHeight, 0.)
-        self.drawScene(yr.RENDER_REFLECTION)
+        if FLAG_REFLECTION:
+            self.drawScene(yr.RENDER_REFLECTION)
         glCullFace(GL_BACK)
         glPopMatrix()
 
@@ -791,7 +793,7 @@ class GlWindow(Fl_Gl_Window):
         self.sceneList= state
         
     def deleteState(self, state):
-        glDeleteLists(state, 1)
+        glDeleteLists(state[0], 2) if FLAG_SHADOW else glDeleteLists(state[0], 1)
         
     def resize(self, x, y, w, h):
     #     glViewport(0, 0, self.w(), self.h())

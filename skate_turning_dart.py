@@ -7,6 +7,7 @@ from scipy import interpolate
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
+from PyCommon.modules.Math import mmMath as mm
 
 render_vector = []
 render_vector_origin = []
@@ -53,7 +54,7 @@ class MyWorld(pydart.World):
         self.force_l = None
         self.force_hip_r = None
         self.duration = 0
-        self.skeletons[0].body('ground').set_friction_coeff(0.02)
+        self.skeletons[0].body('ground').set_friction_coeff(0.0)
         self.ground_height = self.skeletons[0].body(0).to_world((0., 0.025, 0.))[1]
 
         self.radius = 1.0
@@ -167,18 +168,18 @@ class MyWorld(pydart.World):
         # print("dof: ", skel.ndofs)
 
         # nonholonomic constraint initial setting
-        _th = 10. * math.pi / 180.
+        _th = 0. * math.pi / 180.
 
         self.nh0 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216+0.104, -0.0216-0.027, 0.)))
         self.nh1 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_right'), np.array((0.0216-0.104, -0.0216-0.027, 0.)))
         self.nh2 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_left'), np.array((0.0216+0.104, -0.0216-0.027, 0.)))
         self.nh3 = pydart.constraints.NonHolonomicContactConstraint(skel.body('h_blade_left'), np.array((0.0216-0.104, -0.0216-0.027, 0.)))
 
-        self.nh1.set_violation_angle_ignore_threshold(_th)
-        self.nh1.set_length_for_violation_ignore(0.208)
-
-        self.nh3.set_violation_angle_ignore_threshold(_th)
-        self.nh3.set_length_for_violation_ignore(0.208)
+        # self.nh1.set_violation_angle_ignore_threshold(_th)
+        # self.nh1.set_length_for_violation_ignore(0.208)
+        #
+        # self.nh3.set_violation_angle_ignore_threshold(_th)
+        # self.nh3.set_length_for_violation_ignore(0.208)
 
         self.nh0.add_to_world()
         self.nh1.add_to_world()
@@ -223,25 +224,22 @@ class MyWorld(pydart.World):
         return out, der
 
     def step(self):
-
-        # print("self.curr_state: ", self.curr_state.name)
-
-        # if self.curr_state.name == "state01":
-        #     self.force = np.array([0.0, 0.0, 20.0])
-        # else:
-        #     self.force = None
-
         if self.curr_state.name == "state2":
-            self.force = np.array([20.0, 0.0, 0.0])
-        # elif self.curr_state.name == "state2":
-        #     self.force = np.array([0.0, 0.0, -10.0])
+            self.force = np.array([30.0, 0.0, 0.0])
         else:
             self.force = None
         if self.force is not None:
             self.skeletons[2].body('h_pelvis').add_ext_force(self.force)
 
+        # if self.time() > 0.1:
+        #     self.force = np.array([10., -000., 100.])
+        # else:
+        #     self.force = None
+        # if self.force is not None:
+        #     self.skeletons[2].body('h_blade_left').add_ext_force(self.force, np.array([0., -0.0216-0.027, 0.]))
+
         # turning
-        # lf_tangent_vec = np.array([1.0, 0.0, .0])
+        lf_tangent_vec = np.array([1.0, 0.0, .0])
         # rf_tangent_vec = np.array([1.0, 0.0, .0])
 
         skel = self.skeletons[2]
@@ -306,8 +304,14 @@ class MyWorld(pydart.World):
             # q["j_heel_left_x", "j_heel_right_x"] = inclined_angle, inclined_angle
             # self.curr_state.angles = q
 
+            self.curr_state.angles[25] = -inclined_angle
             self.curr_state.angles[12] = inclined_angle
             self.curr_state.angles[21] = inclined_angle
+            # self.curr_state.angles[15] = inclined_angle
+            # self.curr_state.angles[13] = inclined_angle
+            # self.curr_state.angles[22] = inclined_angle
+            # self.curr_state.angles[13] = math.atan2(-lf_tangent_vec[2], lf_tangent_vec[0])
+            # self.curr_state.angles[22] = math.atan2(-lf_tangent_vec[2], lf_tangent_vec[0])
 
             # get foot y rotation angle
             # rfpoint = skel.body("h_blade_right").to_world((0.0216 + 0.104, -0.0216 - 0.027, 0.))
@@ -348,8 +352,8 @@ class MyWorld(pydart.World):
                 self.skeletons[3].set_positions(ik_res)
 
         # HP QP solve
-        lf_tangent_vec = np.array([1.0, 0.0, .0])
-        rf_tangent_vec = np.array([1.0, 0.0, .0])
+        # lf_tangent_vec = np.array([1.0, 0.0, .0])
+        # rf_tangent_vec = np.array([1.0, 0.0, .0])
 
         # character_dir = copy.deepcopy(skel.com_velocity())
         character_dir = skel.com_velocity()
@@ -369,10 +373,21 @@ class MyWorld(pydart.World):
         if right_blade_front_point[1] < 0.005+self.ground_height and right_blade_rear_point[1] < 0.005+self.ground_height:
             self.nh0.activate(True)
             self.nh1.activate(True)
-            self.nh0.set_joint_pos(right_blade_front_point)
-            self.nh0.set_projected_vector(right_blade_front_point - right_blade_rear_point)
-            self.nh1.set_joint_pos(right_blade_rear_point)
-            self.nh1.set_projected_vector(right_blade_front_point - right_blade_rear_point)
+
+            body_pos = self.skeletons[2].body('h_blade_right').to_world((0., -0.0216-0.027, 0.))
+            body_vec = self.skeletons[2].body('h_blade_right').to_world() - body_pos  # type: np.ndarray
+            projected_body_vec = body_vec.copy()
+            projected_body_vec[1] = 0.
+            projected_body_vel = self.skeletons[2].body('h_blade_right').world_linear_velocity()
+            projected_body_vel[1] = 0.
+            inclined_angle = math.pi/2. - math.acos(np.dot(mm.normalize(body_vec), mm.normalize(projected_body_vec)))
+            turning_angle = np.copysign(max(inclined_angle-15./180.*math.pi, 0.)/4., np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
+            R = mm.exp(mm.unitY(), turning_angle)
+
+            self.nh0.set_joint_pos(np.dot(R, right_blade_front_point - body_pos) + body_pos)
+            self.nh1.set_joint_pos(np.dot(R, right_blade_rear_point - body_pos) + body_pos)
+            self.nh0.set_projected_vector(np.dot(R, right_blade_front_point - right_blade_rear_point))
+            self.nh1.set_projected_vector(np.dot(R, right_blade_front_point - right_blade_rear_point))
         else:
             self.nh0.activate(False)
             self.nh1.activate(False)
@@ -382,10 +397,21 @@ class MyWorld(pydart.World):
         if left_blade_front_point[1] < 0.005 +self.ground_height and left_blade_rear_point[1] < 0.005+self.ground_height:
             self.nh2.activate(True)
             self.nh3.activate(True)
-            self.nh2.set_joint_pos(left_blade_front_point)
-            self.nh2.set_projected_vector(left_blade_front_point - left_blade_rear_point)
-            self.nh3.set_joint_pos(left_blade_rear_point)
-            self.nh3.set_projected_vector(left_blade_front_point - left_blade_rear_point)
+
+            body_pos = self.skeletons[2].body('h_blade_left').to_world((0., -0.0216-0.027, 0.))
+            body_vec = self.skeletons[2].body('h_blade_left').to_world() - body_pos  # type: np.ndarray
+            projected_body_vec = body_vec.copy()
+            projected_body_vec[1] = 0.
+            projected_body_vel = self.skeletons[2].body('h_blade_left').world_linear_velocity()
+            projected_body_vel[1] = 0.
+            inclined_angle = math.pi/2. - math.acos(np.dot(mm.normalize(body_vec), mm.normalize(projected_body_vec)))
+            turning_angle = np.copysign(max(inclined_angle-15./180.*math.pi, 0.)/4., np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
+            R = mm.exp(mm.unitY(), turning_angle)
+
+            self.nh2.set_joint_pos(np.dot(R, left_blade_front_point - body_pos) + body_pos)
+            self.nh3.set_joint_pos(np.dot(R, left_blade_rear_point - body_pos) + body_pos)
+            self.nh2.set_projected_vector(np.dot(R, left_blade_front_point - left_blade_rear_point))
+            self.nh3.set_projected_vector(np.dot(R, left_blade_front_point - left_blade_rear_point))
         else:
             self.nh2.activate(False)
             self.nh3.activate(False)
@@ -405,41 +431,6 @@ class MyWorld(pydart.World):
             self.rd_contact_positions.append(contact.p)
 
         # print("contact num: ", len(self.rd_contact_forces))
-        #Jacobian transpose control
-
-        jaco_r = skel.body("h_blade_right").linear_jacobian()
-        jaco_l = skel.body("h_blade_left").linear_jacobian()
-        jaco_hip_r = skel.body("h_thigh_right").linear_jacobian()
-        # jaco_pelvis = skel.body("h_pelvis").linear_jacobian()
-
-        if self.curr_state.name == "state01":
-            self.force_r = 0. * np.array([-1.0, -0., 1.])
-            self.force_l = 0. * np.array([1.0, -0.5, -1.0])
-            t_r = self.add_JTC_force(jaco_r, self.force_r)
-            t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
-
-        if self.curr_state.name == "state02":
-            self.force_r = 0. * np.array([0.0, 5.0, 5.])
-            # self.force_r = 2. * np.array([-1.0, -5.0, 1.])
-            self.force_l = 0. * np.array([1.0, -0., -1.])
-            t_r = self.add_JTC_force(jaco_r, self.force_r)
-            t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
-
-        if self.curr_state.name == "state03":
-            self.force_r = 0. * np.array([1.0, 3.0, -1.])
-            self.force_l = 0. * np.array([1.0, -0., -1.])
-            t_r = self.add_JTC_force(jaco_r, self.force_r)
-            t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
-
-        if self.curr_state.name == "state04":
-            self.force_r = 0. * np.array([-1.0, 0., 1.])
-            self.force_l = 0. * np.array([1.0, 0., -1.0])
-            t_r = self.add_JTC_force(jaco_r, self.force_r)
-            t_l = self.add_JTC_force(jaco_l, self.force_l)
-            _tau += t_r + t_l
 
         _tau[0:6] = np.zeros(6)
 

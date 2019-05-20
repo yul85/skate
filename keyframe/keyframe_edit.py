@@ -313,6 +313,7 @@ if __name__ == '__main__':
             com = ref_skel.com()
             com[1] = 0.
             rd_COM.append(com)
+            print(ref_skel.com()[1])
         for dof in ref_skel.dofs:
             sliders[dof.name].value(ref_skel.q[dof.name])
 
