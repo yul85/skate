@@ -5,9 +5,14 @@ from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 import numpy as np
 import pickle
+import math
+
+from scipy.spatial.transform import Rotation
 
 import pydart2 as pydart
 
+def axis2Euler(vec):
+    return Rotation.from_rotvec(vec).as_euler('ZXY')
 
 def main():
     MOTION_ONLY = False
@@ -16,7 +21,8 @@ def main():
     pydart.init()
 
     # env_name = 'hmr_skating_basic4'
-    env_name = 'jump0507_2'
+    # env_name = 'jump0507_2'
+    env_name = 'hmr_skating_crossover_iterate'
     max_time = 2.
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
@@ -42,7 +48,7 @@ def main():
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    # dq[0][3] = -1.
+    # dq[0][3] = 1.
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -50,8 +56,9 @@ def main():
 
     x = [x0t]
 
-    file_path = 'jump_solution2/xbest.skcma'
-    # file_path = 'jump0507_2_model_201905192102/xbest.skcma'
+    # file_path = 'jump_solution2/xbest.skcma'
+
+    file_path = 'hmr_skating_crossover_iterate_model_201905211019/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
@@ -90,6 +97,57 @@ def main():
         q[0] = np.asarray(env.skel.q)
         dq[0] = np.asarray(env.skel.dq)
 
+        #make bvh file
+
+        # 0:6         #pelvis
+        # 15, 16, 17 # right leg
+        # 18, 19, 20
+        # 21, 22, 23
+        # zero for toes
+        # 24, 25, 26  #spine
+        # 27, 28, 29
+        # 30, 31, 32
+        # 33, 34, 35, # left arm
+        # 36, 37, 38
+        # 39, 40, 41
+        # 42, 43, 44
+        # 45, 46, 47  #right arm
+        # 48, 49, 50
+        # 51, 52, 53
+        # 54, 55, 56
+        # 6, 7, 8     #left leg
+        # 9, 10, 11
+        # 12, 13, 14
+        # zero for toes
+
+        euler_middle_q = np.asarray(env.skel.q)
+        for joit_i in range(int(env.skel.num_dofs() / 3)):
+            temp_axis_angle = np.asarray([env.skel.q[joit_i], env.skel.q[joit_i+1], env.skel.q[joit_i+2]])
+            euler_result = axis2Euler(temp_axis_angle)
+            euler_middle_q[joit_i:joit_i+3] = euler_result
+
+        # temp_axis_angle = np.asarray([env.skel.q[6], env.skel.q[7], env.skel.q[8]])
+        # print("test vec:", temp_axis_angle)
+        # euler_result = axis2Euler(temp_axis_angle)
+        # print("euler angle: ", euler_result)
+
+        # print("middle_q:", euler_middle_q)
+        euler_q = np.zeros(env.skel.num_dofs()+6)       # add two toes dofs (6 = 3x2)
+        euler_q[0:6] = euler_middle_q[0:6]
+        euler_q[6:15] = euler_middle_q[15:24]
+        euler_q[15:18] = np.zeros(3)
+        euler_q[18:51] = euler_middle_q[24:]
+        euler_q[51:60] = euler_middle_q[6:15]
+        euler_q[60:63] = np.zeros(3)
+
+        # print("euler_q:", euler_q)
+
+        f_name = 'bvh_make_test.txt'
+        with open(f_name, 'a') as f:
+            f.write(' '.join(map(str, env.skel.q)))
+            f.write('\n')
+
+        # print("f: ", frame)
         # contact rendering
         contacts = env.world.collision_result.contacts
         del rd_contact_forces[:]

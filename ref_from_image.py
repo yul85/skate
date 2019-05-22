@@ -1,9 +1,11 @@
+from SkateUtils.KeyPoseState import State
 import numpy as np
 import pydart2 as pydart
 import math
 import IKsolve_double_stance
 import dart_ik
 import copy
+import pickle
 
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
@@ -20,16 +22,6 @@ rd_footCenter = []
 
 ik_on = True
 # ik_on = False
-
-
-class State(object):
-    def __init__(self, name, dt, c_d, c_v, angles):
-        self.name = name
-        self.dt = dt
-        self.c_d = c_d
-        self.c_v = c_v
-        self.angles = angles
-
 
 class MyWorld(pydart.World):
     def __init__(self, ):
@@ -58,9 +50,9 @@ class MyWorld(pydart.World):
 
         # skel.joint("j_heel_left").set_position_upper_limit(0, 0.0)
         # skel.joint("j_heel_left").set_position_lower_limit(0, -0.0)
-        pelvis_pos_y = skel.dof_indices(["j_pelvis_pos_y"])
-        pelvis_x = skel.dof_indices(["j_pelvis_rot_x"])
-        pelvis = skel.dof_indices(["j_pelvis_rot_y", "j_pelvis_rot_z"])
+        # pelvis_pos_y = skel.dof_indices(["j_pelvis_pos_y"])
+        # pelvis_x = skel.dof_indices(["j_pelvis_rot_x"])
+        # pelvis = skel.dof_indices(["j_pelvis_rot_y", "j_pelvis_rot_z"])
         upper_body = skel.dof_indices(["j_abdomen_x", "j_abdomen_y", "j_abdomen_z"])
         spine = skel.dof_indices(["j_spine_x", "j_spine_y", "j_spine_z"])
         right_leg = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z", "j_shin_right_z"])
@@ -74,58 +66,76 @@ class MyWorld(pydart.World):
         elbows = skel.dof_indices(["j_forearm_left_x", "j_forearm_right_x"])
         # blade = skel.dof_indices(["j_heel_right_2"])
 
-        l_hip = skel.dof_indices(["j_thigh_left_x", "j_thigh_left_y", "j_thigh_left_z"])
-        r_hip = skel.dof_indices(["j_thigh_right_x", "j_thigh_right_y", "j_thigh_right_z"])
-        l_knee = skel.dof_indices(["j_shin_left_x", "j_shin_left_y", "j_shin_left_z"])
-        r_knee = skel.dof_indices(["j_shin_right_x", "j_shin_right_y", "j_shin_right_z"])
-        l_ankle = skel.dof_indices(["j_heel_left_x", "j_heel_left_y", "j_heel_left_z"])
-        r_ankle = skel.dof_indices(["j_heel_right_x", "j_heel_right_y", "j_heel_right_z"])
-
         # import pose angle info. from txt file
 
         self.q_list = []
-        self.load_poses(skel, 'data/mocap/jump_poses.txt')
+        # self.load_poses(skel, 'data/mocap/jump_poses.txt')
+        # self.fn = 5
+        # self.load_poses(skel, 'data/mocap/skate_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/spin_joint_3d_pos.txt')
+        self.load_poses(skel, 'data/mocap/crossover1_joint_3d_pos.txt')
+        state_q = []
+        self.state_list = []
+        for i in range(self.fn):
+            state_q.append(self.q_list[i])
+            state_name = "crossover"+str(i)
+            # print("name: ", state_name)
+            self.state_list.append(State(state_name, 0.3, 0.0, 0.0, state_q[i]))
 
-        s00q = np.zeros(skel.ndofs)
-        s00q[upper_body] = 0.0, -0., -0.1
-        state00 = State("state00", 2.0, 0.0, 0.2, s00q)
+        for i in range(self.fn-1):
+            self.state_list[i].set_next(self.state_list[i+1])
 
-        # s0 = self.q_list[0]
-        # state0 = State("state0", 5.0, 0.0, 0.0, s0)
+        filename = 'hmr_skating_crossover.skkey'
 
-        s1 = self.q_list[1]
-        state1 = State("state1", 1.0, 0.0, 0.0, s1)
+        with open(filename, 'wb') as f:
+            pickle.dump(self.state_list, f)
 
-        s2 = self.q_list[2]
-        state2 = State("state2", 0.5, 0.0, 0.0, s2)
+        # self.load_poses(skel, 'data/mocap/jump_poses.txt')
+        #
+        # s00q = np.zeros(skel.ndofs)
+        # s00q[upper_body] = 0.0, -0., -0.1
+        # state00 = State("state00", 2.0, 0.0, 0.2, s00q)
+        #
+        # # s0 = self.q_list[0]
+        # # state0 = State("state0", 5.0, 0.0, 0.0, s0)
+        #
+        # s1 = self.q_list[1]
+        # state1 = State("state1", 1.0, 0.0, 0.0, s1)
+        #
+        # s2 = self.q_list[2]
+        # state2 = State("state2", 0.5, 0.0, 0.0, s2)
+        #
+        # s3 = self.q_list[3]
+        # state3 = State("state3", 0.5, 0.0, 0.0, s3)
+        #
+        # s4 = np.zeros(skel.ndofs)
+        # s4[left_leg] = -0.2, 0.0, -0.1, 0.
+        # s4[right_leg] = 0.2, 0.0, 0.2, -0.4
+        # # s4[arms] = -0.5, -0.5
+        # s4[arms_z] = 0.7, 0.7
+        # s4[elbows] = -2.0, 2.0
+        # s4[foot] = 0.0, 0.0, -0.5, 0.0, 0.0, 0.2
+        # state4 = State("state4", 0.5, 0.0, 0.0, s4)
+        #
+        # s5 = self.q_list[4]
+        # state5 = State("state5", 2.0, 0.0, 0.0, s5)
+        #
+        # s_terminal_q = np.zeros(skel.ndofs)
+        # state_t = State("state_t", 50., 2.0, 2.0, s_terminal_q)
+        #
+        # state00.set_next(state1)
+        # state1.set_next(state2)
+        # state2.set_next(state3)
+        # state3.set_next(state4)
+        # state4.set_next(state5)
+        # state5.set_next(s_terminal_q)
+        #
+        # self.state_list = [state00, state1, state2, state3, state4, state5, state_t]
 
-        s3 = self.q_list[3]
-        state3 = State("state3", 0.5, 0.0, 0.0, s3)
-
-        s4 = np.zeros(skel.ndofs)
-        s4[left_leg] = -0.2, 0.0, -0.1, 0.
-        s4[right_leg] = 0.2, 0.0, 0.2, -0.4
-        # s4[arms] = -0.5, -0.5
-        s4[arms_z] = 0.7, 0.7
-        s4[elbows] = -2.0, 2.0
-        s4[foot] = 0.0, 0.0, -0.5, 0.0, 0.0, 0.2
-        state4 = State("state4", 0.5, 0.0, 0.0, s4)
-
-        s5 = self.q_list[4]
-        state5 = State("state5", 2.0, 0.0, 0.0, s5)
-
-        # s_stable_q = np.zeros(skel.ndofs)
-        # s_stable_q[upper_body] = 0., 0., -0.4
-        # s_stable_q[spine] = 0.0, 0., 0.4
-        # s_stable_q[l_hip] = 3.0287256, -0.3437475, -0.95737326
-        # s_stable_q[r_hip] = -0.04242153, 0.06898238, 0.01969796
-        # s_stable_q[l_knee] = 0.03739676, -0.0970362, 0.16932577
-        # s_stable_q[r_knee] = 0.11201684, 0.06805445, -0.00385215
-        # s_stable_q[l_ankle] = -0.07210255, -0.05429508, -0.1880206
-        # s_stable_q[l_ankle] = 0.15128553, 0.22060858, -0.24060476
-        # state_stable = State("state_stable", 3.0, 2.2, 0.0, s_stable_q)
-
-        self.state_list = [state00, state1, state2, state3, state4, state5, state00]
+        # filename = 'hmr_skating_jump_test.skkey'
+        #
+        # with open(filename, 'wb') as f:
+        #     pickle.dump(self.state_list, f)
 
         state_num = len(self.state_list)
         self.state_num = state_num
@@ -182,7 +192,7 @@ class MyWorld(pydart.World):
         self.step_count = 0
 
     def load_poses(self, skel, file_path):
-        fn = 5
+        fn = 0
 
         # read 3d positions of each key pose frame from txt file
         self.position_storage = []
@@ -194,11 +204,15 @@ class MyWorld(pydart.World):
                 line = line.replace(' \n', '')
                 values = line.split(" ")
                 temp_pos = np.asarray([float(values[0]), -float(values[1]), -float(values[2])])
-                temp_pos = temp_pos * 0.75  # scaling
+                # temp_pos = temp_pos * 0.9  # scaling
                 # for a in values:
                 #     q_temp.append(float(a))
                 self.position_storage.append(temp_pos)
+                fn = fn + 1
 
+        fn = int(fn / 19)
+        self.fn = fn
+        # print("frame num: ", fn)
         self.ik = dart_ik.DartIk(skel)
 
         fi = 0
@@ -218,10 +232,22 @@ class MyWorld(pydart.World):
             self.ik.add_joint_pos_const('j_hand_right', self.position_storage[fi + 6])
             self.ik.add_joint_pos_const('j_forearm_right', self.position_storage[fi + 7])
             self.ik.add_joint_pos_const('j_scapula_right', self.position_storage[fi + 8])
+            # self.ik.add_position_const('h_scapula_right', self.position_storage[fi + 8], [0.0, 0.397146, 0.169809])
+            self.ik.add_joint_pos_const('j_bicep_right', self.position_storage[fi + 8])
 
-            self.ik.add_joint_pos_const('j_scapula_left', self.position_storage[fi + 9])
+            # self.ik.add_joint_pos_const('j_scapula_left', self.position_storage[fi + 9])
+            # self.ik.add_position_const('h_scapula_left', self.position_storage[fi+9], [0.0, 0.397146, -0.169809])
+            self.ik.add_joint_pos_const('j_bicep_left', self.position_storage[fi + 9])
             self.ik.add_joint_pos_const('j_forearm_left', self.position_storage[fi + 10])
             self.ik.add_joint_pos_const('j_hand_left', self.position_storage[fi + 11])
+
+            # self.ik.add_joint_pos_const('j_forearm_right', self.position_storage[fi + 6])
+            # self.ik.add_joint_pos_const('j_bicep_right', self.position_storage[fi + 7])
+            # self.ik.add_joint_pos_const('j_scapula_right', self.position_storage[fi + 8])
+            #
+            # self.ik.add_joint_pos_const('j_scapula_left', self.position_storage[fi + 9])
+            # self.ik.add_joint_pos_const('j_bicep_left', self.position_storage[fi + 10])
+            # self.ik.add_joint_pos_const('j_forearm_left', self.position_storage[fi + 11])
 
             # self.ik.add_joint_pos_const('j_spine', self.position_storage[fi + 12])
             # self.ik.add_joint_pos_const('j_head', self.position_storage[fi + 13])
@@ -233,8 +259,8 @@ class MyWorld(pydart.World):
 
             # self.ik.add_position_const('h_blade_left', left_toe_pos, [-0.1040 + 0.0216, +0.80354016 - 0.85354016, 0.0])
 
-            right_blade_pos = self.position_storage[fi] + np.array([0., -0.054, 0.])
-            left_blade_pos = self.position_storage[fi+5] + np.array([0., -0.054, 0.])
+            # right_blade_pos = self.position_storage[fi] + np.array([0., -0.054, 0.])
+            # left_blade_pos = self.position_storage[fi+5] + np.array([0., -0.054, 0.])
             #
             # right_blade_pos = self.position_storage[fi] + np.array([0., -0.1, 0.])
             # left_blade_pos = self.position_storage[fi + 5] + np.array([0., -0.2, 0.])
@@ -252,8 +278,10 @@ class MyWorld(pydart.World):
             self.ik.solve()
 
             q = skel.q
-            q[0:3] = np.asarray([0., -0.785, 0.5])
-            q[3:6] = np.asarray([0., 0.01, 0.])
+            # q[0:3] = np.asarray([0., -0.785, 0.5])
+            # q[3:6] = np.asarray([0., 0.01, 0.])
+            q[0:2] = np.asarray([0.0, 0.0])
+            q[3:6] = np.asarray([0.0, 0.0, 0.0])
             skel.set_positions(q)
 
             self.q_list.append(skel.q)
