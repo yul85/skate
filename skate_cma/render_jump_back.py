@@ -21,8 +21,8 @@ def main():
     pydart.init()
 
     # env_name = 'hmr_skating_basic4'
-    # env_name = 'jump0507_2'
-    env_name = 'hmr_skating_crossover_iterate'
+    env_name = 'jump0507_2'
+    # env_name = 'hmr_skating_crossover_iterate'
     max_time = 2.
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
@@ -48,7 +48,7 @@ def main():
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    # dq[0][3] = 1.
+    dq[0][3] = -1.5
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -56,9 +56,7 @@ def main():
 
     x = [x0t]
 
-    # file_path = 'jump_solution2/xbest.skcma'
-
-    file_path = 'hmr_skating_crossover_iterate_model_201905211019/xbest.skcma'
+    file_path = 'jump_back_solution/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
@@ -144,7 +142,7 @@ def main():
 
         # print("euler_q:", euler_q)
 
-        f_name = 'bvh_make_test.txt'
+        f_name = 'jump_back.bvh'
         with open(f_name, 'a') as f:
             f.write(' '.join(map(str, env.skel.q)))
             f.write('\n')
