@@ -6,13 +6,17 @@ from PyCommon.modules.Renderer import ysRenderer as yr
 import numpy as np
 import pickle
 import math
+from PyCommon.modules.Math import mmMath as mm
 
 from scipy.spatial.transform import Rotation
 
 import pydart2 as pydart
 
 def axis2Euler(vec):
-    return Rotation.from_rotvec(vec).as_euler('ZXY', True)
+    r = Rotation.from_rotvec(vec).as_dcm()
+    r_after = np.dot(np.dot(mm.rotY(-math.pi/2.), r), mm.rotY(-math.pi/2.).T)
+    return Rotation.from_dcm(r_after).as_euler('ZXY', True)
+    # return Rotation.from_rotvec(vec).as_euler('ZXY', True)
 
 def main():
     MOTION_ONLY = False
@@ -130,7 +134,7 @@ def main():
 
         # print("middle_q:", euler_middle_q)
         euler_q = np.zeros(env.skel.num_dofs()+6)       # add two toes dofs (6 = 3x2)
-        euler_q[0:3] = env.skel.q[3:6] * 100.
+        euler_q[0:3] = np.dot(mm.rotY(-math.pi/2.), env.skel.q[3:6] * 100.)
         euler_q[3:6] = euler_middle_q[0:3]
         euler_q[6:15] = euler_middle_q[15:24]
         euler_q[15:18] = np.zeros(3)
