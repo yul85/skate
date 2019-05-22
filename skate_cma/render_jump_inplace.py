@@ -8,15 +8,10 @@ import pickle
 import math
 from PyCommon.modules.Math import mmMath as mm
 
-from scipy.spatial.transform import Rotation
+from SkateUtils.DartMotionEdit import skelqs2bvh
 
 import pydart2 as pydart
 
-def axis2Euler(vec):
-    r = Rotation.from_rotvec(vec).as_dcm()
-    r_after = np.dot(np.dot(mm.rotY(-math.pi/2.), r), mm.rotY(-math.pi/2.).T)
-    return Rotation.from_dcm(r_after).as_euler('ZXY', True)
-    # return Rotation.from_rotvec(vec).as_euler('ZXY', True)
 
 def main():
     MOTION_ONLY = False
@@ -29,6 +24,10 @@ def main():
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
         skkey_states = pickle.load(skkey_file)
+
+    # for bvh file
+    bvh_qs = []
+    bvh_file_name = 'jump_inplace.bvh'
 
     angles = []
     count = 0
@@ -83,6 +82,7 @@ def main():
         viewer.doc.addRenderer('contact', yr.VectorsRenderer(rd_contact_forces, rd_contact_positions, (255,0,0)))
         viewer.doc.addRenderer('COM projection', yr.PointsRenderer(rd_COM))
 
+
     def simulateCallback(frame):
         if 0 in [ii - frame for ii in cumulative_frame_duration]:
             index = [ii - frame for ii in cumulative_frame_duration].index(0)
@@ -97,57 +97,7 @@ def main():
         q[0] = np.asarray(env.skel.q)
         dq[0] = np.asarray(env.skel.dq)
 
-        #make bvh file
-
-        # 0:6         #pelvis
-        # 15, 16, 17 # right leg
-        # 18, 19, 20
-        # 21, 22, 23
-        # zero for toes
-        # 24, 25, 26  #spine
-        # 27, 28, 29
-        # 30, 31, 32
-        # 33, 34, 35, # left arm
-        # 36, 37, 38
-        # 39, 40, 41
-        # 42, 43, 44
-        # 45, 46, 47  #right arm
-        # 48, 49, 50
-        # 51, 52, 53
-        # 54, 55, 56
-        # 6, 7, 8     #left leg
-        # 9, 10, 11
-        # 12, 13, 14
-        # zero for toes
-
-        euler_middle_q = np.asarray(env.skel.q)
-        for joit_i in range(int(env.skel.num_dofs() / 3)):
-            if joit_i != 1:
-                temp_axis_angle = np.asarray([env.skel.q[3*joit_i], env.skel.q[3*joit_i+1], env.skel.q[3*joit_i+2]])
-                euler_result = axis2Euler(temp_axis_angle)
-                euler_middle_q[3*joit_i:3*joit_i+3] = euler_result
-
-        # temp_axis_angle = np.asarray([env.skel.q[6], env.skel.q[7], env.skel.q[8]])
-        # print("test vec:", temp_axis_angle)
-        # euler_result = axis2Euler(temp_axis_angle)
-        # print("euler angle: ", euler_result)
-
-        # print("middle_q:", euler_middle_q)
-        euler_q = np.zeros(env.skel.num_dofs()+6)       # add two toes dofs (6 = 3x2)
-        euler_q[0:3] = np.dot(mm.rotY(-math.pi/2.), env.skel.q[3:6] * 100.)
-        euler_q[3:6] = euler_middle_q[0:3]
-        euler_q[6:15] = euler_middle_q[15:24]
-        euler_q[15:18] = np.zeros(3)
-        euler_q[18:51] = euler_middle_q[24:]
-        euler_q[51:60] = euler_middle_q[6:15]
-        euler_q[60:63] = np.zeros(3)
-
-        # print("euler_q:", euler_q)
-
-        f_name = 'jump_inplace.bvh'
-        with open(f_name, 'a') as f:
-            f.write(' '.join(map(str, euler_q)))
-            f.write('\r\n')
+        bvh_qs.append(env.skel.q)
 
         # print("f: ", frame)
         # contact rendering
@@ -173,6 +123,8 @@ def main():
     viewer.show()
 
     Fl.run()
+
+    skelqs2bvh(bvh_file_name, env.skel, bvh_qs)
 
 
 if __name__ == '__main__':
