@@ -12,7 +12,7 @@ from scipy.spatial.transform import Rotation
 import pydart2 as pydart
 
 def axis2Euler(vec):
-    return Rotation.from_rotvec(vec).as_euler('ZXY')
+    return Rotation.from_rotvec(vec).as_euler('ZXY', True)
 
 def main():
     MOTION_ONLY = False
@@ -134,7 +134,7 @@ def main():
 
         # print("middle_q:", euler_middle_q)
         euler_q = np.zeros(env.skel.num_dofs()+6)       # add two toes dofs (6 = 3x2)
-        euler_q[0:3] = env.skel.q[3:6]
+        euler_q[0:3] = env.skel.q[3:6] * 100.
         euler_q[3:6] = euler_middle_q[0:3]
         euler_q[6:15] = euler_middle_q[15:24]
         euler_q[15:18] = np.zeros(3)
@@ -146,8 +146,8 @@ def main():
 
         f_name = 'bvh_make_test.txt'
         with open(f_name, 'a') as f:
-            f.write(' '.join(map(str, env.skel.q)))
-            f.write('\n')
+            f.write(' '.join(map(str, euler_q)))
+            f.write('\r\n')
 
         # print("f: ", frame)
         # contact rendering
@@ -165,7 +165,7 @@ def main():
         com = env.skel.com()
         com[1] = 0.
         rd_COM.append(com)
-        print(env.skel.com())
+        # print(env.skel.com())
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.setMaxFrame(cumulative_frame_duration[-1]-1)

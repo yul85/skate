@@ -124,6 +124,22 @@ class NHWorldV2(pydart.World):
             projected_body_vel = self.skeletons[1].body('h_blade_right').world_linear_velocity()
             projected_body_vel[1] = 0.
             inclined_angle = math.pi/2. - math.acos(np.dot(mm.normalize(body_vec), mm.normalize(projected_body_vec)))
+            #calculate inclined angle theta
+            # print("vel: ", self.skeletons[1].body('h_blade_right').com_linear_velocity()[1])
+            # print(self.time())
+
+            # if 9. < self.time() and self.time() < 9.5:
+            # if 8. < self.time() and self.time() < 8.5:
+            #     radi = 1.0
+            #     g = 9.8
+            #     inclined_angle = math.atan(self.skeletons[1].body('h_pelvis').com_linear_velocity()[0]**2 / (radi * g) )
+            #     print("right_angle: ", inclined_angle)
+            #     q_temp = self.skeletons[1].q
+            #     q_temp[self.skeletons[1].dof_indices(["j_heel_right_x"])] = inclined_angle
+            #     self.skeletons[1].set_positions(q_temp)
+
+            # turning_angle = np.copysign(inclined_angle / 4. ,
+            #                             np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
             turning_angle = np.copysign(max(inclined_angle-15./180.*math.pi, 0.)/4., np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
             R = mm.exp(mm.unitY(), turning_angle)
 
@@ -148,6 +164,21 @@ class NHWorldV2(pydart.World):
             projected_body_vel = self.skeletons[1].body('h_blade_left').world_linear_velocity()
             projected_body_vel[1] = 0.
             inclined_angle = math.pi/2. - math.acos(np.dot(mm.normalize(body_vec), mm.normalize(projected_body_vec)))
+
+            # calculate inclined angle theta
+            # if 9.0 < self.time() and self.time() < 9.5:
+            # if 8. < self.time() and self.time() < 8.5:
+            #     radi = 1.
+            #     g = 9.8
+            #     inclined_angle = math.atan(
+            #         self.skeletons[1].body('h_pelvis').com_linear_velocity()[0] ** 2 / (radi * g))
+            #     print("left_angle: ", inclined_angle)
+            #     q_temp = self.skeletons[1].q
+            #     q_temp[self.skeletons[1].dof_indices(["j_heel_left_x"])] = inclined_angle
+            #     self.skeletons[1].set_positions(q_temp)
+            #
+            # turning_angle = np.copysign(inclined_angle / 4. , np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
+
             turning_angle = np.copysign(max(inclined_angle-15./180.*math.pi, 0.)/4., np.dot(projected_body_vel, mm.cross(projected_body_vec, mm.unitY())))
             R = mm.exp(mm.unitY(), turning_angle)
 

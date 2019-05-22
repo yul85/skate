@@ -74,7 +74,7 @@ class MyWorld(pydart.World):
         self.my_force = None
         self.my_force2 = None
 
-        fn = 1
+        fn = 4
 
         # read 3d positions of each key pose frame from txt file
         self.position_storage = []

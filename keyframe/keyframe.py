@@ -89,6 +89,10 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         if file_chooser.count() == 1:
             with open(file_chooser.value(), 'rb') as f:
                 self.states = pickle.load(f)  # type: list[State]
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
                 self.state_name_choice.clear()
                 self.next_state_choice.clear()
 
