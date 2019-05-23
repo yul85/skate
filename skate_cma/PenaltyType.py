@@ -28,3 +28,7 @@ class PenaltyType(enum.IntEnum):
     MAX_Y_POS_DIFF_END = 18
 
     TORQUE = 19
+
+    COM_VEL = 20
+    PELVIS_HEADING = 21
+    PELVIS_HEADING_END = 22
