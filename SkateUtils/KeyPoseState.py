@@ -40,6 +40,9 @@ class IKSolver(object):
 
         self.offset_list = [[-0.1040 + 0.0216, -0.027-0.0216, 0.0], [0.1040+0.0216, -0.027-0.0216, 0.0]]
 
+    def set_ik_type(self, ik_type):
+        self.ik_type = ik_type
+
     def update_target(self, ground_height):
         self.target_foot_left1 = self.skel.body("h_blade_left").to_world(self.offset_list[0])
         self.target_foot_left2 = self.skel.body("h_blade_left").to_world(self.offset_list[1])
