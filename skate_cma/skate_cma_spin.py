@@ -14,6 +14,8 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
     4 (spin):  am, axis, right foot, right foot com,
     5 (end): right foot, right foot com, right foot com end, right foot end
     """
+
+    penalty_weight[PenaltyType.TORQUE] = 0.
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM] = 0.1
     penalty_weight[PenaltyType.MAX_Y_VELOCITY_END] = 0.01
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_END] = 0.01

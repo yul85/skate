@@ -73,19 +73,20 @@ class MyWorld(pydart.World):
         # self.fn = 5
         # self.load_poses(skel, 'data/mocap/skate_joint_3d_pos.txt')
         # self.load_poses(skel, 'data/mocap/spin_joint_3d_pos.txt')
-        self.load_poses(skel, 'data/mocap/crossover1_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/crossover1_joint_3d_pos.txt')
+        self.load_poses(skel, 'data/mocap/3turn_joint_3d_pos.txt')
         state_q = []
         self.state_list = []
         for i in range(self.fn):
             state_q.append(self.q_list[i])
-            state_name = "crossover"+str(i)
+            state_name = "3turn"+str(i)
             # print("name: ", state_name)
             self.state_list.append(State(state_name, 0.3, 0.0, 0.0, state_q[i]))
 
         for i in range(self.fn-1):
             self.state_list[i].set_next(self.state_list[i+1])
 
-        filename = 'hmr_skating_crossover.skkey'
+        filename = 'hmr_skating_3turn.skkey'
 
         with open(filename, 'wb') as f:
             pickle.dump(self.state_list, f)

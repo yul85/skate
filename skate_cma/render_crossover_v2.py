@@ -29,7 +29,8 @@ def main():
     # env_name = 'hmr_skating_basic4'
     # env_name = 'jump0507_2'
     env_name = 'hmr_skating_crossover_iterate_v2'
-    max_time = 2.4
+    # max_time = 2.4
+    max_time = 2.6
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
         skkey_states = pickle.load(skkey_file)
@@ -68,7 +69,8 @@ def main():
 
     # file_path = 'jump_solution2/xbest.skcma'
 
-    file_path = 'hmr_skating_crossover_iterate_v2_model_201905240751/xbest.skcma'
+    # file_path = 'hmr_skating_crossover_iterate_v2_model_201905241117/xbest.skcma'   #good
+    file_path = 'hmr_skating_crossover_iterate_v2_model_201905250635/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))

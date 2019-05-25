@@ -4,9 +4,11 @@ from Examples.speed_skating.ppo_mp import PPO
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
 import numpy as np
+import os
 
 import pydart2 as pydart
 
+from SkateUtils.DartMotionEdit import skelqs2bvh
 
 def main():
     MOTION_ONLY = False
@@ -14,13 +16,17 @@ def main():
 
     pydart.init()
 
+    # for bvh file
+    bvh_qs = []
+    bvh_file_name = 'speed_skating.bvh'
+
     env_name = 'speed_skating'
 
     ppo = PPO(env_name, 0, visualize_only=True)
     if not MOTION_ONLY:
-        ppo.LoadModel('speed_skating_model_201905031547/' + '296' + '.pt')
-        # if os.path.exists('model/'+env_name+'.pt'):
-        #     ppo.LoadModel('model/' + env_name + '.pt')
+        # ppo.LoadModel('speed_skating_model_201905031547/' + '296' + '.pt')
+        if os.path.exists('model/'+env_name+'.pt'):
+            ppo.LoadModel('model/' + env_name + '.pt')
 
     ppo.env.Resets(False)
     ppo.env.ref_skel.set_positions(ppo.env.ref_motion.qs[ppo.env.phase_frame])
@@ -52,6 +58,9 @@ def main():
             print(frame, 'Done')
             ppo.env.reset()
 
+        #make bvh file
+        bvh_qs.append(ppo.env.skel.q)
+
         # contact rendering
         contacts = ppo.env.world.collision_result.contacts
         del rd_contact_forces[:]
@@ -79,6 +88,7 @@ def main():
 
     Fl.run()
 
+    # skelqs2bvh(bvh_file_name, ppo.env.skel, bvh_qs)
 
 if __name__ == '__main__':
     main()

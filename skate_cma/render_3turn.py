@@ -42,7 +42,7 @@ def main():
     state_duration = []
     while count < int(max_time * 10.):
         state_count = 0
-        for _ in range(int(state.dt/0.1)):
+        for _ in range(int(state.dt*10)):
             angles.append(state.angles[6:])
             state_count += 1
             count += 1
@@ -56,7 +56,7 @@ def main():
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    # dq[0][3] = 1.
+    dq[0][3] = 0.5
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -64,7 +64,7 @@ def main():
 
     x = [x0t]
 
-    file_path = 'hmr_skating_3turn_model_201905250732/xbest.skcma'
+    file_path = 'hmr_skating_3turn_model_201905250851/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))

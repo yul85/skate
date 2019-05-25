@@ -39,7 +39,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option1[PenaltyType.COM_IN_LEFT_FOOT] = True
         penalty_option1[PenaltyType.COM_IN_LEFT_FOOT_END] = True
         penalty_option1[PenaltyType.COM_VEL] = np.array([0.5, 0.0, -0.001])
-        penalty_option1[PenaltyType.PELVIS_HEADING] = np.array([1., 0.0, -1.0])
+        penalty_option1[PenaltyType.PELVIS_HEADING] = np.array([-1., 0.0, -1.0])
 
     elif i == 1:
         # backward turn
@@ -49,7 +49,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option0[PenaltyType.COM_IN_LEFT_FOOT] = True
         penalty_option0[PenaltyType.COM_IN_LEFT_FOOT_END] = True
         penalty_option0[PenaltyType.COM_VEL] = np.array([0.5, 0.0, -0.001])
-        penalty_option0[PenaltyType.PELVIS_HEADING] = np.array([1., 0.0, -1.0])
+        penalty_option0[PenaltyType.PELVIS_HEADING] = np.array([-1., 0.0, -1.0])
 
 if __name__ == '__main__':
     pydart.init()

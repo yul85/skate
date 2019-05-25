@@ -16,8 +16,8 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_END] = 0.01
     penalty_weight[PenaltyType.MAX_Y_POS_DIFF_END] = 0.1
 
-    penalty_option0[PenaltyType.COM_VEL_END] = np.array([0.1, 0.0, -0.1])
-    penalty_option1[PenaltyType.COM_VEL_END] = np.array([0.1, 0.0, -0.1])
+    penalty_option0[PenaltyType.COM_VEL] = np.array([0.5, 0.0, -0.0001])
+    penalty_option1[PenaltyType.COM_VEL] = np.array([0.5, 0.0, -0.0001])
 
     if i == 0:
         # stand
@@ -52,6 +52,8 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option1[PenaltyType.LEFT_FOOT_CONTACT] = True
         penalty_option1[PenaltyType.RIGHT_FOOT_CONTACT_END] = True
         penalty_option1[PenaltyType.LEFT_FOOT_CONTACT_END] = True
+        penalty_option1[PenaltyType.COM_IN_LEFT_FOOT] = True
+        penalty_option1[PenaltyType.COM_IN_LEFT_FOOT_END] = True
 
     elif i == 2:
         # stand
@@ -60,6 +62,8 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option0[PenaltyType.LEFT_FOOT_CONTACT] = True
         penalty_option0[PenaltyType.RIGHT_FOOT_CONTACT_END] = True
         penalty_option0[PenaltyType.LEFT_FOOT_CONTACT_END] = True
+        penalty_option0[PenaltyType.COM_IN_LEFT_FOOT] = True
+        penalty_option0[PenaltyType.COM_IN_LEFT_FOOT_END] = True
 
         # lift right leg
         penalty_option1[PenaltyType.COM_HEIGHT] = 0.9

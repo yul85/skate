@@ -26,7 +26,7 @@ def main():
 
     # for bvh file
     bvh_qs = []
-    bvh_file_name = 'render_spin.bvh'
+    bvh_file_name = 'spin.bvh'
 
     angles = []
     count = 0
