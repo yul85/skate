@@ -41,9 +41,6 @@ class SkateDartEnv(gym.Env):
 
         self.phase_frame = 0
 
-        self.target_com_height = 0.7
-        self.target_com_vel = np.array([0.5, 0., 0.])
-
         self.penalty_type_on = [None] * len(PenaltyType)
         self.penalty_type_weight = [1.] * len(PenaltyType)
 
@@ -92,6 +89,14 @@ class SkateDartEnv(gym.Env):
             E += self.penalty_type_weight[PenaltyType.RIGHT_FOOT_TOE_CONTACT] \
                  * np.square(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])[1])
 
+        if self.penalty_type_on[PenaltyType.COM_IN_LEFT_RIGHT_CENTER] is not None:
+            com_projected = self.skel.com()
+            com_projected[1] = 0.
+            centroid = .5 * (self.skel.body('h_blade_left').to_world([0.0216, -0.0486, 0.]) + self.skel.body('h_blade_right').to_world([0.0216, -0.0486, 0.]))
+            centroid[1] = 0.
+            E += self.penalty_type_weight[PenaltyType.COM_IN_LEFT_RIGHT_CENTER] \
+                * np.sum(np.square(com_projected - centroid))
+
         if self.penalty_type_on[PenaltyType.COM_IN_LEFT_FOOT] is not None:
             com_projected = self.skel.com()
             com_projected[1] = 0.
@@ -114,7 +119,7 @@ class SkateDartEnv(gym.Env):
             centroid = self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])
             centroid[1] = 0.
             E += self.penalty_type_weight[PenaltyType.COM_IN_RIGHT_FOOT_TOE] \
-                 * np.sum(np.square(com_projected - centroid))
+                * np.sum(np.square(com_projected - centroid))
 
         if self.penalty_type_on[PenaltyType.COM_IN_LEFT_FOOT_TOE] is not None:
             com_projected = self.skel.com()
@@ -122,7 +127,7 @@ class SkateDartEnv(gym.Env):
             centroid = self.skel.body('h_blade_left').to_world([0.1256, -0.0486, 0.])
             centroid[1] = 0.
             E += self.penalty_type_weight[PenaltyType.COM_IN_LEFT_FOOT_TOE] \
-                 * np.sum(np.square(com_projected - centroid))
+                * np.sum(np.square(com_projected - centroid))
 
         if self.penalty_type_on[PenaltyType.COM_IN_HEAD] is not None:
             com_projected = self.skel.com()
@@ -144,7 +149,16 @@ class SkateDartEnv(gym.Env):
             heading_des = mm.normalize2(self.penalty_type_on[PenaltyType.PELVIS_HEADING])
             heading_cur = np.dot(self.skel.body('h_pelvis').world_transform()[:3, :3], mm.unitX())
             E += self.penalty_type_weight[PenaltyType.PELVIS_HEADING] \
-                 * np.sum(np.square(heading_cur - heading_des))
+                * np.sum(np.square(heading_cur - heading_des))
+
+        if self.penalty_type_on[PenaltyType.COM_VEL_DIR_WITH_PELVIS_LOCAL] is not None:
+            R_pelvis = self.skel.body('h_pelvis').world_transform()[:3, :3]
+            com_vel_dir_des = np.asarray(self.penalty_type_on[PenaltyType.COM_VEL_DIR_WITH_PELVIS_LOCAL])
+            com_vel_dir_des_in_world = mm.normalize2(np.multiply(np.array([1., 0., 1.]), np.dot(R_pelvis, com_vel_dir_des)))
+            com_vel_dir = mm.normalize2(np.multiply(np.array([1., 0., 1.]), self.skel.com_velocity()))
+
+            E += self.penalty_type_weight[PenaltyType.COM_VEL_DIR_WITH_PELVIS_LOCAL] \
+                * np.sum(np.square(com_vel_dir_des_in_world - com_vel_dir))
 
         return E
 
@@ -173,6 +187,14 @@ class SkateDartEnv(gym.Env):
         if self.penalty_type_on[PenaltyType.RIGHT_FOOT_TOE_CONTACT_END] is not None:
             E += self.penalty_type_weight[PenaltyType.RIGHT_FOOT_TOE_CONTACT_END] \
                  * np.square(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])[1])
+
+        if self.penalty_type_on[PenaltyType.COM_IN_LEFT_RIGHT_CENTER_END] is not None:
+            com_projected = self.skel.com()
+            com_projected[1] = 0.
+            centroid = .5 * (self.skel.body('h_blade_left').to_world([0.0216, -0.0486, 0.]) + self.skel.body('h_blade_right').to_world([0.0216, -0.0486, 0.]))
+            centroid[1] = 0.
+            E += self.penalty_type_weight[PenaltyType.COM_IN_LEFT_RIGHT_CENTER_END] \
+                 * np.sum(np.square(com_projected - centroid))
 
         if self.penalty_type_on[PenaltyType.COM_IN_LEFT_FOOT_END] is not None:
             com_projected = self.skel.com()
