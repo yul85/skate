@@ -34,7 +34,7 @@ def main():
     state_duration = []
     while count < int(max_time * 10.):
         state_count = 0
-        for _ in range(int(state.dt/0.1)):
+        for _ in range(int(state.dt*10.)):
             angles.append(state.angles[6:])
             state_count += 1
             count += 1
@@ -59,16 +59,21 @@ def main():
     # file_path = 'jump_solution2/xbest.skcma'
 
     file_path = 'hmr_skating_crossover_iterate_model_201905211019/xbest.skcma'
-    with open(file_path, 'r') as f:
-        lines = f.read().splitlines()
-        state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
+    try:
+        with open(file_path, 'r') as f:
+            lines = f.read().splitlines()
+            state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
+            for i in range(len(state_duration)):
+                if i in state_list_in_file:
+                    state_index_in_file = state_list_in_file.index(i)
+                    x_state = np.asarray(list(map(float, lines[state_index_in_file].split()[1:])))
+                    x.extend(np.split(x_state, state_duration[i]))
+                else:
+                    x.extend([np.zeros_like(x0t) for _ in range(state_duration[i])])
+    except FileNotFoundError:
+        print('file not found! just play keyframe')
         for i in range(len(state_duration)):
-            if i in state_list_in_file:
-                state_index_in_file = state_list_in_file.index(i)
-                x_state = np.asarray(list(map(float, lines[state_index_in_file].split()[1:])))
-                x.extend(np.split(x_state, state_duration[i]))
-            else:
-                x.extend([np.zeros_like(x0t) for _ in range(state_duration[i])])
+            x.extend([np.zeros_like(x0t) for _ in range(state_duration[i])])
 
     # viewer settings
     rd_contact_positions = [None]
