@@ -73,7 +73,7 @@ class HpCma(object):
         self.state_duration = []
         while count < int(self.max_time * 10.):
             state_count = 0
-            for _ in range(int(state.dt/0.1)):
+            for _ in range(int(state.dt*10.)):
                 self.angles.append(state.angles[6:])
                 state_count += 1
                 count += 1
