@@ -160,6 +160,15 @@ class SkateDartEnv(gym.Env):
             E += self.penalty_type_weight[PenaltyType.COM_VEL_DIR_WITH_PELVIS_LOCAL] \
                 * np.sum(np.square(com_vel_dir_des_in_world - com_vel_dir))
 
+        if self.penalty_type_on[PenaltyType.MAX_Y_LEFT_FOOT_HEEL] is not None:
+            E += self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL] \
+                 * np.square(self.skel.body('h_blade_left').to_world([-0.0824, -0.0486, 0.])[1])
+
+        if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] is not None:
+            E += self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] \
+                 * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
+
+
         return E
 
     def penalty_final(self):
@@ -245,6 +254,14 @@ class SkateDartEnv(gym.Env):
             heading_cur = np.dot(self.skel.body('h_pelvis').world_transform()[:3, :3], mm.unitX())
             E += self.penalty_type_weight[PenaltyType.PELVIS_HEADING_END] \
                 * np.sum(np.square(heading_cur - heading_des))
+
+        if self.penalty_type_on[PenaltyType.MAX_Y_LEFT_FOOT_HEEL_END] is not None:
+            E += self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL_END] \
+                 * np.square(self.skel.body('h_blade_left').to_world([-0.0824, -0.0486, 0.])[1])
+
+        if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] is not None:
+            E += self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] \
+                 * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
 
         return E
 
