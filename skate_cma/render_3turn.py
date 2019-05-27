@@ -50,13 +50,15 @@ def main():
                 break
         state_duration.append(state_count)
         state = state.get_next()
+
     angles.append(angles[-1])
 
     env = SkateDartEnv(env_name)
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    dq[0][3] = 0.5
+    dq[0][3] = 1.
+    dq[0][5] = -0.001
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -64,7 +66,8 @@ def main():
 
     x = [x0t]
 
-    file_path = 'hmr_skating_3turn_model_201905250851/xbest.skcma'
+    file_path = 'hmr_skating_3turn_model_201905250938/xbest.skcma'
+
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
