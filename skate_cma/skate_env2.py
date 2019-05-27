@@ -161,11 +161,11 @@ class SkateDartEnv(gym.Env):
                 * np.sum(np.square(com_vel_dir_des_in_world - com_vel_dir))
 
         if self.penalty_type_on[PenaltyType.MAX_Y_LEFT_FOOT_HEEL] is not None:
-            E += self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL] \
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL] \
                  * np.square(self.skel.body('h_blade_left').to_world([-0.0824, -0.0486, 0.])[1])
 
         if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] is not None:
-            E += self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] \
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] \
                  * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
 
 
@@ -256,11 +256,11 @@ class SkateDartEnv(gym.Env):
                 * np.sum(np.square(heading_cur - heading_des))
 
         if self.penalty_type_on[PenaltyType.MAX_Y_LEFT_FOOT_HEEL_END] is not None:
-            E += self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL_END] \
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_LEFT_FOOT_HEEL_END] \
                  * np.square(self.skel.body('h_blade_left').to_world([-0.0824, -0.0486, 0.])[1])
 
         if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] is not None:
-            E += self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] \
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] \
                  * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
 
         return E
