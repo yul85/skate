@@ -58,7 +58,7 @@ def main():
 
     # file_path = 'jump_solution2/xbest.skcma'
 
-    file_path = 'hmr_skating_spin_bake4_model_201905230528/xbest.skcma'
+    file_path = 'hmr_skating_spin_bake4_model_201905240007/xbest.skcma'
     try:
         with open(file_path, 'r') as f:
             lines = f.read().splitlines()
