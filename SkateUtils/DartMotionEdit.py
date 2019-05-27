@@ -12,6 +12,8 @@ class DartSkelMotion(object):
         self.qs = []
         self.dqs = []
         self.fps = 30.
+        self.has_loop = False
+        self.loop = [0, 0]
 
     def __len__(self):
         assert len(self.qs) == len(self.dqs)
@@ -60,10 +62,31 @@ class DartSkelMotion(object):
             self.qs[i][5] += offset[2]
 
     def get_q(self, frame):
-        return self.qs[frame]
+        assert self.has_loop or frame < len(self.qs)
+
+        if self.has_loop:
+            loop_len = self.loop[1] + 1 - self.loop[0]
+            loop_idx_offset = self.loop[0]
+            _frame = int((frame - loop_idx_offset) % loop_len + loop_idx_offset)
+            i = int((frame-loop_idx_offset)//loop_len)
+
+            offset = self.qs[self.loop[1]][3:6] - self.qs[self.loop[0]][3:6]
+            offset[1] = 0.
+
+            q = copy.deepcopy(self.qs[_frame])
+            q[3:6] += offset
+
+            return self.qs[self.get_frame_looped(frame)]
+        else:
+            return self.qs[frame]
 
     def get_dq(self, frame):
-        return self.dqs[frame]
+        assert self.has_loop or frame < len(self.dqs)
+
+        if self.has_loop:
+            return self.dqs[self.get_frame_looped(frame)]
+        else:
+            return self.dqs[frame]
 
     def refine_dqs(self, skel, start_frame=0):
         for frame in range(start_frame, len(self.dqs)):
@@ -71,6 +94,21 @@ class DartSkelMotion(object):
                 self.dqs[frame] = np.asarray(skel.position_differences(self.qs[frame], self.qs[frame-1])) * self.fps
             else:
                 self.dqs[frame] = np.asarray(skel.position_differences(self.qs[frame+1], self.qs[frame])) * self.fps
+
+    def set_loop(self, begin_frame, end_frame):
+        assert(begin_frame >= 0 and end_frame < len(self.qs) and begin_frame < end_frame)
+        self.has_loop = True
+        self.loop[0], self.loop[1] = begin_frame, end_frame
+
+    def get_frame_looped(self, frame):
+        assert self.has_loop or frame < len(self.qs)
+
+        if frame < len(self.qs):
+            return frame
+        else:
+            loop_len = self.loop[1] + 1 - self.loop[0]
+            loop_offset = self.loop[0]
+            return int((frame - loop_offset) % loop_len + loop_offset)
 
 
 def axis2Euler(vec, offset_r=np.eye(3)):
