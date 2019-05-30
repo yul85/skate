@@ -172,6 +172,10 @@ class SkateDartEnv(gym.Env):
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_TOE_HEAD_DIFF] \
                  * np.square(self.skel.body('h_head').com()[1] - self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])[1])
 
+        if self.penalty_type_on[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] is not None:
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] \
+                 * np.square(self.calc_angular_momentum(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])) / (self.skel.mass() * self.skel.mass()))
+
 
         return E
 
@@ -266,6 +270,10 @@ class SkateDartEnv(gym.Env):
         if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] is not None:
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] \
                  * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
+
+        if self.penalty_type_on[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE_END] is not None:
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE_END] \
+                 * np.square(self.calc_angular_momentum(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])) / (self.skel.mass() * self.skel.mass()))
 
         return E
 
