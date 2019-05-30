@@ -51,5 +51,5 @@ class PenaltyType(enum.IntEnum):
     MAX_Y_LEFT_FOOT_HEEL_END = 35
     MAX_Y_RIGHT_FOOT_HEEL = 36
     MAX_Y_RIGHT_FOOT_HEEL_END = 37
-    
+
     MAX_Y_RIGHT_TOE_HEAD_DIFF = 38

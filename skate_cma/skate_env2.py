@@ -170,7 +170,7 @@ class SkateDartEnv(gym.Env):
 
         if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_TOE_HEAD_DIFF] is not None:
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_TOE_HEAD_DIFF] \
-                 * np.square(self.skel.body('h_head').com()[1] - self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
+                 * np.square(self.skel.body('h_head').com()[1] - self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.])[1])
 
 
         return E
