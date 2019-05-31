@@ -66,7 +66,7 @@ def main():
 
     x = [x0t]
 
-    file_path = 'hmr_skating_crossover_new_model_201905280648/xbest.skcma'
+    file_path = 'hmr_skating_crossover_new_model_201905310232/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))
