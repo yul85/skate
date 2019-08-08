@@ -6,6 +6,8 @@ import math
 from scipy.spatial.transform import Rotation
 from PyCommon.modules.Math import mmMath as mm
 
+from scipy.spatial.transform.rotation import Rotation
+
 
 class DartSkelMotion(object):
     def __init__(self):
@@ -56,15 +58,21 @@ class DartSkelMotion(object):
             self.qs[frame+i][3] += offset_x
             self.qs[frame+i][5] += offset_z
 
+    def rotate_by_offset(self, R_offset, origin):
+        for i in range(len(self.qs)):
+            self.qs[i][0:3] = mm.logSO3(np.dot(R_offset, mm.exp(self.qs[i][:3])))
+            self.qs[i][3:6] = np.dot(R_offset, self.qs[i][3:6] - origin) + origin
+
     def translate_by_offset(self, offset):
         for i in range(len(self.qs)):
-            self.qs[i][3] += offset[0]
-            self.qs[i][5] += offset[2]
+            # self.qs[i][3] += offset[0]
+            # self.qs[i][5] += offset[2]
+            self.qs[i][3:6] += offset
 
     def get_q(self, frame):
         assert self.has_loop or frame < len(self.qs)
 
-        if self.has_loop:
+        if self.has_loop and frame >= len(self.qs):
             loop_len = self.loop[1] + 1 - self.loop[0]
             loop_idx_offset = self.loop[0]
             _frame = int((frame - loop_idx_offset) % loop_len + loop_idx_offset)
@@ -74,9 +82,10 @@ class DartSkelMotion(object):
             offset[1] = 0.
 
             q = copy.deepcopy(self.qs[_frame])
-            q[3:6] += offset
+            q[3:6] += i * offset
 
-            return self.qs[self.get_frame_looped(frame)]
+            # return self.qs[self.get_frame_looped(frame)]
+            return q
         else:
             return self.qs[frame]
 
@@ -109,6 +118,165 @@ class DartSkelMotion(object):
             loop_len = self.loop[1] + 1 - self.loop[0]
             loop_offset = self.loop[0]
             return int((frame - loop_offset) % loop_len + loop_offset)
+
+    def interpolate(self, init_q, duration, first=True):
+        """
+        interpolate init_q to first or last of motion for duration
+        :param init_q:
+        :param duration:
+        :param first:
+        :return:
+        """
+        assert len(init_q) == len(self.qs[0])
+
+        dof = len(init_q)
+        if first:
+            for i in range(duration):
+                for dof_idx in range(0, dof, 3):
+                    if dof_idx != 3:
+                        R1, R2 = map(mm.exp, [init_q[dof_idx:dof_idx+3], self.qs[i][dof_idx:dof_idx+3]])
+                        self.qs[i][dof_idx:dof_idx+3] = mm.logSO3(mm.slerp(R1, R2, (i+1)/duration))
+
+        else:
+            raise NotImplementedError
+
+    def connect_to(self, init_q, interpolate_duration):
+        """
+        connect to other pose
+
+        :param init_q:
+        :param interpolate_duration:
+        :return:
+        """
+        assert len(init_q) == len(self.qs[0])
+
+        # align trajectory first
+        t_offset = init_q[3:6] - self.qs[0][3:6]
+        t_offset[1] = 0.
+        self.translate_by_offset(t_offset)
+
+        R_offset = mm.getSO3FromVectors(
+                    np.multiply(np.array([1., 0., 1.]), np.dot(mm.exp(self.qs[0][0:3]), mm.unitX())),
+                    np.multiply(np.array([1., 0., 1.]), np.dot(mm.exp(init_q[0:3]), mm.unitX()))
+        )
+        self.rotate_by_offset(R_offset, init_q[3:6])
+
+        dof = len(init_q)
+        for i in range(interpolate_duration-1):
+            for dof_idx in range(0, dof, 3):
+                if dof_idx != 3:
+                    R1, R2 = map(mm.exp, [init_q[dof_idx:dof_idx+3], self.qs[i][dof_idx:dof_idx+3]])
+                    self.qs[i][dof_idx:dof_idx+3] = mm.logSO3(mm.slerp(R1, R2, (i+1)/interpolate_duration))
+
+    def set_avg_x_vel(self, vel_x):
+        avg_vel_x = (self.qs[-1][3] - self.qs[0][3]) / len(self) * self.fps
+        for i in range(1, len(self)):
+            self.qs[i][3] += (vel_x - avg_vel_x) * i / self.fps
+
+    @staticmethod
+    def q_dq_mirror_to_xy(_q, _dq, skel):
+        """
+
+        :type skel: pydart2.Skeleton
+        :param skel:
+        :return:
+        """
+        mirror_T = np.eye(3)
+        mirror_T[2, 2] = -1.
+
+        def mirror_axis_angle(_axis_angle):
+            return mm.logSO3(np.dot(np.dot(mirror_T, mm.exp(_axis_angle)), mirror_T))
+
+        def mirror_ang_vel(_ang_vel):
+            return np.array([-_ang_vel[0], -_ang_vel[1], _ang_vel[2]])
+
+        dof = len(_q)
+        q = np.zeros_like(_q)
+        dq = np.zeros_like(_dq)
+        q[3:5] = _q[3:5]
+        q[5] = -_q[5]
+        dq[3:5] = _dq[3:5]
+        dq[5] = -_dq[5]
+        for dof_idx in range(0, dof, 3):
+            if dof_idx != 3:
+                dof_name = skel.dof(dof_idx).name
+                mirror_dof_name = dof_name
+                if 'left' in mirror_dof_name:
+                    mirror_dof_name = dof_name.replace('left', 'right')
+                elif 'right' in mirror_dof_name:
+                    mirror_dof_name = dof_name.replace('right', 'left')
+                mirror_dof_idx = skel.dof(mirror_dof_name).index_in_skeleton()
+                q[mirror_dof_idx:mirror_dof_idx+3] = mirror_ang_vel(_q[dof_idx:dof_idx+3])
+                dq[mirror_dof_idx:mirror_dof_idx+3] = mirror_ang_vel(_dq[dof_idx:dof_idx+3])
+
+        return q, dq
+
+    def mirror_to_xy(self, skel):
+        """
+
+        :type skel: pydart2.Skeleton
+        :param skel:
+        :return:
+        """
+        mirror_T = np.eye(3)
+        mirror_T[2, 2] = -1.
+
+        def mirror_ang_vel(_ang_vel):
+            return np.array([-_ang_vel[0], -_ang_vel[1], _ang_vel[2]])
+
+        qs_new = []
+        dqs_new = []
+        dof = len(self.qs[0])
+        for i in range(len(self)):
+            q = np.zeros_like(self.qs[i])
+            dq = np.zeros_like(self.dqs[i])
+            q[3:5] = self.qs[i][3:5]
+            q[5] = -self.qs[i][5]
+            dq[3:5] = self.dqs[i][3:5]
+            dq[5] = -self.dqs[i][5]
+            for dof_idx in range(0, dof, 3):
+                if dof_idx != 3:
+                    dof_name = skel.dof(dof_idx).name
+                    mirror_dof_name = dof_name
+                    if 'left' in mirror_dof_name:
+                        mirror_dof_name = dof_name.replace('left', 'right')
+                    elif 'right' in mirror_dof_name:
+                        mirror_dof_name = dof_name.replace('right', 'left')
+                    mirror_dof_idx = skel.dof(mirror_dof_name).index_in_skeleton()
+                    q[mirror_dof_idx:mirror_dof_idx+3] = mirror_ang_vel(self.qs[i][dof_idx:dof_idx+3])
+                    dq[mirror_dof_idx:mirror_dof_idx+3] = mirror_ang_vel(self.dqs[i][dof_idx:dof_idx+3])
+
+            qs_new.append(q)
+            dqs_new.append(dq)
+        del self.qs[:]
+        del self.dqs[:]
+        self.qs.extend(qs_new)
+        self.dqs.extend(dqs_new)
+
+    @staticmethod
+    def slerp(q_0, q_1, t):
+        """
+        slerp skel pose.
+        return q_0 when t=0, return q_1 when t=1.
+
+        :param q_0:
+        :param q_1:
+        :param t:
+        :return:
+        """
+        assert len(q_0) == len(q_1)
+
+        q = np.zeros_like(q_0)
+        dof = len(q_0)
+        for dof_idx in range(0, dof, 3):
+            if dof_idx != 3:
+                R1, R2 = map(mm.exp, [q_0[dof_idx:dof_idx+3], q_1[dof_idx:dof_idx+3]])
+                q[dof_idx:dof_idx+3] = mm.logSO3(mm.slerp(R1, R2, t))
+            else:
+                q[dof_idx:dof_idx+3] = (1.-t) * q_0[dof_idx:dof_idx+3] + t * q_1[dof_idx:dof_idx+3]
+
+        return q
+
 
 
 def axis2Euler(vec, offset_r=np.eye(3)):
