@@ -18,7 +18,7 @@ def main():
 
     ppo = PPO(env_name, 0, visualize_only=True)
     if not MOTION_ONLY:
-        # ppo.LoadModel('jump_model_201905091411/' + '1070' + '.pt')
+        ppo.LoadModel('model/' + 'param' + '.pt')
         # if os.path.exists('model/'+env_name+'.pt'):
         #     ppo.LoadModel('model/' + env_name + '.pt')
         pass
