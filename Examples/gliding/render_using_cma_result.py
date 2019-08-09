@@ -20,7 +20,8 @@ def main():
 
     ppo = PPO(env_name, 0, visualize_only=True)
     if not MOTION_ONLY:
-        # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '359' + '.pt')  # first endless example
+        ppo.LoadModel('gliding_model_201908081441/' + '728' + '.pt')
+        # ppo.LoadModel('gliding_model_201908081441/' + '165' + '.pt')  # first endless example
         # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '433' + '.pt')
         # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '471' + '.pt')
         # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '484' + '.pt')  # draw circle example

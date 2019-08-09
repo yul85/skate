@@ -468,7 +468,7 @@ if __name__ == "__main__":
     tic = time.time()
     ppo = None  # type: PPO
     if len(sys.argv) < 2:
-        ppo = PPO('crossover_fast_low_pd_ref', 4)
+        ppo = PPO('gliding', 4)
     else:
         ppo = PPO(sys.argv[1], int(sys.argv[2]))
 

@@ -72,7 +72,7 @@ class SkateDartEnv(gym.Env):
 
         self.current_frame = 0
         self.count_frame = 0
-        self.max_frame = 30*100
+        self.max_frame = 30*10
 
         self.ext_force = np.zeros(3)
         self.ext_force_duration = 0.
