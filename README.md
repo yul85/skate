@@ -2,9 +2,11 @@
 
 ## Requirements 
 
-Python 3 (tested on version 3.6)
-Dart
-Fltk
+* Python 3 (tested on version 3.6)
+
+* Dart
+
+* Fltk
 
 ## installation
 
