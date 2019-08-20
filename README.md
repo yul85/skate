@@ -1,10 +1,10 @@
 # Figure Skating Simulation
 
-### Requirements 
+## Requirements 
 
 Python 3 (tested on version 3.6)
 
-### installation
+## installation
 
 **Dart**
 
@@ -20,45 +20,45 @@ Python 3 (tested on version 3.6)
 
 **Pydart**
 
-`sudo apt install swig`
+    sudo apt install swig
 
 after virtual environment(venv) activates,
 
-`source venv/bin/activate
-git clone https://github.com/hpgit/pydart2.git
-cd pydart2
-pip install pyopengl==3.1.0 pyopengl-accelerate==3.1.0
-python setup.py build
-python setup.py install`
+    source venv/bin/activate
+    git clone https://github.com/hpgit/pydart2.git
+    cd pydart2
+    pip install pyopengl==3.1.0 pyopengl-accelerate==3.1.0
+    python setup.py build
+    python setup.py install
 
 
 **Fltk and Pyfltk**
 
-`sudo apt install libfltk1.3-dev`
+    sudo apt install libfltk1.3-dev
 
 Download pyfltk (https://sourceforge.net/projects/pyfltk/files/latest/download)
 
-`cd ~/Downloads
-tar xzf pyFltk[blabla].tar
-cd pyFltk[blabla]
-python setup.py build
-python setup.py install`
+    cd ~/Downloads
+    tar xzf pyFltk[blabla].tar
+    cd pyFltk[blabla]
+    python setup.py build
+    python setup.py install
 
 
 **misc for skate**
 
-`pip install pillow cvxopt scipy
-cd ~/PycharmProjects/skate/PyCommon/modules/GUI
-make -f GUI.makefile
-sudo apt install libgle3-dev`
+    pip install pillow cvxopt scipy
+    cd ~/PycharmProjects/skate/PyCommon/modules/GUI
+    make -f GUI.makefile
+    sudo apt install libgle3-dev
 
 
 **How to install control**
 
-`sudo apt-get install python3-tk
-pip install control`
+    sudo apt-get install python3-tk
+    pip install control
 
 **How to install slycot**
 
-`sudo apt-get install gfortran liblapack-dev
-pip install slycot`
+    sudo apt-get install gfortran liblapack-dev
+    pip install slycot
