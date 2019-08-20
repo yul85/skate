@@ -8,14 +8,14 @@ Python 3 (tested on version 3.6)
 
 1. dart
 
-` sudo apt install libeigen3-dev libassimp-dev libccd-dev libfcl-dev libboost-regex-dev libboost-system-dev libopenscenegraph-dev libnlopt-dev coinor-libipopt-dev libbullet-dev libode-dev liboctomap-dev libflann-dev libtinyxml2-dev liburdfdom-dev doxygen libxi-dev libxmu-dev liblz4-dev
-  git clone https://github.com/dartsim/dart.git
-  cd dart
-  mkdir build
-  cd build
-  cmake ..
-  make -j4
-  sudo make install`
+` sudo apt install libeigen3-dev libassimp-dev libccd-dev libfcl-dev libboost-regex-dev libboost-system-dev libopenscenegraph-dev libnlopt-dev coinor-libipopt-dev libbullet-dev libode-dev liboctomap-dev libflann-dev libtinyxml2-dev liburdfdom-dev doxygen libxi-dev libxmu-dev liblz4-dev'
+  'git clone https://github.com/dartsim/dart.git'
+  'cd dart'
+  'mkdir build'
+  'cd build'
+  'cmake ..'
+  'make -j4'
+  'sudo make install`
 
 2. pydart
 
