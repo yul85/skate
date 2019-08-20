@@ -1,4 +1,10 @@
-# Figure Skating Simulation
+# Figure Skating Simulation <!--from Video-->
+
+<!--Ri Yu, Hwangpil Park, and Jehee Lee PG 2019-->
+
+<!--[Go to Project Page](http://mrl.snu.ac.kr/~yu6120/)-->
+
+<!--![Alt text](/figures/teaser_jump.png)-->
 
 ## Requirements 
 
@@ -40,7 +46,7 @@ after virtual environment(venv) activates,
 
     sudo apt install libfltk1.3-dev
 
-Download pyfltk (https://sourceforge.net/projects/pyfltk/files/latest/download)
+Download [pyfltk](https://sourceforge.net/projects/pyfltk/files/latest/download)
 
     cd ~/Downloads
     tar xzf pyFltk[blabla].tar
@@ -66,3 +72,7 @@ Download pyfltk (https://sourceforge.net/projects/pyfltk/files/latest/download)
 
     sudo apt-get install gfortran liblapack-dev
     pip install slycot -->
+
+<!--
+## Demo
+-->
