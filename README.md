@@ -56,7 +56,7 @@ Download pyfltk (https://sourceforge.net/projects/pyfltk/files/latest/download)
     make -f GUI.makefile
     sudo apt install libgle3-dev
 
-
+<!--
 **How to install control**
 
     sudo apt-get install python3-tk
@@ -65,4 +65,4 @@ Download pyfltk (https://sourceforge.net/projects/pyfltk/files/latest/download)
 **How to install slycot**
 
     sudo apt-get install gfortran liblapack-dev
-    pip install slycot
+    pip install slycot -->
