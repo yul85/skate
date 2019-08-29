@@ -1,10 +1,12 @@
-# Figure Skating Simulation <!--from Video-->
+# Figure Skating Simulation from Video
 
-<!--Ri Yu, Hwangpil Park, and Jehee Lee PG 2019-->
 
-<!--[Go to Project Page](http://mrl.snu.ac.kr/~yu6120/)-->
+Ri Yu, Hwangpil Park, and Jehee Lee (Pacific Graphics 2019)
 
-<!--![Alt text](/figures/teaser_jump.png)-->
+Go to [Project Page](http://mrl.snu.ac.kr/research/ProjectSkate/skate.htm)
+
+![Alt text](figures/teaser_jump.png)
+
 
 ## Requirements 
 
@@ -14,7 +16,7 @@
 
 * Fltk
 
-## installation
+## Installation
 
 **Dart**
 
@@ -72,7 +74,3 @@ Download [pyfltk](https://sourceforge.net/projects/pyfltk/files/latest/download)
 
     sudo apt-get install gfortran liblapack-dev
     pip install slycot -->
-
-<!--
-## Demo
--->
