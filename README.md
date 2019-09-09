@@ -5,7 +5,7 @@ Ri Yu, Hwangpil Park, and Jehee Lee (Pacific Graphics 2019)
 
 Go to [Project Page](http://mrl.snu.ac.kr/research/ProjectSkate/skate.htm)
 
-![Alt text](figures/teaser_jump.png)
+![Alt text](figures/teaser_wide.png)
 
 
 ## Requirements 
