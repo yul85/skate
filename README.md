@@ -74,3 +74,17 @@ Download [pyfltk](https://sourceforge.net/projects/pyfltk/files/latest/download)
 
     sudo apt-get install gfortran liblapack-dev
     pip install slycot -->
+    
+**Citation**
+
+    @inproceedings{yu2019figure,
+      title={Figure Skating Simulation from Video},
+      author={Yu, Ri and Park, Hwangpil and Lee, Jehee},
+      booktitle={Computer Graphics Forum},
+      volume={38},
+      number={7},
+      pages={225--234},
+      year={2019},
+      organization={Wiley Online Library}
+    }
+    
