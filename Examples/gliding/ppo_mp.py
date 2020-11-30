@@ -5,18 +5,15 @@ from Examples.gliding.skate_env_using_cma_result import SkateDartEnv
 
 from collections import namedtuple
 from collections import deque
-from itertools import count
 import random
 import time
 import os
 
 from multiprocessing import Process, Pipe
-from multiprocessing.connection import wait
 
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
-import torchvision.transforms as T
 
 MultiVariateNormal = torch.distributions.Normal
 temp = MultiVariateNormal.log_prob

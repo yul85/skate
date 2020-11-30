@@ -7,7 +7,7 @@ import numpy as np
 
 import pydart2 as pydart
 
-from SkateUtils.DartMotionEdit import skelqs2bvh, DartSkelMotion
+from SkateUtils.DartMotionEdit import DartSkelMotion
 
 
 def main():
@@ -20,7 +20,11 @@ def main():
 
     ppo = PPO(env_name, 0, visualize_only=True)
     if not MOTION_ONLY:
-        ppo.LoadModel('gliding_model_201908081441/' + '728' + '.pt')
+        # ppo.LoadModel('gliding_model_201908081441/' + '728' + '.pt')
+        ppo.LoadModel('gliding_model_201908091236/' + '4025' + '.pt')   #pd gain = 600., 49.
+        # ppo.LoadModel('gliding_model_201908221504/' + '1013' + '.pt')     #pd gain = 1000, 60
+        # ppo.LoadModel('gliding_model_201908231637/' + '571' + '.pt')  # higher tracking weight, but fail....
+
         # ppo.LoadModel('gliding_model_201908081441/' + '165' + '.pt')  # first endless example
         # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '433' + '.pt')
         # ppo.LoadModel('crossover_fast_low_pd_ref_model_201906041148/' + '471' + '.pt')
@@ -51,6 +55,7 @@ def main():
 
     dart_world = ppo.env.world
     viewer_w, viewer_h = 1920, 1080
+    # viewer_w, viewer_h = 1600, 900
     viewer = hsv.hpSimpleViewer(rect=(0, 0, viewer_w + 300, 1 + viewer_h + 55), viewForceWnd=False)
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(ppo.env.ref_world, (194,207,245), yr.POLYGON_FILL))
     if not MOTION_ONLY:
@@ -115,7 +120,7 @@ def main():
         viewer.setMaxFrame(len(ppo.env.ref_motion)-1)
     else:
         viewer.setSimulateCallback(simulateCallback)
-        viewer.setMaxFrame(301)
+        viewer.setMaxFrame(1001)
         CAMERA_TRACKING = False
         if CAMERA_TRACKING:
             cameraTargets = [None] * (viewer.getMaxFrame()+1)

@@ -79,7 +79,7 @@ def main():
         state = ppo.env.state()
         action_dist, _ = ppo.model(torch.tensor(state.reshape(1, -1)).float())
         action = action_dist.loc.detach().numpy()
-        if frame == 15:
+        if False and frame == 15:
             ppo.env.ext_force = np.array([0., 0., 200.])
             ppo.env.ext_force_duration = 0.2
         res = ppo.env.step(action[0])

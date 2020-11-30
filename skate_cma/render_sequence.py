@@ -16,8 +16,15 @@ def main():
 
     pydart.init()
 
-    env_name = 'sequence'
-    max_time = 2.
+    # env_name = 'sequence'
+    # max_time = 14.5
+    # env_name = 'sequence1'
+    # max_time = 15.3
+    # max_time = 15.8
+    # env_name = 'sequence3'
+    # max_time = 15.8
+    env_name = 'sequence4'
+    max_time = 16.3
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
         skkey_states = pickle.load(skkey_file)
@@ -56,7 +63,12 @@ def main():
 
     # file_path = 'jump_solution2/xbest.skcma'
 
-    file_path = 'hmr_skating_crossover_iterate_model_201905211019/xbest.skcma'
+    # file_path = 'sequence_model_201906071955/xbest.skcma'
+    # file_path = 'sequence1_model_201906201114/xbest.skcma'
+    # file_path = 'sequence1_model_201906271815/xbest.skcma'
+    # file_path = 'sequence2_model_201906241646/xbest.skcma'
+    # file_path = 'sequence3_model_201907101130/xbest.skcma'
+    file_path = 'sequence4_model_201907121418/xbest.skcma'
     try:
         with open(file_path, 'r') as f:
             lines = f.read().splitlines()
@@ -80,7 +92,7 @@ def main():
     dart_world = env.world
     viewer_w, viewer_h = 1280, 720
     viewer = hsv.hpSimpleViewer(rect=(0, 0, viewer_w + 300, 1 + viewer_h + 55), viewForceWnd=False)
-    viewer.doc.addRenderer('MotionModel', yr.DartRenderer(env.ref_world, (194,207,245), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('MotionModel', yr.DartRenderer(env.ref_world, (194,207,245), yr.POLYGON_FILL), visible=False)
     if not MOTION_ONLY:
         viewer.doc.addRenderer('controlModel', yr.DartRenderer(dart_world, (255,255,255), yr.POLYGON_FILL))
         viewer.doc.addRenderer('contact', yr.VectorsRenderer(rd_contact_forces, rd_contact_positions, (255,0,0)))

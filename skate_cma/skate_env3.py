@@ -15,7 +15,8 @@ class SkateDartEnv(gym.Env):
         self.world.control_skel = self.world.skeletons[1]
         self.skel = self.world.skeletons[1]
         # self.Kp, self.Kd = 400., 40.
-        self.Kp, self.Kd = 1000., 60.
+        # self.Kp, self.Kd = 1000., 60.
+        self.Kp, self.Kd = 600., 49.
 
         self.torque_max = 1000.
 
@@ -168,6 +169,10 @@ class SkateDartEnv(gym.Env):
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL] \
                  * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
 
+        if self.penalty_type_on[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] is not None:
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] \
+                 * np.square(self.calc_angular_momentum(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.]))[1] / (self.skel.mass() * self.skel.mass()))
+
         if self.penalty_type_on[PenaltyType.LEFT_FOOT_HEGIHT] is not None:
             E += self.penalty_type_weight[PenaltyType.LEFT_FOOT_HEGIHT] \
                 * np.square(self.skel.body('h_blade_left').to_world([0., -0.0486, 0.])[1] - self.penalty_type_on[PenaltyType.LEFT_FOOT_HEGIHT])
@@ -265,6 +270,11 @@ class SkateDartEnv(gym.Env):
         if self.penalty_type_on[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] is not None:
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_RIGHT_FOOT_HEEL_END] \
                  * np.square(self.skel.body('h_blade_right').to_world([-0.0824, -0.0486, 0.])[1])
+
+        if self.penalty_type_on[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE_END] is not None:
+            E -= self.penalty_type_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE_END] \
+                 * np.square(self.calc_angular_momentum(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.]))[1] / (self.skel.mass() * self.skel.mass()))
+
 
         return E
 

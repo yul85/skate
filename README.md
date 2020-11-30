@@ -8,6 +8,9 @@ Go to [Project Page](http://mrl.snu.ac.kr/research/ProjectSkate/skate.htm)
 ![Alt text](figures/teaser_wide.png)
 
 
+## Blog
+http://mrl.snu.ac.kr/blog/ProjectSkate
+
 ## Requirements 
 
 * Python 3 (tested on version 3.6)

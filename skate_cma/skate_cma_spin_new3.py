@@ -17,6 +17,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] = 5.
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE_END] = 5.
     penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_END] = 3.
+    penalty_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM] = 3.
     penalty_weight[PenaltyType.LEFT_FOOT_CONTACT] = 5.
     penalty_weight[PenaltyType.LEFT_FOOT_CONTACT_END] = 5.
     penalty_weight[PenaltyType.RIGHT_FOOT_CONTACT] = 10.
@@ -76,6 +77,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option1[PenaltyType.COM_IN_RIGHT_FOOT_TOE_END] = True
         penalty_option1[PenaltyType.RIGHT_FOOT_TOE_CONTACT] = True
         penalty_option1[PenaltyType.RIGHT_FOOT_TOE_CONTACT_END] = True
+        penalty_option1[PenaltyType.MAX_Y_ANGULAR_MOMENTUM] = True
 
     elif i == 2:
         # spin
@@ -89,6 +91,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
         penalty_option0[PenaltyType.COM_IN_RIGHT_FOOT_TOE_END] = True
         penalty_option0[PenaltyType.RIGHT_FOOT_TOE_CONTACT] = True
         penalty_option0[PenaltyType.RIGHT_FOOT_TOE_CONTACT_END] = True
+        penalty_option0[PenaltyType.MAX_Y_ANGULAR_MOMENTUM] = True
 
         # spin 2
         penalty_option1[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] = True
@@ -136,7 +139,7 @@ def objective(i, penalty_option0, penalty_option1, penalty_weight):
 if __name__ == '__main__':
     pydart.init()
     if len(sys.argv) == 1:
-        cma = HpCma('hmr_skating_spin_new4', 24, sigma=0.1, max_time=3.6, cma_timeout=3600)
+        cma = HpCma('hmr_skating_spin_new5', 24, sigma=0.1, max_time=3.6, cma_timeout=3600)
     elif len(sys.argv) == 5:
         cma = HpCma(sys.argv[1], int(sys.argv[2]), sigma=float(sys.argv[3]), max_time=float(sys.argv[4]))
     elif len(sys.argv) == 6:
@@ -153,7 +156,7 @@ if __name__ == '__main__':
         """
         cma = HpCma(sys.argv[1], int(sys.argv[2]), sigma=float(sys.argv[3]), max_time=float(sys.argv[4]), start_state_num=int(sys.argv[5]), start_state_sol_dir=sys.argv[6], cma_timeout=int(sys.argv[7]))
     else:
-        cma = HpCma('hmr_skating_spin_new4', 1)
+        cma = HpCma('hmr_skating_spin_new5', 1)
         # cma = HpCma('jump0507_2', 4, sigma=0.1, max_time=2., start_state_num=1, start_state_sol_dir='jump0507_2_model_201905191614/')
 
     dq = np.zeros(57)

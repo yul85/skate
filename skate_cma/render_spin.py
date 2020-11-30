@@ -16,8 +16,6 @@ def main():
 
     pydart.init()
 
-    # env_name = 'hmr_skating_basic4'
-    # env_name = 'jump0507_2'
     env_name = 'hmr_skating_spin_bake4'
     max_time = 2.
 
@@ -48,7 +46,7 @@ def main():
 
     q = [skkey_states[0].angles.copy()]
     dq = [np.zeros_like(q[0])]
-    # dq[0][3] = 1.
+    dq[0][3] = 1.
 
     x0t = np.zeros_like(q[0][6:])
     frame_offset = [0]
@@ -58,7 +56,8 @@ def main():
 
     # file_path = 'jump_solution2/xbest.skcma'
 
-    file_path = 'hmr_skating_spin_bake4_model_201905240007/xbest.skcma'
+    # file_path = 'hmr_skating_spin_bake5_model_201905270448/xbest.skcma'
+    file_path = 'hmr_skating_spin_bake4_model_201905280533/xbest.skcma'
     try:
         with open(file_path, 'r') as f:
             lines = f.read().splitlines()
@@ -121,7 +120,7 @@ def main():
         com = env.skel.com()
         com[1] = 0.
         rd_COM.append(com)
-        # print(env.skel.com())
+        print(env.skel.com())
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.setMaxFrame(cumulative_frame_duration[-1]-1)

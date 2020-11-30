@@ -10,6 +10,7 @@ from SkateUtils.KeyPoseState import State, revise_pose, IKType
 import math
 import numpy as np
 import pickle
+import copy
 
 
 class DofObjectInfoWnd(hpObjectInfoWnd):
@@ -24,6 +25,7 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         self.states = []  # type: list[State]
         self.num_dof = dofs
         self.root_state = None  # type: State
+        self.cur_state = self.root_state  # type: State
         self.skel = None  # type: pydart.Skeleton
         self.ref_skel = None  # type: pydart.Skeleton
 
@@ -50,6 +52,10 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         add_state_btn.callback(self.addState)
         del_state_btn = Fl_Button(100, self.valObjOffset, 80, 20, 'del state')
         del_state_btn.callback(self.delState)
+        # copy_state_btn = Fl_Button(100, self.valObjOffset, 80, 20, 'copy state')
+        # copy_state_btn.callback(self.copyState)
+        inversion_btn = Fl_Button(100, self.valObjOffset, 100, 20, 'LR inversion')
+        inversion_btn.callback(self.left_right_inversion)
         renew_name_btn = Fl_Button(190, self.valObjOffset, 80, 20, 'renew name')
         del_state_btn.hide()
         renew_name_btn.hide()
@@ -89,6 +95,31 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
         if file_chooser.count() == 1:
             with open(file_chooser.value(), 'rb') as f:
                 self.states = pickle.load(f)  # type: list[State]
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
+                # self.states.pop(0)
                 # self.states.pop(0)
                 # self.states.pop(0)
                 # self.states.pop(0)
@@ -134,7 +165,29 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
     def delState(self, ptr):
         pass
 
-    def changeState(self, ptr):
+    def copyState(self, ptr):
+        new_state_name = 'State' + str(len(self.states))
+        self.next_state_choice.remove(len(self.states))
+        self.state_name_choice.add(new_state_name)
+        self.next_state_choice.add(new_state_name)
+        self.next_state_choice.add('None')
+        self.state_name_choice.value(len(self.states))
+        self.next_state_choice.value(len(self.states) + 1)
+
+        # self.states.append(State(new_state_name, 1., 0., 0., np.zeros(self.num_dof)))
+        self.states.append(State(new_state_name, 1., 0., 0., self.states[1].angles))
+        self.valObjects['dt'].value(1.)
+
+        if len(self.states) == 1:
+            self.root_state = self.states[0]
+        else:
+            self.states[-2].set_next(self.states[-1])
+
+        if self.ref_skel is not None:
+            self.ref_skel.set_positions(self.states[-1].angles)
+            self.viewer.motionViewWnd.glWindow.redraw()
+
+    def changeState(self, ptr=None):
         """
 
         :param ptr:
@@ -183,6 +236,50 @@ class DofObjectInfoWnd(hpObjectInfoWnd):
 
         revise_pose(self.ref_skel, self.getSelectedState(), ik_type)
         self.changeState(self.state_name_choice)
+
+    def left_right_inversion(self, ptr):
+        ori_q = self.ref_skel.q
+        reversed_q = copy.deepcopy(ori_q)
+        # for i in range(self.ref_skel.dofs):
+        #     name = self.ref_skel.name_to_dof(i)
+        #     if name has left
+        for i in range(9):
+            if (i) % 3 == 0:
+                reversed_q[i + 15] = -ori_q[i + 6]
+                reversed_q[i + 6] = -ori_q[i + 15]
+            elif (i-1) % 3 == 0:
+                reversed_q[i + 15] = -ori_q[i + 6]
+                reversed_q[i + 6] = -ori_q[i + 15]
+            else:
+                reversed_q[i+15] = ori_q[i+6]
+                reversed_q[i+6] = ori_q[i+15]
+
+        for i in range(9):
+            if (i-1) % 3 == 0:
+                reversed_q[i + 24] = -ori_q[i + 24]
+            elif (i) % 3 == 0:
+                reversed_q[i + 24] = -ori_q[i + 24]
+            # else:
+            #     reversed_q[i+24] = ori_q[i+24]
+
+        for i in range(12):
+            if (i) % 3 == 0:
+                reversed_q[i + 45] = -ori_q[i + 33]
+                reversed_q[i + 33] = -ori_q[i + 45]
+            elif (i-1) % 3 == 0:
+                reversed_q[i + 45] = -ori_q[i + 33]
+                reversed_q[i + 33] = -ori_q[i + 45]
+            else:
+                reversed_q[i+45] = ori_q[i+33]
+                reversed_q[i + 33] = ori_q[i + 45]
+
+        self.ref_skel.set_positions(reversed_q)
+
+        selected_state = self.getSelectedState()
+        selected_state.angles = reversed_q
+        self.changeState()
+
+        self.viewer.motionViewWnd.glWindow.redraw()
 
     def add1DSlider(self, name, minVal, maxVal, valStep, initVal):
         self.begin()
@@ -238,12 +335,17 @@ if __name__ == '__main__':
     skel = world.skeletons[1]
     print('skeleton position OK')
 
-    viewer_w, viewer_h = 900, 1200
+    # viewer_w, viewer_h = 900, 1200
+    # viewer_w, viewer_h = 960, 540
+    viewer_w, viewer_h = 1920, 1080
     viewer = DofEditingViewer(rect=(0, 0, viewer_w + 900, 1 + viewer_h + 55), panelWidth=300, numColumn=3, dofs=skel.num_dofs())
     viewer.record(False)
     viewer.setMaxFrame(1000)
     viewer.objectInfoWnd.skel = skel
     viewer.objectInfoWnd.ref_skel = ref_world.skeletons[1]
+
+    CAMERA_TRACKING = True
+    CAMERA_TRACKING = False
 
     rd_ext_force_vec = []
     rd_ext_force_ori = []
@@ -251,10 +353,10 @@ if __name__ == '__main__':
     com_ref = []
 
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(ref_world, (194,207,245), yr.POLYGON_FILL))
-    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL))
+    viewer.doc.addRenderer('controlModel', yr.DartRenderer(world, (255,255,255), yr.POLYGON_FILL), visible=False)
     viewer.doc.addRenderer('Ext force', yr.VectorsRenderer(rd_ext_force_vec,rd_ext_force_ori, (0, 255, 0)))
-    viewer.doc.addRenderer('COM', yr.PointsRenderer(com))
-    viewer.doc.addRenderer('COM_ref', yr.PointsRenderer(com_ref, (0, 255, 0)))
+    viewer.doc.addRenderer('COM', yr.PointsRenderer(com), visible=False)
+    viewer.doc.addRenderer('COM_ref', yr.PointsRenderer(com_ref, (0, 255, 0)), visible=False)
 
     viewer.startTimer(1/30.)
 
@@ -315,6 +417,15 @@ if __name__ == '__main__':
             state[0] = viewer.objectInfoWnd.root_state
             skel.set_positions(state[0].angles)
         print(skel.com()[1])
+
+        left_blade_front_point = skel.body("h_blade_left").to_world((0.0216 + 0.104, -0.0216 - 0.027, 0.))
+        left_blade_rear_point = skel.body("h_blade_left").to_world((0.0216 - 0.104, -0.0216 - 0.027, 0.))
+        print('Front blade point: ', left_blade_front_point)
+        print('Rear blade point: ', left_blade_rear_point)
+
+        dir_vec_ = left_blade_front_point - left_blade_rear_point
+        dir_vec_[1] = 0.
+        print("direction vector: ", dir_vec_)             #0.10976229 0.         0.17668021
         for i in range(40):
             skel.body('h_pelvis').add_ext_force(state[0].ext_force)
             skel.set_forces(skel.get_spd(state[0].angles, h, Kp, Kd))
@@ -330,6 +441,8 @@ if __name__ == '__main__':
                 viewer.objectInfoWnd.changeState(viewer.objectInfoWnd.state_name_choice)
                 print('Transition: ', prev_state_name, ' -> ', state[0].name)
 
+            DofObjectInfoWnd.cur_state = state[0]
+
         del rd_ext_force_vec[:]
         del rd_ext_force_ori[:]
         del com[:]
@@ -343,6 +456,15 @@ if __name__ == '__main__':
         com.append(com_after)
         com_ref.append(ref_world.skeletons[1].com())
         com_ref[0][1] = 0.
+
+    if CAMERA_TRACKING:
+        cameraTargets = [None] * (viewer.getMaxFrame() + 1)
+
+        def postFrameCallback_Always(frame):
+            if CAMERA_TRACKING:
+                cameraTargets[frame] = world.skeletons[1].body(0).com()
+                viewer.setCameraTarget(cameraTargets[frame])
+        viewer.setPostFrameCallback_Always(postFrameCallback_Always)
 
     viewer.setSimulateCallback(simulateCallback)
     viewer.show()

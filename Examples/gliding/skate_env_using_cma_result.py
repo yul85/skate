@@ -40,10 +40,16 @@ class SkateDartEnv(gym.Env):
         self.w_e = 0.15
         self.w_c = 0.1
 
+        # self.w_p = 0.75
+        # self.w_v = 0.07
+        # self.w_e = 0.11
+        # self.w_c = 0.07
+
         self.exp_p = 2.
         self.exp_v = 0.1
         # self.exp_e = 40.
-        self.exp_e = 2.
+        # self.exp_e = 2.
+        self.exp_e = 10.
         self.exp_c = 10.
 
         self.body_num = self.skel.num_bodynodes() - 2

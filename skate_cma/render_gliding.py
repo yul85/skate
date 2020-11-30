@@ -12,7 +12,7 @@ from scipy.spatial.transform import Rotation
 import pydart2 as pydart
 from PyCommon.modules.Math import mmMath as mm
 
-from SkateUtils.DartMotionEdit import skelqs2bvh
+from SkateUtils.DartMotionEdit import skelqs2bvh, DartSkelMotion
 
 def axis2Euler(vec):
     r = Rotation.from_rotvec(vec).as_dcm()
@@ -37,6 +37,8 @@ def main():
     # for bvh file
     bvh_qs = []
     bvh_file_name = 'gliding.bvh'
+    skel_file_name = 'gliding.skmo'
+    motion = DartSkelMotion()
 
     angles = []
     count = 0
@@ -66,7 +68,8 @@ def main():
 
     x = [x0t]
     # file_path = 'hmr_skating_gliding_model_201908071138/xbest.skcma'    # com vel = [1.0, 0.0, 0.0]
-    file_path = 'hmr_skating_gliding_model_201908071718/xbest.skcma'    # com vel = [0.5, 0.0, 0.0]
+    # file_path = 'hmr_skating_gliding_model_201908071718/xbest.skcma'    # com vel = [0.5, 0.0, 0.0]
+    file_path = 'hmr_skating_gliding_model_201908231013/xbest.skcma'
 
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
@@ -84,7 +87,7 @@ def main():
     rd_contact_forces = [None]
     rd_COM = [None]
     dart_world = env.world
-    viewer_w, viewer_h = 1280, 720
+    viewer_w, viewer_h = 1920, 1080
     viewer = hsv.hpSimpleViewer(rect=(0, 0, viewer_w + 300, 1 + viewer_h + 55), viewForceWnd=False)
     viewer.doc.addRenderer('MotionModel', yr.DartRenderer(env.ref_world, (194,207,245), yr.POLYGON_FILL))
     if not MOTION_ONLY:
@@ -107,6 +110,7 @@ def main():
         dq[0] = np.asarray(env.skel.dq)
 
         bvh_qs.append(env.skel.q)
+        motion.append(q[0], dq[0])
 
         # contact rendering
         contacts = env.world.collision_result.contacts
@@ -133,6 +137,7 @@ def main():
     Fl.run()
 
     # skelqs2bvh(bvh_file_name, env.skel, bvh_qs)
+    # motion.save(skel_file_name)
 
 if __name__ == '__main__':
     main()

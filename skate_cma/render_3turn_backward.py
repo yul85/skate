@@ -27,7 +27,7 @@ def main():
     pydart.init()
 
     env_name = 'hmr_skating_3turn_back'
-    max_time = 1.3
+    max_time = 1.
 
     with open(env_name + '.skkey', 'rb') as skkey_file:
         skkey_states = pickle.load(skkey_file)
@@ -66,7 +66,8 @@ def main():
 
     x = [x0t]
 
-    file_path = 'hmr_skating_3turn_back_model_201906042137/xbest.skcma'
+    # file_path = 'hmr_skating_3turn_back_model_201906042137/xbest.skcma'
+    file_path = 'hmr_skating_3turn_back_model_201906071321/xbest.skcma'
 
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()

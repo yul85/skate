@@ -8,7 +8,6 @@ from skate_cma.BSpline import BSpline
 from skate_cma.PenaltyType import PenaltyType
 from PyCommon.modules.Math import mmMath as mm
 
-
 class SkateDartEnv(gym.Env):
     def __init__(self, env_name='speed_skating'):
         self.world = NHWorldV2(1./1200., '../data/skel/skater_3dof_with_ground.skel')
@@ -16,6 +15,7 @@ class SkateDartEnv(gym.Env):
         self.skel = self.world.skeletons[1]
         # self.Kp, self.Kd = 400., 40.
         self.Kp, self.Kd = 1000., 60.
+        # self.Kp, self.Kd = 600., 49.
 
         self.torque_max = 1000.
 
@@ -176,6 +176,9 @@ class SkateDartEnv(gym.Env):
             E -= self.penalty_type_weight[PenaltyType.MAX_Y_ANGULAR_MOMENTUM_RIGHT_TOE] \
                  * np.square(self.calc_angular_momentum(self.skel.body('h_blade_right').to_world([0.1256, -0.0486, 0.]))[1] / (self.skel.mass() * self.skel.mass()))
 
+        if self.penalty_type_on[PenaltyType.LEFT_FOOT_HEGIHT] is not None:
+            E += self.penalty_type_weight[PenaltyType.LEFT_FOOT_HEGIHT] \
+                * np.square(self.skel.body('h_blade_left').to_world([0., -0.0486, 0.])[1] - self.penalty_type_on[PenaltyType.LEFT_FOOT_HEGIHT])
 
         return E
 
@@ -292,7 +295,9 @@ class SkateDartEnv(gym.Env):
     def _step(self, _action):
         action = np.hstack((np.zeros(6), _action))
         self.ref_skel.set_positions(action)
-
+        # if self.world.time() > 3.0:
+        #     print("com heading_cur : ", np.dot(self.skel.body('h_pelvis').world_transform()[:3, :3], mm.unitX()))
+        # print("t: ", self.world.time())
         self.recent_torque_sum = 0.
         for i in range(self.step_per_frame):
             torque = np.clip(self.skel.get_spd(self.ref_skel.q, self.world.time_step(), self.Kp, self.Kd), -self.torque_max, self.torque_max)

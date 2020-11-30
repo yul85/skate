@@ -37,6 +37,7 @@ def main():
     # for bvh file
     bvh_qs = []
     bvh_file_name = 'crossover_new.bvh'
+    bvh_file_name = 'crossover_fast.bvh'
 
     angles = []
     count = 0

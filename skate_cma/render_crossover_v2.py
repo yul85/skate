@@ -70,7 +70,7 @@ def main():
     # file_path = 'jump_solution2/xbest.skcma'
 
     # file_path = 'hmr_skating_crossover_iterate_v2_model_201905241117/xbest.skcma'   #good
-    file_path = 'hmr_skating_crossover_iterate_v2_model_201905250635/xbest.skcma'
+    file_path = 'hmr_skating_crossover_iterate_v2_model_201905270346/xbest.skcma'
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
         state_list_in_file = list(map(int, [line.split()[0] for line in lines]))

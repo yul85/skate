@@ -26,6 +26,7 @@ VIEW_PERSPECTIVE = 3
 # Define
 FLAG_SHADOW = False
 FLAG_REFLECTION = True
+# FLAG_REFLECTION = False
 FOG_ON = True
 GRID_ON = False
 
@@ -592,6 +593,9 @@ class GlWindow(Fl_Gl_Window):
             glHint(GL_FOG_HINT, GL_NICEST)
             glFogf(GL_FOG_START, 20.)
             glFogf(GL_FOG_END, 25.0)
+            # glFogf(GL_FOG_START, 40.)
+            # glFogf(GL_FOG_END, 45.0)
+
             glEnable(GL_FOG)
 
 
@@ -905,7 +909,7 @@ class MotionViewer(Fl_Window):
 
                 if self.dumping_end_frame == self.frame:
                     self.dumping = False
-                    os.system('ffmpeg -loglevel 0 -framerate 30 -s 1280x720 -i dump/'+self.dumping_session+'/%04d.png -vcodec libx264 -crf 20 -pix_fmt yuv420p dump/' + self.dumping_session+'.mp4')
+                    os.system('ffmpeg -loglevel 0 -framerate 30 -s 1920x1080 -i dump/'+self.dumping_session+'/%04d.png -vcodec libx264 -crf 20 -pix_fmt yuv420p dump/' + self.dumping_session+'.mp4')
                     os.system('ffplay -loglevel 0 dump/'+self.dumping_session+'.mp4 &')
                     self.pause()
 
@@ -1210,7 +1214,6 @@ class ControlPanel(Fl_Window):
         self.parent.dumping_session = session_name + strftime("%Y%m%d%H%M")
         if not os.path.exists(self.parent.dumping_session):
             os.makedirs('dump/'+self.parent.dumping_session)
-
         self.parent.dumping_start_frame = int(self.dump_start_frame.value())
         self.parent.dumping_end_frame = int(self.dump_end_frame.value())
         self.parent.goToFrame(self.parent.dumping_start_frame-1)

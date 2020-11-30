@@ -3,6 +3,7 @@ import numpy as np
 import pydart2 as pydart
 import math
 import IKsolve_double_stance
+import IKsolveGlobal
 import dart_ik
 import copy
 import pickle
@@ -10,6 +11,8 @@ import pickle
 from fltk import *
 from PyCommon.modules.GUI import hpSimpleViewer as hsv
 from PyCommon.modules.Renderer import ysRenderer as yr
+
+from os.path import join
 
 render_vector = []
 render_vector_origin = []
@@ -35,6 +38,8 @@ class MyWorld(pydart.World):
         self.duration = 0
         self.skeletons[0].body('ground').set_friction_coeff(0.02)
         self.ground_height = self.skeletons[0].body(0).to_world((0., 0.025, 0.))[1]
+        # self.ground_height = -0.5
+        # print("self.ground_height: ", self.ground_height)
 
         skel = self.skeletons[2]
         # print("mass: ", skel.m, "kg")
@@ -74,19 +79,39 @@ class MyWorld(pydart.World):
         # self.load_poses(skel, 'data/mocap/skate_joint_3d_pos.txt')
         # self.load_poses(skel, 'data/mocap/spin_joint_3d_pos.txt')
         # self.load_poses(skel, 'data/mocap/crossover1_joint_3d_pos.txt')
-        self.load_poses(skel, 'data/mocap/3turn_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/3turn_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/crossover_new_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/back_3turn_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/back_crossover_joint_3d_pos.txt')
+        # self.load_poses(skel, 'data/mocap/forward_gliding_joint_3d_pos.txt')
+
+        # Test Moving Camera result!
+        file_dir = 'data/mocap/movingcam/'
+        # fn = 'bc_small'
+        # fn = 'backflip_a'
+        # self.load_poses(skel, join(file_dir, fn+'_result_joint_3d_pos.txt'))
+        file_dir = 'data/mocap/'
+        fn = 'spiral1'
+        self.load_poses(skel, join(file_dir, fn+'_joint_3d_pos.txt'))
+
         state_q = []
         self.state_list = []
         for i in range(self.fn):
             state_q.append(self.q_list[i])
-            state_name = "3turn"+str(i)
+            state_name = "pos"+str(i)
             # print("name: ", state_name)
+            state_q[i][4] += 0.5
             self.state_list.append(State(state_name, 0.3, 0.0, 0.0, state_q[i]))
 
         for i in range(self.fn-1):
             self.state_list[i].set_next(self.state_list[i+1])
 
-        filename = 'hmr_skating_3turn.skkey'
+        # filename = 'hmr_skating_3turn.skkey'
+        # filename = 'hmr_skating_gliding.skkey'
+
+        # filename = 'sfv_'+fn + '.skkey'
+        filename = 'sfv_' + fn + '_global.skkey'
+        print("filename: ", filename)
 
         with open(filename, 'wb') as f:
             pickle.dump(self.state_list, f)
@@ -149,7 +174,9 @@ class MyWorld(pydart.World):
         # print("cur angle: ", self.curr_state.angles)
 
         if ik_on:
-            self.ik = IKsolve_double_stance.IKsolver(skel, self.skeletons[3], self.dt)
+            # self.ik = IKsolve_double_stance.IKsolver(skel, self.skeletons[3], self.dt)
+            self.ik = IKsolveGlobal.IKsolver(skel, self.skeletons[3], self.dt)
+
             print('IK ON')
 
         # print("after:", state00.angles)
@@ -220,6 +247,7 @@ class MyWorld(pydart.World):
         for f in range(fn):
             self.ik.clean_constraints()
 
+
             # # self.ik.add_orientation_const('h_pelvis', np.asarray([0., 0., 0.]))
 
             self.ik.add_joint_pos_const('j_heel_right', self.position_storage[fi])
@@ -232,7 +260,7 @@ class MyWorld(pydart.World):
 
             self.ik.add_joint_pos_const('j_hand_right', self.position_storage[fi + 6])
             self.ik.add_joint_pos_const('j_forearm_right', self.position_storage[fi + 7])
-            self.ik.add_joint_pos_const('j_scapula_right', self.position_storage[fi + 8])
+            # self.ik.add_joint_pos_const('j_scapula_right', self.position_storage[fi + 8])
             # self.ik.add_position_const('h_scapula_right', self.position_storage[fi + 8], [0.0, 0.397146, 0.169809])
             self.ik.add_joint_pos_const('j_bicep_right', self.position_storage[fi + 8])
 
@@ -281,8 +309,8 @@ class MyWorld(pydart.World):
             q = skel.q
             # q[0:3] = np.asarray([0., -0.785, 0.5])
             # q[3:6] = np.asarray([0., 0.01, 0.])
-            q[0:2] = np.asarray([0.0, 0.0])
-            q[3:6] = np.asarray([0.0, 0.0, 0.0])
+            # q[0:2] = np.asarray([0.0, 0.0])
+            # q[3:6] = np.asarray([0.0, 0.0, 0.0])
             skel.set_positions(q)
 
             self.q_list.append(skel.q)
@@ -480,7 +508,7 @@ class MyWorld(pydart.World):
                 render_vector_origin.append(self.rd_contact_positions[ii])
 
 if __name__ == '__main__':
-    print('Example: Skating -- the Salchow Jump')
+    print('Solve IK ')
 
     pydart.init()
     print('pydart initialization OK')
@@ -491,10 +519,9 @@ if __name__ == '__main__':
     skel = world.skeletons[2]
 
     q = world.curr_state.angles
-
     skel.set_positions(q)
     print('skeleton position OK')
-
+    print("COM height: ", skel.com()[1])
     # print('[Joint]')
     # for joint in skel.joints:
     #     print("\t" + str(joint))
@@ -514,6 +541,7 @@ if __name__ == '__main__':
 
     viewer.doc.addRenderer('bladeForce', yr.WideArrowRenderer(blade_force, blade_force_origin, (0, 0, 255)))
     viewer.motionViewWnd.glWindow.planeHeight = 0.
+    # viewer.motionViewWnd.glWindow.planeHeight = -0.5
 
     def simulateCallback(frame):
         for i in range(40):
